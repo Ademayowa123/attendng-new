@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Activity Log</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Activity Log</h1>
+                    <p><span id="schoolName"></span></p>
+                </div>
+            </header>
+
+            <div class="card">
+
+                <div class="table-scroll">
+                <table class="activity-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                    <thead>
+                        <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
+                            <th class="sticky-col1" style="padding:10px 8px; min-width:150px;">Date &amp; time</th>
+                            <th style="padding:10px 8px; min-width:140px;">Actor</th>
+                            <th style="padding:10px 8px; min-width:170px;">Action</th>
+                            <th style="padding:10px 8px; min-width:150px;">Target</th>
+                            <th style="padding:10px 8px; min-width:220px;">Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                        <!-- populated at runtime -->
+                    </tbody>
+                </table>
+                </div>
+
+                <div id="activityEmpty" style="display:none; padding:2rem; text-align:center; color:var(--text-muted);">
+                    Nothing's happened here yet — class, teacher, student, and session changes will show up as they occur.
+                </div>
+
+                <div style="display:flex; justify-content:center; margin-top:1rem;">
+                    <button type="button" class="btn-info btn-sm" id="loadMoreBtn" style="display:none;">
+                        Load more
+                    </button>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/activity-log.js"></script>
+    <script src="/assets/js/admin-activity.js"></script>
+
+</body>
+</html>

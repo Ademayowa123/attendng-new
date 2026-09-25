@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount">
+            <!-- injected by auth.js based on tier -->
+        </aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1><span id="greeting">Good morning</span>, <span id="fullName"></span></h1>
+                    <p><span id="schoolName"></span></p>
+                </div>
+            </header>
+
+            <div id="noClassNotice" class="card" style="display:none;">
+                <p style="margin:0;">You haven't been assigned a class yet. Once your admin assigns one, Attendance, Students, Reports, and Analytics will appear here.</p>
+            </div>
+
+            <div id="classSummary" style="display:none;">
+
+                <p style="color:var(--text-secondary); margin-bottom:1rem;">
+                    <span id="className"></span> ·
+                    <span id="sessionName"></span> ·
+                    <span id="term"></span>
+                </p>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Total Students</h3>
+                            <p id="statTotal">—</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-person"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Male</h3>
+                            <p id="statMale">—</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-person-dress"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Female</h3>
+                            <p id="statFemale">—</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/school-dashboard.js"></script>
+
+</body>
+</html>

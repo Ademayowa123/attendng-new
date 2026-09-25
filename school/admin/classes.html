@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Classes</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+    <style>
+        .btn-finalize-cancel {
+            background: #FFFFFF;
+            color: #0F766E;
+            border: 1px solid #0F766E;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .btn-finalize-cancel:hover {
+            background: #E6F4F1;
+        }
+
+        .btn-finalize-confirm {
+            background: #0F766E;
+            color: #FFFFFF;
+            border: 1px solid #0F766E;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .btn-finalize-confirm:hover {
+            background: #0B5B54;
+            border-color: #0B5B54;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Classes</h1>
+                    <p id="sessionLabel"></p>
+                </div>
+                <button type="button" class="btn-primary" id="openAddClass">
+                    <i class="fa-solid fa-plus"></i> Add class
+                </button>
+            </header>
+
+            <div id="noSessionNotice" class="card" style="display:none;">
+                <p style="margin:0;">No active session yet. Start one on the Sessions page before adding classes.</p>
+            </div>
+
+            <div class="card" id="classesCard" style="display:none;">
+
+                <div class="table-scroll">
+                    <table class="classes-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <thead>
+                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
+                                <th class="sticky-col1" style="padding:10px 8px; min-width:140px;">Class</th>
+                                <th style="padding:10px 8px; min-width:160px;">Teacher</th>
+                                <th style="padding:10px 8px; min-width:100px;">Register</th>
+                                <th style="padding:10px 8px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="classesTableBody">
+                            <!-- populated at runtime -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ADD CLASS MODAL -->
+    <div class="confirm-modal" id="addClassModal">
+        <div class="confirm-card" style="width:340px;">
+
+            <div class="confirm-header">
+                <h2>Add a class</h2>
+            </div>
+
+            <div class="confirm-body">
+
+                <label for="newClassName" style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Class name</label>
+                <input type="text" id="newClassName" placeholder="JSS3B" required
+                       style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
+
+                <p class="login-error" id="addClassError" style="display:none; margin-top:8px;"></p>
+
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="cancelAddClass">Cancel</button>
+                <button type="button" class="btn-primary" id="submitAddClass">Add class</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- EDIT CLASS MODAL -->
+    <div class="confirm-modal" id="editClassModal">
+        <div class="confirm-card" style="width:340px;">
+
+            <div class="confirm-header">
+                <h2>Edit class name</h2>
+            </div>
+
+            <div class="confirm-body">
+
+                <label for="editClassName" style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Class name</label>
+                <input type="text" id="editClassName" placeholder="JSS3B" required
+                       style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
+
+                <p class="login-error" id="editClassError" style="display:none; margin-top:8px;"></p>
+
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="cancelEditClass">Cancel</button>
+                <button type="button" class="btn-primary" id="submitEditClass">Save changes</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DELETE CLASS CONFIRM MODAL -->
+    <div class="confirm-modal" id="deleteClassModal">
+        <div class="confirm-card" style="width:340px;">
+
+            <div class="confirm-header">
+                <h2>Delete class</h2>
+            </div>
+
+            <div class="confirm-body">
+
+                <p id="deleteClassMessage" style="margin:0;"></p>
+
+                <p class="login-error" id="deleteClassError" style="display:none; margin-top:8px;"></p>
+
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="cancelDeleteClass">Cancel</button>
+                <button type="button" class="btn-danger" id="confirmDeleteClass">Delete</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FINALIZE / UNLOCK REGISTER CONFIRM MODAL -->
+    <div class="confirm-modal" id="finalizeConfirmModal">
+        <div class="confirm-card" style="width:360px;">
+
+            <div class="confirm-header">
+                <h2 id="finalizeConfirmTitle">Finalize register</h2>
+            </div>
+
+            <div class="confirm-body">
+                <p id="finalizeConfirmMessage" style="margin:0;"></p>
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" id="cancelFinalizeConfirm" class="btn-finalize-cancel">
+                    Cancel
+                </button>
+                <button type="button" id="confirmFinalizeConfirm" class="btn-finalize-confirm">
+                    Finalize
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DELETE BLOCKED INFO MODAL -->
+    <div class="confirm-modal" id="deleteBlockedModal">
+        <div class="confirm-card" style="width:340px;">
+
+            <div class="confirm-header">
+                <h2>Can't delete this class</h2>
+            </div>
+
+            <div class="confirm-body">
+                <p id="deleteBlockedMessage" style="margin:0;"></p>
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-primary" id="closeDeleteBlockedModal">OK</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/activity-log.js"></script>
+    <script src="/assets/js/admin-classes.js"></script>
+
+</body>
+</html>

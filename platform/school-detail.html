@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | School Members</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+
+<div id="toast" class="toast"></div>
+
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                <a href="/platform/schools.html" style="color:var(--text-muted);">Schools</a> / <span id="schoolNameCrumb"></span>
+            </div>
+
+            <header class="top-header">
+                <div>
+                    <h1 id="schoolNameTitle"></h1>
+                </div>
+            </header>
+
+            <div style="font-size:12px; color:var(--text-muted); margin:0 0 6px; font-weight:600;">ADMINS</div>
+            <div class="card" style="margin-bottom:1.25rem;">
+                <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                    <tbody id="adminsTableBody"></tbody>
+                </table>
+            </div>
+
+            <div style="font-size:12px; color:var(--text-muted); margin:0 0 6px; font-weight:600;">TEACHERS</div>
+            <div class="card" style="margin-bottom:1.25rem;">
+                <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                    <tbody id="teachersTableBody"></tbody>
+                </table>
+            </div>
+
+            <div style="font-size:12px; color:var(--danger); margin:0 0 6px; font-weight:600;">DANGER ZONE</div>
+            <div class="card" style="border-color:var(--danger);">
+                <p style="margin:0 0 10px; font-size:13px; color:var(--text-secondary);">
+                    Deleting a school is permanent — every member's account, session, class,
+                    student, and attendance record under it is destroyed. This cannot be undone.
+                </p>
+                <button type="button" class="btn-danger" id="openDeleteSchoolBtn">Delete this school</button>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- RESET PASSWORD MODAL -->
+    <div class="confirm-modal" id="resetPasswordModal">
+        <div class="confirm-card" style="width:340px;">
+            <div class="confirm-header"><h2>Password reset</h2></div>
+            <div class="confirm-body">
+                <p id="resetPasswordText"></p>
+                <div style="background:var(--surface-alt); border-radius:8px; padding:0.75rem 1rem; margin:0.75rem 0; display:flex; flex-direction:column; gap:8px;">
+                    <div><span style="display:block; font-size:11px; color:var(--text-muted);">Username</span><code id="resetUsername"></code></div>
+                    <div><span style="display:block; font-size:11px; color:var(--text-muted);">New temporary password</span><code id="resetPassword"></code></div>
+                </div>
+            </div>
+            <div class="confirm-footer">
+                <button type="button" class="btn-primary" id="closeResetPasswordModal">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE SCHOOL MODAL -->
+    <div class="confirm-modal" id="deleteSchoolModal">
+        <div class="confirm-card" style="width:380px;">
+            <div class="confirm-header"><h2>Delete this school?</h2></div>
+            <div class="confirm-body">
+                <p style="margin:0 0 10px;">
+                    This permanently deletes <strong id="deleteSchoolNamePrompt"></strong> and everything under it —
+                    members, sessions, classes, students, and attendance. This cannot be undone.
+                </p>
+                <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">
+                    Type the school's name to confirm
+                </label>
+                <input type="text" id="deleteSchoolConfirmInput" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
+                <p class="login-error" id="deleteSchoolError" style="display:none; margin-top:8px;"></p>
+            </div>
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="cancelDeleteSchool">Cancel</button>
+                <button type="button" class="btn-danger" id="confirmDeleteSchool">Delete permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/platform-school-detail.js"></script>
+
+</body>
+</html>

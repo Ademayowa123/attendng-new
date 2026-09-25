@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Roster</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+
+<div id="toast" class="toast"></div>
+
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1 id="pageTitle">Roster</h1>
+                    <p><span id="registerStatusBadge"></span></p>
+                </div>
+                <div class="header-actions">
+                    <a href="/school/admin/classes.html"
+                    class="btn btn-back btn-sm"
+                    style="text-decoration:none; border-radius: 10px;">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Classes
+                    </a>
+
+                    <button type="button"
+                            class="btn btn-reports btn-sm"
+                            id="viewReportsBtn">
+                        <i class="fa-solid fa-file-lines"></i> View Reports
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-analytics btn-sm"
+                            id="viewAnalyticsBtn">
+                        <i class="fa-solid fa-chart-line"></i> View Analytics
+                    </button>
+                </div>
+            </header>
+
+            <section class="student-actions">
+
+                <input type="text" id="searchStudent" placeholder="Search student...">
+
+                <div class="student-buttons">
+                    <button id="addStudentBtn" class="btn btn-add-student btn-sm">
+                        <i class="fa-solid fa-user-plus"></i> <span>Add Student</span>
+                    </button>
+
+                    <button id="downloadTemplateBtn" class="btn btn-template btn-sm">
+                        <i class="fa-solid fa-file-arrow-down"></i> <span>Template</span>
+                    </button>
+
+                    <button id="importStudentsBtn" class="btn btn-import btn-sm">
+                        <i class="fa-solid fa-file-import"></i> <span>Import</span>
+                    </button>
+                </div>
+
+                <input type="file" id="studentImportFile" accept=".xlsx" hidden>
+
+            </section>
+
+            <section class="card">
+
+                <div class="table-toolbar">
+                    <div>Total Students: <strong id="studentCount">0</strong></div>
+                </div>
+
+                <div class="table-scroll">
+                <table class="roster-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col1" style="padding:10px 8px; width:56px;">S/N</th>
+                            <th style="padding:10px 8px; min-width:130px;">Surname</th>
+                            <th style="padding:10px 8px; min-width:110px;">First Name</th>
+                            <th style="padding:10px 8px; min-width:110px;">Other Name</th>
+                            <th style="padding:10px 8px; min-width:90px;">Gender</th>
+                            <th style="padding:10px 8px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTable"></tbody>
+                </table>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- ADD STUDENT MODAL -->
+    <div class="modal" id="studentModal">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2 id="studentModalTitle">Add Student</h2>
+                <button type="button" id="closeModal">&times;</button>
+            </div>
+
+            <form id="studentForm">
+
+                <div class="form-group">
+                    <label>Surname</label>
+                    <input type="text" id="surname" required>
+                </div>
+
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" id="firstname" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Other Name</label>
+                    <input type="text" id="othername">
+                </div>
+
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select id="gender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+
+                <p class="login-error" id="studentFormError" style="display:none;"></p>
+
+                <div class="modal-buttons">
+                    <button type="button" id="cancelBtn" class="btn-light">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Student</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <!-- IMPORT SUMMARY MODAL -->
+    <div id="importSummaryModal" class="import-summary-modal">
+        <div class="import-summary-card">
+
+            <div class="import-summary-header">
+                <div class="import-summary-icon"><i class="fa-solid fa-file-import"></i></div>
+                <h2>Import Complete</h2>
+                <button id="closeImportSummary" class="import-summary-close">&times;</button>
+            </div>
+
+            <div class="import-summary-body">
+
+                <div class="import-summary-item success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div><strong id="importedCount">0</strong><span>Students Imported</span></div>
+                </div>
+
+                <div class="import-summary-item warning">
+                    <i class="fa-solid fa-copy"></i>
+                    <div><strong id="duplicateCount">0</strong><span>Duplicate Students Skipped</span></div>
+                </div>
+
+                <div class="import-summary-item danger">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <div><strong id="invalidCount">0</strong><span>Invalid Rows Skipped</span></div>
+                </div>
+
+                <div class="import-summary-item neutral">
+                    <i class="fa-solid fa-minus-circle"></i>
+                    <div><strong id="emptyCount">0</strong><span>Empty Rows Ignored</span></div>
+                </div>
+
+            </div>
+
+            <div class="import-summary-footer">
+                <button id="closeImportSummaryBtn" class="btn-primary">Done</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DELETE STUDENT MODAL -->
+    <div class="confirm-modal" id="deleteStudentModal">
+        <div class="confirm-card" style="width:340px;">
+
+            <div class="confirm-header">
+                <h2>Remove student</h2>
+            </div>
+
+            <div class="confirm-body">
+
+                <p id="deleteStudentMessage" style="margin:0;"></p>
+
+                <p class="login-error" id="deleteStudentError" style="display:none; margin-top:8px;"></p>
+
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="cancelDeleteStudent">Cancel</button>
+                <button type="button" class="btn-danger" id="confirmDeleteStudent">Delete</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="/assets/js/activity-log.js"></script>
+    <script src="/assets/js/admin-roster.js"></script>
+
+</body>
+</html>

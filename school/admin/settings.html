@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | School Settings</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>School Settings</h1>
+                </div>
+            </header>
+
+            <div class="card" style="max-width:460px; margin-bottom:1.25rem;">
+
+                <h3 style="margin-top:0;">School logo</h3>
+
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:1rem;">
+
+                    <img id="logoPreview" src="/assets/images/logo.png" alt=""
+                         style="width:64px; height:64px; border-radius:12px; object-fit:cover; border:1px solid var(--border);">
+
+                    <div>
+                        <input type="file" id="logoFile" accept="image/*" hidden>
+                        <button type="button" class="btn-info" id="chooseLogoBtn">Choose image</button>
+                        <p style="font-size:12px; color:var(--text-muted); margin:6px 0 0;">PNG or JPG, square works best.</p>
+                    </div>
+
+                </div>
+
+                <p class="login-error" id="logoError" style="display:none;"></p>
+
+            </div>
+
+            <div class="card" style="max-width:460px;">
+
+                <h3 style="margin-top:0;">School name</h3>
+
+                <form id="nameForm">
+
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="schoolNameInput" required>
+                    </div>
+
+                    <p class="login-error" id="nameError" style="display:none;"></p>
+
+                    <button type="submit" class="btn-primary">Save</button>
+
+                </form>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/admin-settings.js"></script>
+
+</body>
+</html>

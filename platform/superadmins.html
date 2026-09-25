@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Superadmins</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+
+<div id="toast" class="toast"></div>
+
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Superadmins</h1>
+                </div>
+                <button type="button" class="btn-primary" id="openAddSuperadmin">
+                    <i class="fa-solid fa-plus"></i> Add superadmin
+                </button>
+            </header>
+
+            <div class="card">
+                <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                    <thead>
+                        <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
+                            <th style="padding:8px 4px;">Name</th>
+                            <th style="padding:8px 4px;">Email</th>
+                            <th style="padding:8px 4px;">Added</th>
+                            <th style="padding:8px 4px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="superadminsTableBody"></tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ADD SUPERADMIN MODAL -->
+    <div class="confirm-modal" id="addSuperadminModal">
+        <div class="confirm-card" style="width:360px;">
+
+            <div id="addSuperadminForm">
+
+                <div class="confirm-header"><h2>Add a superadmin</h2></div>
+
+                <div class="confirm-body">
+
+                    <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Full name</label>
+                    <input type="text" id="newAdminName" placeholder="Full name" required
+                           style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; margin-bottom:10px;">
+
+                    <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Email</label>
+                    <input type="email" id="newAdminEmail" placeholder="name@example.com" required
+                           style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
+
+                    <p style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">
+                        This is the only tier with a real email — it's how they'll recover their own password later.
+                    </p>
+
+                    <p class="login-error" id="addSuperadminError" style="display:none; margin-top:8px;"></p>
+
+                </div>
+
+                <div class="confirm-footer">
+                    <button type="button" class="btn-info" id="cancelAddSuperadmin">Cancel</button>
+                    <button type="button" class="btn-primary" id="submitAddSuperadmin">Add superadmin</button>
+                </div>
+
+            </div>
+
+            <div id="addSuperadminResult" style="display:none;">
+
+                <div class="confirm-header"><h2>Superadmin created</h2></div>
+
+                <div class="confirm-body">
+                    <p id="addSuperadminResultText"></p>
+                    <div style="background:var(--surface-alt); border-radius:8px; padding:0.75rem 1rem; margin:0.75rem 0; display:flex; flex-direction:column; gap:8px;">
+                        <div><span style="display:block; font-size:11px; color:var(--text-muted);">Email</span><code id="newAdminEmailResult"></code></div>
+                        <div><span style="display:block; font-size:11px; color:var(--text-muted);">Temporary password</span><code id="newAdminPasswordResult"></code></div>
+                    </div>
+                </div>
+
+                <div class="confirm-footer">
+                    <button type="button" class="btn-primary" id="closeAddSuperadminResult">Done</button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/platform-superadmins.js"></script>
+
+</body>
+</html>

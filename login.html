@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Login</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body class="login-body">
+
+    <div class="login-page">
+
+        <form class="login-card" id="loginForm">
+
+            <div class="login-brand">
+                <img src="/assets/images/logo.png" alt="AttendNG" class="login-logo">
+                <p>Log in to your school</p>
+            </div>
+
+            <label for="identifier">Email or username</label>
+            <input type="text" id="identifier" autocomplete="username" required>
+
+            <label for="password">Password</label>
+            <div class="password-field">
+                <input type="password" id="password" autocomplete="current-password" required>
+                <button type="button" id="togglePassword" class="password-toggle" aria-label="Show password" tabindex="-1">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+            </div>
+
+            <p class="login-error" id="loginError" style="display:none;"></p>
+
+            <button type="submit" id="loginSubmit">Log in</button>
+
+            <p class="login-hint">
+                Logging in with a username? Ask your school admin to reset your password if needed.
+            </p>
+
+            <p class="login-hint">
+                <a href="/platform/forgot-password.html">Forgot your superadmin password?</a>
+            </p>
+
+        </form>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/login.js"></script>
+
+</body>
+</html>

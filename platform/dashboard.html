@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Platform Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount">
+            <!-- injected by auth.js based on tier -->
+        </aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1><span id="greeting">Good morning</span>, <span id="fullName"></span></h1>
+                    <p>Platform overview</p>
+                </div>
+            </header>
+
+            <div class="card" style="max-width: 420px;">
+
+                <h3 style="margin-top:0;">Onboard a school</h3>
+
+                <form id="onboardForm" style="display:flex; flex-direction:column; gap:0.5rem;">
+
+                    <label for="schoolName" style="font-size:13px; color:var(--text-secondary);">School name</label>
+                    <input type="text" id="schoolName" placeholder="Honeyland College, Ipaja" required
+                           style="padding:8px 10px; border:1px solid var(--border); border-radius:8px;">
+
+                    <p class="login-error" id="onboardError" style="display:none;"></p>
+
+                    <button type="submit" class="btn-primary" id="onboardSubmit" style="align-self:flex-start; margin-top:0.5rem;">
+                        Onboard school
+                    </button>
+
+                </form>
+
+                <div id="onboardResult" style="display:none; margin-top:1rem;">
+
+                    <p id="onboardResultText"></p>
+
+                    <div style="background:var(--surface-alt); border-radius:8px; padding:0.75rem 1rem; margin:0.75rem 0; display:flex; flex-direction:column; gap:8px;">
+                        <div>
+                            <span style="display:block; font-size:11px; color:var(--text-muted);">Username</span>
+                            <code id="resultUsername"></code>
+                        </div>
+                        <div>
+                            <span style="display:block; font-size:11px; color:var(--text-muted);">Temporary password</span>
+                            <code id="resultPassword"></code>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-light" id="onboardAnother">Onboard another</button>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/platform-dashboard.js"></script>
+
+</body>
+</html>

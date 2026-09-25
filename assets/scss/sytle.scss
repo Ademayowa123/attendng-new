@@ -1,0 +1,1980 @@
+/*************************************************
+ * ATTENDNG — BASE STYLES (SCSS)
+ *************************************************/
+
+$primary: #0f766e;
+$primary-dark: #0b5c56;
+$info-blue: #2563eb;
+$info-blue-dark: #1d4ed8;
+$success-green: #16a34a;
+$success-green-dark: #15803d;
+$text-main: #1f2937;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+$border: #e5e7eb;
+$surface: #ffffff;
+$surface-alt: #f4f3ef;
+$danger: #b3261e;
+$warning-bg: #fff7e6;
+$warning-text: #92650b;
+$success-bg: #eafaf1;
+$stat-label: #8a7f76;
+$stat-value: #0d2444;
+
+/* =========================================
+   Every inline style="..." across the app
+   uses var(--border), var(--primary), etc. —
+   this maps each SCSS variable to a matching
+   CSS custom property so those actually
+   resolve, instead of silently falling back
+   to nothing.
+========================================= */
+
+:root {
+    --primary: #{$primary};
+    --primary-dark: #{$primary-dark};
+    --info-blue: #{$info-blue};
+    --success-green: #{$success-green};
+    --text-main: #{$text-main};
+    --text-secondary: #{$text-secondary};
+    --text-muted: #{$text-muted};
+    --border: #{$border};
+    --surface: #{$surface};
+    --surface-alt: #{$surface-alt};
+    --danger: #{$danger};
+    --warning-bg: #{$warning-bg};
+    --warning-text: #{$warning-text};
+    --success-bg: #{$success-bg};
+    --success-text: #{$success-green};
+}
+$success-text: #0f766e;
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    color: $text-main;
+    background: $surface-alt;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* =========================================
+   BUTTON — fallback for any plain <button>
+   with no specific class. More specific
+   classes (.btn-primary, .btn-light, etc.)
+   still win via source order below.
+========================================= */
+
+button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid $border;
+    background: $surface;
+    color: $text-main;
+    cursor: pointer;
+
+    &:hover {
+        background: $surface-alt;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 1px;
+    }
+}
+
+.btn-add-student {
+    background: #16A34A;
+    color: #fff;
+    border: 1px solid #16A34A;
+}
+
+.btn-add-student:hover {
+    background: #15803D;
+    border-color: #15803D;
+    color: #fff;
+}
+
+.btn-template {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #F59E0B;
+}
+
+.btn-template:hover {
+    background: #FDE68A;
+    border-color: #D97706;
+    color: #78350F;
+}
+
+.btn-import {
+    background: #EEF2FF;
+    color: #4338CA;
+    border: 1px solid #6366F1;
+}
+
+.btn-import:hover {
+    background: #E0E7FF;
+    border-color: #4F46E5;
+    color: #3730A3;
+}
+
+.btn-back {
+    background: transparent;
+    color: #374151;
+    border: 1px solid #9CA3AF;
+}
+
+.btn-back:hover {
+    background: #F3F4F6;
+    border-color: #6B7280;
+    color: #111827;
+}
+
+.btn-reports {
+    background: #0F766E;
+    color: #fff;
+    border: 1px solid #0F766E;
+}
+
+.btn-reports:hover {
+    background: #115E59;
+    border-color: #115E59;
+    color: #fff;
+}
+
+.btn-analytics {
+    background: #2563EB;
+    color: #fff;
+    border: 1px solid #2563EB;
+}
+
+.btn-analytics:hover {
+    background: #1D4ED8;
+    border-color: #1D4ED8;
+    color: #fff;
+}
+
+.btn-manage-students {
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #3B82F6;
+}
+
+.btn-manage-students:hover {
+    background: #DBEAFE;
+    border-color: #2563EB;
+    color: #1E40AF;
+}
+
+.btn-finalize-action {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #F59E0B;
+}
+
+.btn-finalize-action:hover {
+    background: #FDE68A;
+    border-color: #D97706;
+    color: #78350F;
+}
+
+.btn-unlock-action {
+    background: #DCFCE7;
+    color: #166534;
+    border: 1px solid #16A34A;
+}
+
+.btn-unlock-action:hover {
+    background: #BBF7D0;
+    border-color: #15803D;
+    color: #14532D;
+}
+
+.btn-delete-class {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #EF4444;
+}
+
+.btn-delete-class:hover {
+    background: #FECACA;
+    border-color: #DC2626;
+    color: #7F1D1D;
+}
+
+/* =========================================
+   SELECT — styled globally so every dropdown
+   in the app (week, term, gender, teacher
+   assign, move-to, etc.) looks consistent
+   instead of the browser default.
+========================================= */
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: $surface;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding: 8px 30px 8px 10px;
+    border: 1px solid $border;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    color: $text-main;
+    cursor: pointer;
+
+    &:hover {
+        border-color: darken($border, 12%);
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 1px;
+        border-color: $primary;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+select::-ms-expand {
+    display: none;
+}
+
+/* =========================================
+   GENERIC TABLE SCROLL + STICKY COLUMNS
+   Applied automatically by auth.js to every
+   table on every page — not just Attendance.
+   Left offsets are set inline by JS, since
+   each table's first-column width differs.
+========================================= */
+
+.table-scroll-wrapper {
+    overflow-x: auto;
+}
+
+.sticky-col {
+    position: sticky;
+    background: $surface;
+    z-index: 2;
+}
+
+.sticky-col-shadow {
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+thead .sticky-col {
+    z-index: 3;
+}
+
+/* =========================================
+   LOGIN PAGE
+========================================= */
+
+.login-body {
+    height: 100vh;
+}
+
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.login-card {
+    background: $surface;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 340px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.login-brand {
+    text-align: center;
+    margin-bottom: 0.5rem;
+
+    p {
+        margin: 0;
+        font-size: 13px;
+        color: $text-secondary;
+    }
+}
+
+.login-logo {
+    height: 56px;
+    width: auto;
+    margin: 0 auto 8px;
+    display: block;
+}
+
+.login-card {
+
+    label {
+        font-size: 13px;
+        color: $text-secondary;
+    }
+
+    input {
+        padding: 8px 10px;
+        border: 1px solid $border;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+
+        &:focus-visible {
+            outline: 2px solid $primary;
+            outline-offset: 1px;
+            border-color: $primary;
+        }
+    }
+
+    button:not(.password-toggle) {
+        margin-top: 0.5rem;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: $primary;
+        color: #fff;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: $primary-dark;
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+}
+
+// Password field with the show/hide eye icon
+
+.password-field {
+    position: relative;
+    display: flex;
+
+    input {
+        width: 100%;
+        padding-right: 34px;
+    }
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: $text-muted;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+        color: $text-secondary;
+    }
+}
+
+.login-error {
+    color: $danger;
+    font-size: 13px;
+    margin: 0;
+}
+
+.login-hint {
+    text-align: center;
+    font-size: 12px;
+    color: $text-muted;
+    margin: 0.5rem 0 0;
+}
+
+/* =========================================
+   APP SHELL
+========================================= */
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 220px;
+    background: $primary;
+    padding: 1.25rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    align-self: flex-start;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0 0.75rem;
+    }
+
+    li {
+        margin-bottom: 6px;
+    }
+
+    li a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 14px;
+    }
+
+    li a:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+    }
+
+    li.active > a {
+        background: $surface;
+        color: $primary;
+        font-weight: 600;
+    }
+
+    .submenu {
+        list-style: none;
+        padding-left: 22px;
+        margin: 2px 0 0;
+        display: none;
+
+        li a {
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+    }
+
+    li.has-submenu.open > .submenu {
+        display: block;
+    }
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 1.25rem 1rem;
+
+    img {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #fff;
+        padding: 2px;
+    }
+
+    h2 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.sidebar-section-label {
+    padding: 12px 12px 4px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.submenu-caret {
+    margin-left: auto;
+    font-size: 11px;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 1.5rem 1.75rem;
+}
+
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+
+    h1 {
+        margin: 0 0 2px;
+        font-size: 20px;
+    }
+
+    p {
+        margin: 0;
+        font-size: 13px;
+        color: $text-secondary;
+    }
+}
+
+/* =========================================
+   REPORT HEADER CONTROLS (weekly/term report)
+   Week select + action buttons grouped so they
+   wrap tidily instead of one long overflowing
+   row on narrow screens.
+========================================= */
+
+.report-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.report-week-select {
+    min-width: 110px;
+}
+
+.report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* =========================================
+   HEADER ACTIONS (generic)
+   A wrapping row of buttons in a page header —
+   e.g. Roster's Back/View Reports/View Analytics —
+   so they sit tidily instead of stacking full-width.
+========================================= */
+
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* =========================================
+   CARDS / SUMMARY GRID
+========================================= */
+
+.card {
+    background: $surface;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: .95rem .95rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background: $surface;
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    h3 {
+        font-size: 13px;
+        color: $stat-label;
+        margin: 0 0 2px;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    p {
+        font-size: 26px;
+        line-height: 1.15;
+        font-weight: 700;
+        color: $stat-value;
+        margin: 0;
+    }
+}
+
+.summary-card-body {
+    min-width: 0;
+}
+
+.summary-card-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
+    background: rgba($success-green, 0.12);
+    color: $success-green-dark;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+}
+
+.two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+canvas {
+    max-width: 100%;
+}
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.btn-primary,
+button.btn-primary {
+    background: $primary;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+        background: $primary-dark;
+    }
+}
+
+// Light green — everyday secondary/positive actions
+// (Promote, Reset password, Manage students, Finalize).
+.btn-light {
+    background: #dcfce7;
+    color: #166534;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+        background: #bbf7d0;
+    }
+
+    &:disabled {
+        background: $surface-alt;
+        color: $text-muted;
+        cursor: not-allowed;
+
+        &:hover {
+            background: $surface-alt;
+        }
+    }
+}
+
+.btn-danger {
+    background: $danger;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+        background: darken($danger, 8%);
+    }
+}
+
+.btn-info {
+    background: $info-blue;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+        background: $info-blue-dark;
+    }
+}
+
+// Green — used for spreadsheet/Excel-style export actions.
+.btn-success {
+    background: $success-green;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+        background: $success-green-dark;
+    }
+}
+
+// Compact size for toolbars where several buttons sit
+// side by side (e.g. the weekly/term report header).
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+
+.icon-btn-edit {
+    background: #dcfce7;
+    color: #166534;
+
+    &:hover {
+        background: #bbf7d0;
+    }
+}
+
+.icon-btn-delete {
+    background: rgba($danger, 0.1);
+    color: $danger;
+
+    &:hover {
+        background: rgba($danger, 0.18);
+    }
+}
+
+/* =========================================
+   GENERAL MODAL (add student, etc. — distinct
+   from .confirm-modal's fixed small-dialog use)
+========================================= */
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    &.show {
+        display: flex;
+    }
+}
+
+.modal-content {
+    background: $surface;
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 360px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    button {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: $text-muted;
+        line-height: 1;
+    }
+}
+
+.form-group {
+    margin-bottom: 0.75rem;
+
+    label {
+        display: block;
+        font-size: 13px;
+        color: $text-secondary;
+        margin-bottom: 4px;
+    }
+
+    input,
+    select {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid $border;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 1rem;
+}
+
+/* =========================================
+   TOAST
+========================================= */
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: $text-main;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 2000;
+
+    &.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* =========================================
+   STUDENT PAGE HELPERS
+========================================= */
+
+.student-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+
+    input[type="text"] {
+        padding: 8px 10px;
+        border: 1px solid $border;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+        min-width: 200px;
+    }
+}
+
+.student-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 13px;
+    color: $text-secondary;
+}
+
+/* =========================================
+   IMPORT SUMMARY MODAL
+========================================= */
+
+.import-summary-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    &.show {
+        display: flex;
+    }
+}
+
+.import-summary-card {
+    background: $surface;
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 380px;
+}
+
+.import-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    position: relative;
+
+    h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .import-summary-icon {
+        color: $primary;
+        font-size: 18px;
+    }
+
+    .import-summary-close {
+        position: absolute;
+        right: 0;
+        top: 0;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: $text-muted;
+    }
+}
+
+.import-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+
+    strong {
+        display: block;
+        font-size: 16px;
+    }
+
+    span {
+        color: $text-secondary;
+        font-size: 12px;
+    }
+
+    &.success i { color: $success-text; }
+    &.warning i { color: $warning-text; }
+    &.danger i { color: $danger; }
+    &.neutral i { color: $text-muted; }
+}
+
+.duplicate-details {
+    font-size: 12px;
+    color: $text-secondary;
+    margin-top: 6px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.import-summary-footer {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* =========================================
+   ATTENDANCE MARK BOX
+========================================= */
+
+.attendance-cell {
+    cursor: pointer;
+    user-select: none;
+}
+
+.mark-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mark-box.present {
+    background: $success-green;
+    color: #fff;
+}
+
+.mark-box.absent {
+    background: #fff;
+    border: 2px solid #cbd5e1;
+}
+
+/* =========================================
+   STICKY S/N + NAME COLUMNS
+   Scoped to explicit classes only (not
+   nth-child position) — with a rowspan="2"
+   header, position-based selectors mis-hit
+   the second header row's M/A subheaders.
+========================================= */
+
+.sticky-sn {
+    position: sticky;
+    left: 0;
+    width: 36px;
+    background: $surface;
+    z-index: 2;
+}
+
+.sticky-name {
+    position: sticky;
+    left: 36px;
+    min-width: 130px;
+    background: $surface;
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+thead .sticky-sn,
+thead .sticky-name {
+    z-index: 3;
+}
+
+/* =========================================
+   GENERIC SCROLLABLE TABLE
+   Wrap any table in a plain <div class="table-scroll">
+   (no border-radius on the scroll container itself —
+   rounding lives on the outer .card instead, to avoid
+   sticky content visually escaping a rounded corner).
+   Add "sticky-col1"/"sticky-col2" to the first two
+   th/td of EVERY row (thead and tbody) — explicit
+   classes, not nth-child, since rowspan headers can
+   shift column position in a second header row.
+========================================= */
+
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sticky-col1 {
+    position: sticky;
+    left: 0;
+    background: $surface;
+    z-index: 2;
+}
+
+.sticky-col2 {
+    position: sticky;
+    left: 0; // overridden inline per-table, since column-1
+              // width varies (S/N vs a name column vs a
+              // checkbox column, etc.)
+    background: $surface;
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+thead .sticky-col1,
+thead .sticky-col2 {
+    z-index: 3;
+}
+
+.row-toggle-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+}
+
+.row-toggle-btn i {
+    transition: transform 0.2s ease;
+}
+
+.row-toggle-btn:hover {
+    background: #bbf7d0;
+}
+
+.row-toggle-btn.is-open i {
+    transform: rotate(180deg);
+}
+
+/* =========================================
+   MOBILE CARD LAYOUT (teachers page)
+   On small screens the table is replaced by
+   a stack of cards, one per teacher. Each
+   card header carries a ^ chevron toggle
+   (.row-toggle-btn, shared style with the
+   table version) that expands a row of
+   action buttons underneath.
+========================================= */
+
+.teacher-cards {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.teacher-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.teacher-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.teacher-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+.teacher-card-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.teacher-card-body {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.teacher-card-body code {
+    display: inline;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.teacher-card-label {
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.teacher-card-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 768px) {
+
+    .desktop-actions-cell {
+        display: none;
+    }
+
+    .teacher-table-scroll {
+        display: none;
+    }
+
+    .teacher-cards {
+        display: flex;
+    }
+
+}
+
+.teacher-table .sticky-col1 {
+    min-width: 180px;
+    max-width: 220px;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.teacher-table .sticky-col2 {
+    min-width: 180px;
+    max-width: 220px;
+    left: 180px !important;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.teacher-table .sticky-col2 code {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+
+/* =========================================
+   REPORT TABLE (weekly/term)
+   Solid teal header band with white text,
+   instead of the plain muted-text header used
+   by other tables in the app.
+========================================= */
+
+.report-table thead th {
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-align: left;
+    border-bottom: none;
+    white-space: nowrap;
+}
+
+.report-table thead .sticky-col1,
+.report-table thead .sticky-col2 {
+    background: var(--primary);
+}
+
+// The generic .sticky-col1/.sticky-col2 rules elsewhere in this
+// file (both the desktop min/max-width block and the <=768px
+// block) are sized for the Teachers page's name columns and use
+// !important on left. Since they're a shared class, without this
+// override they also hit the report table — forcing Student Name
+// to stick further right than the S/N column's actual 56px width,
+// opening a visible gap between the two headers. These selectors
+// carry higher specificity (two classes vs one), so they win at
+// every breakpoint regardless of source order.
+
+.report-table .sticky-col1 {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    white-space: nowrap;
+}
+
+.report-table .sticky-col2 {
+    left: 56px !important;
+    min-width: 160px;
+    max-width: none;
+}
+
+/* =========================================
+   ROSTER TABLE
+   Plain muted header (not the teal report
+   style) — only the S/N column is sticky here,
+   Surname scrolls with the rest of the row.
+========================================= */
+
+.roster-table thead tr {
+    text-align: left;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+// Same reasoning as the report-table override above: the shared
+// .sticky-col1 rule elsewhere in this file is sized for other
+// pages' needs (130px on mobile, 180–220px on desktop). Since
+// Surname is no longer sticky here, S/N just needs to be wide
+// enough for "S/N" itself, not for a name column.
+
+.roster-table .sticky-col1 {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    white-space: nowrap;
+}
+
+/* =========================================
+   CLASSES TABLE
+   Only Class is sticky here — Teacher scrolls
+   with the rest of the row.
+========================================= */
+
+.classes-table .sticky-col1 {
+    min-width: 140px;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+
+    .teacher-table .sticky-col1,
+    .teacher-table .sticky-col2 {
+        min-width: 0;
+        width: 130px;
+        max-width: 130px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .teacher-table .sticky-col2 {
+        left: 130px !important;
+    }
+
+}
+
+/* =========================================
+   PRINT
+========================================= */
+
+@media print {
+
+    .sidebar,
+    .mobile-topbar,
+    #printBtn,
+    #exportBtn,
+    #reportWeek,
+    #reportTerm {
+        display: none !important;
+    }
+
+    #printHeader {
+        display: block !important;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+}
+
+/* =========================================
+   MODAL (logout, and general confirm dialogs)
+========================================= */
+
+.confirm-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-card {
+    background: $surface;
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 320px;
+}
+
+.confirm-header h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.confirm-body p {
+    margin: 0;
+    font-size: 13px;
+    color: $text-secondary;
+}
+
+.confirm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 1.25rem;
+}
+
+/* =========================================
+   BADGES
+========================================= */
+
+.badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.badge-success {
+    background: $success-bg;
+    color: $success-text;
+}
+
+.badge-warning {
+    background: $warning-bg;
+    color: $warning-text;
+}
+
+.badge-muted {
+    background: $surface-alt;
+    color: $text-muted;
+}
+
+.badge-danger {
+    background: rgba($danger, 0.12);
+    color: $danger;
+}
+
+/* =========================================
+   ATTENDANCE PAGE
+========================================= */
+
+.attendance-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.summary-cards {
+    background: $surface;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+
+    span {
+        display: block;
+        color: $text-secondary;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    h3 {
+        color: $text-main;
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+}
+
+.attendance-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 40px;
+    margin: 20px 0;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 200px 150px;
+    gap: 24px;
+    align-items: end;
+}
+
+.attendance-summary-box {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.summary-table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 380px;
+
+    th {
+        background: $primary;
+        color: #fff;
+    }
+
+    td,
+    th {
+        border: 1px solid $border;
+        padding: 8px;
+        text-align: center;
+        font-size: 13px;
+    }
+}
+
+.total-row {
+    font-weight: 700;
+    background: $surface-alt;
+}
+
+.weekly-percentage {
+    background: $surface;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    min-width: 200px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+
+    span {
+        display: block;
+        margin-top: 8px;
+        font-size: 28px;
+        color: $success-green;
+    }
+}
+
+.attendance-table-section {
+    margin-top: 28px;
+}
+
+.attendance-table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: collapse;
+
+    th {
+        background: $primary;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    td {
+        padding: 8px;
+        text-align: center;
+        border-bottom: 1px solid $border;
+    }
+
+    td,
+    th {
+        border: 1px solid $border;
+    }
+}
+
+.morning-col {
+    border-right: 2px solid darken($border, 15%) !important;
+}
+
+.attendance-table tbody tr:hover {
+    background: $surface-alt;
+}
+
+.student-name {
+    text-align: left !important;
+    font-weight: 500;
+}
+
+.weekly-total {
+    font-weight: 700;
+    color: $primary;
+}
+
+.present,
+.absent {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+.present {
+    background: $success-green;
+    color: #fff;
+}
+
+.absent {
+    background: #fff;
+    border: 2px solid #cbd5e1;
+}
+
+.mobile-topbar {
+    display: none;
+}
+
+@media (min-width: 1025px) {
+
+    .sidebar li a {
+        padding: 14px 16px;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .sidebar-brand {
+        display: none;
+    }
+
+    .sidebar ul {
+        margin-top: 52px;
+    }
+
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0.75rem 1rem;
+        background: $surface;
+        border-bottom: 1px solid $border;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1002;
+    }
+
+    body:has(.mobile-topbar) {
+        padding-top: 52px;
+    }
+
+    .mobile-menu-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .mobile-topbar-logo {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        object-fit: cover;
+    }
+
+    .mobile-topbar-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 220px;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+
+        &.open {
+            transform: translateX(0);
+        }
+    }
+
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+
+        &.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .report-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .report-week-select {
+        width: 100%;
+    }
+
+    .report-actions {
+        width: 100%;
+    }
+
+    .report-actions .btn-sm {
+        flex: 1 1 auto;
+        min-width: 100px;
+        justify-content: center;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn-sm {
+        flex: 1 1 auto;
+        min-width: 130px;
+        justify-content: center;
+    }
+
+    .two-col-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .summary-card {
+
+        p {
+            font-size: 24px;
+        }
+    }
+    
+    .sticky-name {
+        position: sticky;
+        left: 36px;
+        max-width: 130px;
+        background: $surface;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
+
+}
+
+
+/* =========================================
+   TEACHERS PAGE — BUTTON STYLING
+   Scoped to body.page-teachers so the global
+   .btn-* classes keep their current look on
+   every other page. Delete stays solid red.
+========================================= */
+
+.page-teachers {
+
+    // Shared shape, motion and keyboard focus for every button
+    // on this page (header, row actions, modals).
+    .btn-primary,
+    .btn-light,
+    .btn-danger,
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-style: solid;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            box-shadow 0.15s ease,
+            transform 0.1s ease;
+
+        &:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        &:focus-visible {
+            outline: 2px solid $primary;
+            outline-offset: 2px;
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+
+    // Primary — solid teal ("Add teacher", modal confirm)
+    .btn-primary {
+        background: $primary;
+        border-color: $primary;
+        color: #fff;
+        box-shadow: 0 1px 2px rgba($primary-dark, 0.25);
+
+        &:hover:not(:disabled) {
+            background: $primary-dark;
+            border-color: $primary-dark;
+            box-shadow: 0 3px 8px rgba($primary, 0.28);
+        }
+    }
+
+    // Row actions (Make admin / Demote / Reset password) —
+    // soft teal tint with a hairline border, so they read as
+    // secondary next to the solid red Delete.
+    .btn-light {
+        background: rgba($primary, 0.08);
+        border-color: rgba($primary, 0.22);
+        color: $primary-dark;
+
+        &:hover:not(:disabled) {
+            background: rgba($primary, 0.15);
+            border-color: rgba($primary, 0.4);
+        }
+    }
+
+    // Delete — still solid red, only shape/motion aligned
+    // with the buttons beside it.
+    .btn-danger {
+        background: $danger;
+        border-color: $danger;
+        color: #fff;
+
+        &:hover:not(:disabled) {
+            background: darken($danger, 8%);
+            border-color: darken($danger, 8%);
+            box-shadow: 0 3px 8px rgba($danger, 0.28);
+        }
+
+        &:focus-visible {
+            outline-color: $danger;
+        }
+    }
+
+    // Cancel — neutral outline (was solid blue .btn-info)
+    .btn-secondary {
+        background: $surface;
+        border-color: $border;
+        color: $text-main;
+
+        &:hover:not(:disabled) {
+            background: $surface-alt;
+            border-color: darken($border, 8%);
+        }
+    }
+
+    // Header call-to-action is a touch larger than row actions.
+    .top-header .btn-primary {
+        padding: 9px 18px;
+        font-size: 14px;
+    }
+
+    // Modal footer buttons
+    .confirm-footer button {
+        min-width: 92px;
+        padding: 9px 18px;
+        font-size: 14px;
+    }
+
+    // Mobile chevron toggle — matches the teal action buttons
+    .row-toggle-btn {
+        background: rgba($primary, 0.08);
+        border: 1px solid rgba($primary, 0.22);
+        color: $primary-dark;
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease;
+
+        &:hover {
+            background: rgba($primary, 0.15);
+            border-color: rgba($primary, 0.4);
+        }
+
+        &:focus-visible {
+            outline: 2px solid $primary;
+            outline-offset: 2px;
+        }
+
+        &.is-open {
+            background: $primary;
+            border-color: $primary;
+            color: #fff;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+
+    // Bigger touch targets: action buttons share the row
+    // two-up and stretch to fill any leftover space.
+    .page-teachers .teacher-card-actions button {
+        flex: 1 1 calc(50% - 6px);
+        min-height: 40px;
+        padding: 9px 12px;
+    }
+
+    .page-teachers .top-header .btn-primary {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .page-teachers .btn-primary,
+    .page-teachers .btn-light,
+    .page-teachers .btn-danger,
+    .page-teachers .btn-secondary,
+    .page-teachers .row-toggle-btn {
+        transition: none;
+    }
+}

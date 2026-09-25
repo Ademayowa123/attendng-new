@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Analytics</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Analytics</h1>
+                    <p><span id="className"></span> · <span id="sessionName"></span></p>
+                </div>
+                <select id="analyticsTerm">
+                    <option value="1st Term">1st Term</option>
+                    <option value="2nd Term">2nd Term</option>
+                    <option value="3rd Term">3rd Term</option>
+                </select>
+            </header>
+
+            <div id="noStartDateNotice" class="card" style="display:none;">
+                <p style="margin:0;">Your admin hasn't set this session's start date yet.</p>
+            </div>
+
+            <div id="analyticsWrapper" style="display:none;">
+
+                <div class="summary-grid">
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-user-graduate"></i></div><div><h3>Total Students</h3><p id="cardTotalStudents">0</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-chart-line"></i></div><div><h3>Average Attendance</h3><p id="cardAverage">0%</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-trophy"></i></div><div><h3>Best Attendance</h3><p id="cardBest">0%</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div><h3>Lowest Attendance</h3><p id="cardLowest">0%</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-person"></i></div><div><h3>Male Average</h3><p id="cardMaleAvg">0%</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-person-dress"></i></div><div><h3>Female Average</h3><p id="cardFemaleAvg">0%</p></div></div>
+                </div>
+
+                <div class="two-col-grid">
+                    <div class="card"><h3 style="margin-top:0;">Weekly Attendance Trend</h3><canvas id="weeklyTrendChart" height="180"></canvas></div>
+                    <div class="card"><h3 style="margin-top:0;">Male vs Female Attendance</h3><canvas id="genderChart" height="180"></canvas></div>
+                    <div class="card"><h3 style="margin-top:0;">Attendance Distribution</h3><canvas id="distributionChart" height="180"></canvas></div>
+                    <div class="card"><h3 style="margin-top:0;">Attendance by Day of Week</h3><canvas id="dayOfWeekChart" height="180"></canvas></div>
+                </div>
+
+                <div class="two-col-grid">
+
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="fa-solid fa-trophy"></i> Top 5 Attendance</h3>
+                        <div class="table-scroll">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); font-size:11px;"><th style="padding:6px 4px;">Rank</th><th style="padding:6px 4px;">Student</th><th style="padding:6px 4px; text-align:right;">Attendance</th></tr></thead>
+                            <tbody id="topRankingBody"></tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="fa-solid fa-triangle-exclamation"></i> Lowest 5 Attendance</h3>
+                        <div class="table-scroll">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); font-size:11px;"><th style="padding:6px 4px;">Rank</th><th style="padding:6px 4px;">Student</th><th style="padding:6px 4px; text-align:right;">Attendance</th></tr></thead>
+                            <tbody id="lowestRankingBody"></tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="two-col-grid">
+
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="fa-solid fa-user-clock"></i> Students Below 75%</h3>
+                        <div class="table-scroll">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); font-size:11px;"><th style="padding:6px 4px;">Student</th><th style="padding:6px 4px; text-align:right;">Attendance</th></tr></thead>
+                            <tbody id="below75Body"></tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="fa-solid fa-triangle-exclamation"></i> Students Below 50%</h3>
+                        <div class="table-scroll">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); font-size:11px;"><th style="padding:6px 4px;">Student</th><th style="padding:6px 4px; text-align:right;">Attendance</th></tr></thead>
+                            <tbody id="below50Body"></tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="card" style="margin-bottom:1.25rem;">
+                    <h3 style="margin-top:0;"><i class="fa-solid fa-calendar-week"></i> Weekly Attendance Analysis</h3>
+                    <div class="table-scroll">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead><tr style="text-align:left; color:var(--text-muted); font-size:11px;"><th style="padding:6px 4px;">Week</th><th style="padding:6px 4px; text-align:center;">Total Attendance</th><th style="padding:6px 4px; text-align:center;">Attendance %</th></tr></thead>
+                        <tbody id="weeklyAnalysisBody"></tbody>
+                    </table>
+                        </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-top:0;"><i class="fa-solid fa-lightbulb"></i> Attendance Insights</h3>
+                    <div id="insightsList" style="display:flex; flex-direction:column; gap:8px; font-size:13px;"></div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/assets/js/analytics.js"></script>
+
+</body>
+</html>

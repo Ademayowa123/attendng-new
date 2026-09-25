@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Attendance</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+
+<div id="toast" class="toast"></div>
+
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Attendance</h1>
+                    <p><span id="className"></span> · <span id="term"></span></p>
+                </div>
+                <span id="registerStatusBadge"></span>
+            </header>
+
+            <div id="noClassNotice" class="card" style="display:none;">
+                <p style="margin:0;">You haven't been assigned a class yet.</p>
+            </div>
+
+            <div id="noStartDateNotice" class="card" style="display:none;">
+                <p style="margin:0;">Your admin hasn't set this session's start date yet — ask them to set it on the Sessions page before marking attendance.</p>
+            </div>
+
+            <div id="attendanceWrapper" style="display:none;">
+
+                <div class="card" style="margin-bottom:1rem;">
+
+                    <h3 style="margin-top:0;">Weekly Settings</h3>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-top:-8px;">Select the attendance week.</p>
+
+                    <div class="attendance-top">
+
+                        <div class="form-grid">
+
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Week</label>
+                                <select id="attendanceWeek">
+                                    <option value="1">Week 1</option>
+                                    <option value="2">Week 2</option>
+                                    <option value="3">Week 3</option>
+                                    <option value="4">Week 4</option>
+                                    <option value="5">Week 5</option>
+                                    <option value="6">Week 6</option>
+                                    <option value="7">Week 7</option>
+                                    <option value="8">Week 8</option>
+                                    <option value="9">Week 9</option>
+                                    <option value="10">Week 10</option>
+                                    <option value="11">Week 11</option>
+                                    <option value="12">Week 12</option>
+                                    <option value="13">Week 13</option>
+                                    <option value="14">Week 14</option>
+                                    <option value="15">Week 15</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>School Opened</label>
+                                <input type="number" id="schoolOpened" min="0" max="10" value="10">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="attendance-summary-box">
+
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Morning</th>
+                                    <th>Afternoon</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Mon</td><td id="monMorning">0</td><td id="monAfternoon">0</td></tr>
+                                <tr><td>Tue</td><td id="tueMorning">0</td><td id="tueAfternoon">0</td></tr>
+                                <tr><td>Wed</td><td id="wedMorning">0</td><td id="wedAfternoon">0</td></tr>
+                                <tr><td>Thu</td><td id="thuMorning">0</td><td id="thuAfternoon">0</td></tr>
+                                <tr><td>Fri</td><td id="friMorning">0</td><td id="friAfternoon">0</td></tr>
+                                <tr class="total-row"><td>Total</td><td id="morningTotal">0</td><td id="afternoonTotal">0</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="weekly-percentage">
+                            Weekly Attendance
+                            <span id="weeklyPercentage">0%</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="card">
+                    <div style="overflow-x:auto;">
+
+                    <table class="attendance-table" style="font-size:13px; white-space:nowrap;">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="sticky-sn" style="padding:8px 6px; text-align:left; border-bottom:1px solid var(--border);">S/N</th>
+                                <th rowspan="2" class="sticky-name" style="padding:8px 6px; text-align:left; border-bottom:1px solid var(--border);"><span>Student Name</span></th>
+                                <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Monday</th>
+                                <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Tuesday</th>
+                                <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Wednesday</th>
+                                <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Thursday</th>
+                                <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Friday</th>
+                                <th rowspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Weekly Total</th>
+                            </tr>
+                            <tr>
+                                <th style="padding:4px 6px; font-size:11px;">M</th>
+                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                                <th style="padding:4px 6px; font-size:11px;">M</th>
+                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                                <th style="padding:4px 6px; font-size:11px;">M</th>
+                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                                <th style="padding:4px 6px; font-size:11px;">M</th>
+                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                                <th style="padding:4px 6px; font-size:11px;">M</th>
+                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody"></tbody>
+                    </table>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/attendance.js"></script>
+
+</body>
+</html>

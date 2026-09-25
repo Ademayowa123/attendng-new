@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Settings</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Settings</h1>
+                </div>
+            </header>
+
+            <div class="card" style="max-width:460px; margin-bottom:1.25rem;">
+
+                <h3 style="margin-top:0;">Register information</h3>
+
+                <table style="width:100%; font-size:14px; border-collapse:collapse;">
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">School</td><td style="text-align:right; padding:6px 0;" id="infoSchool"></td></tr>
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Name</td><td style="text-align:right; padding:6px 0;" id="infoName"></td></tr>
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Class</td><td style="text-align:right; padding:6px 0;" id="infoClass"></td></tr>
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Session</td><td style="text-align:right; padding:6px 0;" id="infoSession"></td></tr>
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Term</td><td style="text-align:right; padding:6px 0;" id="infoTerm"></td></tr>
+                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Register status</td><td style="text-align:right; padding:6px 0;" id="infoStatus"></td></tr>
+                </table>
+
+            </div>
+
+            <div class="card" style="max-width:460px;">
+
+                <h3 style="margin-top:0;">Change password</h3>
+
+                <form id="passwordForm">
+
+                    <div class="form-group">
+                        <label>Current password</label>
+                        <div class="password-field">
+                            <input type="password" id="currentPassword" required>
+                            <button type="button" class="password-toggle" data-target="currentPassword" aria-label="Show password" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>New password</label>
+                        <div class="password-field">
+                            <input type="password" id="newPassword" required minlength="6">
+                            <button type="button" class="password-toggle" data-target="newPassword" aria-label="Show password" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Confirm new password</label>
+                        <div class="password-field">
+                            <input type="password" id="confirmPassword" required minlength="6">
+                            <button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="login-error" id="passwordError" style="display:none;"></p>
+                    <p style="color:var(--success-text, #0f766e); font-size:13px; display:none;" id="passwordSuccess">Password updated.</p>
+
+                    <button type="submit" class="btn-primary" id="updatePasswordBtn">Update password</button>
+
+                </form>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/settings.js"></script>
+
+</body>
+</html>

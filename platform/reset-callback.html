@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Set New Password</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+</head>
+<body class="login-body">
+
+    <div class="login-page">
+
+        <div class="login-card">
+
+            <div class="login-brand">
+                <img src="/assets/images/logo.png" alt="AttendNG" class="login-logo">
+                <p>Set a new password</p>
+            </div>
+
+            <div id="loadingNotice" style="text-align:center; font-size:13px; color:var(--text-secondary);">
+                Verifying your reset link…
+            </div>
+
+            <div id="invalidLinkNotice" style="display:none; text-align:center; font-size:13px; color:var(--text-secondary);">
+                <p>This reset link is invalid or has expired.</p>
+                <p><a href="/platform/forgot-password.html">Request a new one</a></p>
+            </div>
+
+            <form id="newPasswordForm" style="display:none;">
+
+                <label for="newPassword">New password</label>
+                <div class="password-field">
+                    <input type="password" id="newPassword" required minlength="6">
+                    <button type="button" class="password-toggle" data-target="newPassword" aria-label="Show password" tabindex="-1">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+
+                <label for="confirmPassword">Confirm new password</label>
+                <input type="password" id="confirmPassword" required minlength="6">
+
+                <p class="login-error" id="resetError" style="display:none;"></p>
+
+                <button type="submit" id="resetSubmit">Set new password</button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/reset-callback.js"></script>
+
+</body>
+</html>

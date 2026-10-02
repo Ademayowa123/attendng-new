@@ -46,6 +46,32 @@
 
             </div>
 
+            <div class="card" style="max-width:460px; margin-bottom:1.25rem;">
+
+                <h3 style="margin-top:0;">Address and phone</h3>
+
+                <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Printed at the top of every report card.</p>
+
+                <form id="contactForm">
+
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="schoolAddressInput" rows="2" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone number</label>
+                        <input type="text" id="schoolPhoneInput">
+                    </div>
+
+                    <p class="login-error" id="contactError" style="display:none;"></p>
+
+                    <button type="submit" class="btn-primary">Save</button>
+
+                </form>
+
+            </div>
+
             <div class="card" style="max-width:460px;">
 
                 <h3 style="margin-top:0;">School name</h3>

@@ -258,6 +258,12 @@ function injectSidebar() {
             <li class="${isActive('students.html')}">
                 <a href="/school/students.html"><i class="fa-solid fa-user-graduate"></i> Students</a>
             </li>
+            <li class="${isActive('/school/results.html')}">
+                <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
+            </li>
+            ${AttendNGContext.tier === "teacher" ? `<li class="${isActive('report-card.html')}">
+                <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>
+            </li>` : ""}
             <li class="has-submenu ${isActive('report')}">
                 <a href="#" class="submenu-toggle"><i class="fa-solid fa-file-lines"></i> Reports <i class="fa-solid fa-chevron-down submenu-caret"></i></a>
                 <ul class="submenu">
@@ -275,6 +281,9 @@ function injectSidebar() {
             <li class="${isActive('/school/dashboard.html')}">
                 <a href="/school/dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
             </li>
+            <li class="${isActive('/school/results.html')}">
+                <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
+            </li>
             <li class="${isActive('/school/settings.html')}">
                 <a href="/school/settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
             </li>
@@ -289,6 +298,15 @@ function injectSidebar() {
             <li class="sidebar-section-label">Admin</li>
             <li class="${isActive('/school/admin/classes.html')}">
                 <a href="/school/admin/classes.html"><i class="fa-solid fa-school"></i> Classes</a>
+            </li>
+            <li class="${isActive('/school/admin/subjects.html')}">
+                <a href="/school/admin/subjects.html"><i class="fa-solid fa-book"></i> Subjects</a>
+            </li>
+            <li class="${isActive('broadsheet.html')}">
+                <a href="/school/admin/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
+            </li>
+            <li class="${isActive('report-card.html')}">
+                <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>
             </li>
             <li class="${isActive('teachers.html')}">
                 <a href="/school/admin/teachers.html"><i class="fa-solid fa-users"></i> Teachers</a>

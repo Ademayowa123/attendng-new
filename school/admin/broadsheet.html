@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Broadsheet</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+    <style>
+        /* A broadsheet is wide — print it landscape, and hide
+           everything that isn't the sheet itself. */
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        @media print {
+
+            .sidebar,
+            .top-header,
+            .summary-grid,
+            .broadsheet-controls,
+            .incomplete-note {
+                display: none !important;
+            }
+
+            #printHeader {
+                display: flex !important;
+                align-items: center;
+                gap: 14px;
+            }
+
+            #printHeader.has-logo #printLogo {
+                display: block !important;
+            }
+
+            .broadsheet-table {
+                font-size: 11px !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+        }
+
+        .broadsheet-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+        }
+
+        .broadsheet-controls label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .broadsheet-controls select {
+            min-width: 180px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .broadsheet-table th,
+        .broadsheet-table td {
+            white-space: nowrap;
+        }
+
+        .broadsheet-table td.missing {
+            color: var(--text-muted);
+            background: #fff7e6;
+        }
+
+        .missing-list {
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none;
+            font-size: 13px;
+            color: #374151;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .missing-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .missing-list li span {
+            color: var(--text-muted);
+        }
+    </style>
+
+</head>
+<body>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Broadsheet</h1>
+                    <p><span id="sessionLabel"></span></p>
+                </div>
+                <div class="report-actions" id="sheetActions" style="display:none;">
+                    <button type="button" class="btn-info btn-sm" id="printBtn"><i class="fa-solid fa-print"></i> Print</button>
+                    <button type="button" class="btn-success btn-sm" id="exportBtn"><i class="fa-solid fa-file-excel"></i> Export</button>
+                </div>
+            </header>
+
+            <section class="card broadsheet-controls" style="margin-bottom:16px;">
+
+                <div>
+                    <label for="classSelect">Class</label>
+                    <select id="classSelect"></select>
+                </div>
+
+                <div>
+                    <label for="termSelect">Term</label>
+                    <select id="termSelect">
+                        <option value="1st Term">1st Term</option>
+                        <option value="2nd Term">2nd Term</option>
+                        <option value="3rd Term">3rd Term</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-primary" id="generateBtn">
+                    <i class="fa-solid fa-table-list"></i> Generate broadsheet
+                </button>
+
+            </section>
+
+            <div id="noClassesNotice" class="card" style="display:none;">
+                <p style="margin:0;">There are no classes in this session yet. Create one under Classes first.</p>
+            </div>
+
+            <div id="noSubjectsNotice" class="card" style="display:none;">
+                <p style="margin:0;">This class has no subjects assigned yet. Assign some under Classes → Subjects first.</p>
+            </div>
+
+            <div id="noStudentsNotice" class="card" style="display:none;">
+                <p style="margin:0;">This class has no students yet.</p>
+            </div>
+
+            <div id="sheetWrapper" style="display:none;">
+
+                <div class="summary-grid">
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-user-graduate"></i></div><div><h3>Students</h3><p id="cardStudents">0</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-book"></i></div><div><h3>Subjects</h3><p id="cardSubjects">0</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-trophy"></i></div><div><h3>Highest Total</h3><p id="cardHighest">0</p></div></div>
+                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-percent"></i></div><div><h3>Class Average</h3><p id="cardAverage">0</p></div></div>
+                </div>
+
+                <div id="printHeader" style="display:none; margin-bottom:1rem;">
+                    <img id="printLogo" alt="School logo" style="display:none; height:56px; width:56px; object-fit:contain; flex-shrink:0;">
+                    <div>
+                        <h2 id="printTitle" style="margin:0 0 4px;"></h2>
+                        <p id="printMeta" style="margin:0; font-size:13px; color:var(--text-secondary);"></p>
+                    </div>
+                </div>
+
+                <div class="card">
+
+                    <p class="incomplete-note" id="incompleteNote" style="display:none; margin:0 0 10px; font-size:13px; color:#92650b;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Some scores are still missing — highlighted cells are incomplete, and those students' totals only count the scores that are in.
+                    </p>
+
+                    <div class="table-scroll">
+                        <table class="report-table broadsheet-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                            <thead id="sheetHead"></thead>
+                            <tbody id="sheetBody"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- MISSING SCORES WARNING MODAL -->
+    <div class="confirm-modal" id="missingModal">
+        <div class="confirm-card" style="width:420px;">
+
+            <div class="confirm-header">
+                <h2>Some scores are missing</h2>
+            </div>
+
+            <div class="confirm-body">
+
+                <p id="missingSummary" style="margin:0;"></p>
+
+                <ul class="missing-list" id="missingList"></ul>
+
+                <p style="margin-top:12px;">
+                    You can go back and ask the teachers to finish, or continue anyway —
+                    positions will be worked out from the scores that are in.
+                </p>
+
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-info" id="missingGoBack">Go back</button>
+                <button type="button" class="btn-primary" id="missingContinue">Continue anyway</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="/assets/js/admin-broadsheet.js"></script>
+
+</body>
+</html>

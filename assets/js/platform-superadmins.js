@@ -113,7 +113,13 @@ async function loadSuperadmins() {
     const tbody =
         document.getElementById("superadminsTableBody");
 
+    const cardsMount =
+        document.getElementById("superadminCardsMount");
+
     tbody.innerHTML =
+        "";
+
+    cardsMount.innerHTML =
         "";
 
     data.forEach(
@@ -141,21 +147,45 @@ async function loadSuperadmins() {
             const deleteHtml =
                 (admin.is_founder || isSelf) ?
                     "" :
-                    `<button class="btn-danger delete-superadmin-btn" data-id="${admin.id}" data-name="${admin.full_name}">Delete</button>`;
+                    `<button class="btn-danger delete-superadmin-btn" data-id="${escapeHtml(admin.id)}" data-name="${escapeHtml(admin.full_name)}">Delete</button>`;
 
             row.innerHTML = `
-                <td style="padding:10px 4px;">${admin.full_name}${founderBadge}</td>
-                <td style="padding:10px 4px;">${admin.email}</td>
+                <td style="padding:10px 4px;">${escapeHtml(admin.full_name)}${founderBadge}</td>
+                <td style="padding:10px 4px;">${escapeHtml(admin.email)}</td>
                 <td style="padding:10px 4px; color:var(--text-secondary);">${addedDate}</td>
                 <td style="padding:10px 4px; text-align:right;">${deleteHtml}</td>
             `;
 
             tbody.appendChild(row);
 
+
+            // Card (phones)
+
+            const card =
+                document.createElement("div");
+
+            card.className =
+                "teacher-card";
+
+            card.innerHTML = `
+                <div class="teacher-card-header">
+                    <div>
+                        <div class="teacher-card-name">${escapeHtml(admin.full_name)}${founderBadge}</div>
+                    </div>
+                </div>
+                <div class="teacher-card-body">
+                    <div><span class="teacher-card-label">Email:</span><span style="overflow-wrap:anywhere;">${escapeHtml(admin.email)}</span></div>
+                    <div><span class="teacher-card-label">Added:</span>${addedDate}</div>
+                </div>
+                ${deleteHtml ? `<div class="teacher-card-actions">${deleteHtml}</div>` : ""}
+            `;
+
+            cardsMount.appendChild(card);
+
         }
     );
 
-    tbody.querySelectorAll(".delete-superadmin-btn").forEach(
+    document.querySelectorAll(".delete-superadmin-btn").forEach(
         btn => {
 
             btn.addEventListener(
@@ -225,6 +255,18 @@ async function deleteSuperadmin(targetId, targetName) {
 }
 
 
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+
 /* ==========================================
    REUSABLE CONFIRM MODAL + TOAST
 ========================================== */
@@ -249,7 +291,7 @@ function showConfirmModal(title, message) {
                     "confirm-modal";
 
                 modal.innerHTML = `
-                    <div class="confirm-card">
+                    <div class="confirm-card" style="max-width:calc(100vw - 32px);">
                         <div class="confirm-header"><h2 id="genericConfirmTitle"></h2></div>
                         <div class="confirm-body"><p id="genericConfirmMessage"></p></div>
                         <div class="confirm-footer">

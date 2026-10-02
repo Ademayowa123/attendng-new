@@ -22,6 +22,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         handleNameSave
     );
 
+    loadContactDetails();
+
+    document.getElementById("contactForm").addEventListener(
+        "submit",
+        handleContactSave
+    );
+
     document.getElementById("chooseLogoBtn").addEventListener(
         "click",
         () => document.getElementById("logoFile").click()
@@ -60,6 +67,87 @@ function waitForContext() {
 
         }
     );
+
+}
+
+
+async function loadContactDetails() {
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from("schools")
+            .select("address, phone")
+            .eq("id", AttendNGContext.schoolId)
+            .maybeSingle();
+
+    if (error) {
+
+        console.error(
+            "Unable to load school address and phone:",
+            error
+        );
+
+        return;
+
+    }
+
+    if (data) {
+
+        document.getElementById("schoolAddressInput").value =
+            data.address || "";
+
+        document.getElementById("schoolPhoneInput").value =
+            data.phone || "";
+
+    }
+
+}
+
+
+async function handleContactSave(event) {
+
+    event.preventDefault();
+
+    const errorEl =
+        document.getElementById("contactError");
+
+    errorEl.style.display =
+        "none";
+
+    const address =
+        document.getElementById("schoolAddressInput").value.trim();
+
+    const phone =
+        document.getElementById("schoolPhoneInput").value.trim();
+
+    const {
+        error
+    } =
+        await supabaseClient
+            .from("schools")
+            .update({
+                address: address || null,
+                phone: phone || null
+            })
+            .eq("id", AttendNGContext.schoolId);
+
+    if (error) {
+
+        errorEl.textContent =
+            error.message ||
+            "Unable to save the address and phone number.";
+
+        errorEl.style.display =
+            "block";
+
+        return;
+
+    }
+
+    showToast("Address and phone saved.");
 
 }
 

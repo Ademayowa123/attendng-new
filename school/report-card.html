@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Report Card</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+    <style>
+
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
+        /* ---------- on-screen controls ---------- */
+
+        .rc-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+        }
+
+        .rc-controls label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .rc-controls select,
+        .rc-dates input[type="date"] {
+            min-width: 180px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .rc-dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+        }
+
+        .rc-dates label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .rc-note {
+            margin: 0 0 10px;
+            font-size: 13px;
+            color: #92650b;
+        }
+
+        /* ---------- the report card itself ---------- */
+
+        .rc-card {
+            background: #fff;
+            color: #000;
+            border: 1px solid #000;
+            padding: 14px 16px;
+            margin: 0 auto 20px;
+            max-width: 780px;
+            box-sizing: border-box;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .rc-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .rc-head img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .rc-head-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        .rc-head-text h2 {
+            margin: 0 0 2px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .rc-head-text p {
+            margin: 0;
+            font-size: 11px;
+        }
+
+        .rc-title {
+            text-align: center;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 1px;
+            border: 1px solid #000;
+            padding: 4px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .rc-info {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .rc-info td {
+            border: 1px solid #000;
+            padding: 3px 6px;
+        }
+
+        .rc-info td.k {
+            font-weight: 700;
+            background: #f1f1f1;
+            width: 17%;
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+
+        .rc-scores {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .rc-scores th,
+        .rc-scores td {
+            border: 1px solid #000;
+            padding: 2.5px 5px;
+            text-align: center;
+        }
+
+        .rc-scores th {
+            background: #f1f1f1;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .rc-scores th small {
+            display: block;
+            font-weight: 400;
+            font-size: 9px;
+        }
+
+        .rc-scores td.left,
+        .rc-scores th.left {
+            text-align: left;
+        }
+
+        /* The column that holds the score being used this term —
+           black header, tinted + bold cells. */
+
+        .rc-scores th.hl {
+            background: #000;
+            color: #fff;
+        }
+
+        .rc-scores td.hl {
+            background: #e3e3e3;
+            font-weight: 700;
+        }
+
+        .rc-scores tr.rc-total td {
+            font-weight: 700;
+            background: #f1f1f1;
+        }
+
+        .rc-summary {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .rc-summary td {
+            border: 1px solid #000;
+            padding: 3px 6px;
+            vertical-align: top;
+        }
+
+        .rc-summary td.k {
+            font-weight: 700;
+            background: #f1f1f1;
+            text-transform: uppercase;
+            font-size: 10px;
+            width: 22%;
+        }
+
+        .rc-block {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            margin-bottom: 6px;
+        }
+
+        .rc-block .rc-label {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .rc-block .rc-text {
+            min-height: 26px;
+            font-size: 11px;
+            white-space: pre-wrap;
+        }
+
+        .rc-sign {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 60px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .rc-sign span {
+            flex: 1;
+            border-top: 1px solid #000;
+            padding-top: 2px;
+        }
+
+        .rc-key {
+            margin-top: 6px;
+            font-size: 9.5px;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 4px;
+        }
+
+        .rc-foot {
+            margin-top: 4px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        /* On-screen comment editors. In print they are swapped for
+           plain text so nothing gets clipped or shows a scrollbar. */
+
+        .rc-edit textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px dashed #9aa3af;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-family: inherit;
+            font-size: 11px;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .rc-edit select {
+            margin-top: 4px;
+            max-width: 100%;
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+
+        .rc-print-only {
+            display: none;
+        }
+
+        /* Off-screen stage the PDF is drawn from. Fixed A4 layout width
+           (A4 minus 8mm margins = 194mm = 733px) so a PDF made on a phone
+           matches one made on a PC. */
+
+        .rc-pdf-stage {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 733px;
+            background: #fff;
+            font-family: "Poppins", sans-serif;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        .rc-pdf-stage .rc-card {
+            max-width: none;
+            width: 100%;
+            margin: 0;
+            border: 1px solid #000;
+        }
+
+        .rc-pdf-stage .rc-hide-print {
+            display: none !important;
+        }
+
+        @media print {
+
+            .sidebar,
+            .mobile-topbar,
+            .sidebar-overlay,
+            .top-header,
+            .rc-controls,
+            .rc-dates-card,
+            .rc-note,
+            .rc-hide-print,
+            .rc-edit,
+            .toast {
+                display: none !important;
+            }
+
+            .rc-print-only {
+                display: block !important;
+            }
+
+            .main-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            .container {
+                display: block !important;
+            }
+
+            .rc-card {
+                max-width: none;
+                margin: 0;
+                border: 1px solid #000;
+                break-after: page;
+                page-break-after: always;
+            }
+
+            .rc-card:last-of-type {
+                break-after: auto;
+                page-break-after: auto;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Report Card</h1>
+                    <p><span id="sessionLabel"></span></p>
+                </div>
+                <div class="report-actions" id="cardActions" style="display:none;">
+                    <button type="button" class="btn-info btn-sm" id="pdfBtn"><i class="fa-solid fa-file-arrow-down"></i> Download PDF</button>
+                </div>
+            </header>
+
+            <section class="card rc-controls" style="margin-bottom:16px;">
+
+                <div id="classField">
+                    <label for="classSelect">Class</label>
+                    <select id="classSelect"></select>
+                </div>
+
+                <div>
+                    <label for="termSelect">Term</label>
+                    <select id="termSelect">
+                        <option value="1st Term">1st Term</option>
+                        <option value="2nd Term">2nd Term</option>
+                        <option value="3rd Term">3rd Term</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-primary" id="generateBtn">
+                    <i class="fa-solid fa-id-card"></i> Generate report cards
+                </button>
+
+                <div id="studentField" style="display:none;">
+                    <label for="studentSelect">Show</label>
+                    <select id="studentSelect"></select>
+                </div>
+
+            </section>
+
+            <div id="noClassesNotice" class="card" style="display:none;">
+                <p style="margin:0;">There are no classes in this session yet.</p>
+            </div>
+
+            <div id="noSubjectsNotice" class="card" style="display:none;">
+                <p style="margin:0;">This class has no subjects assigned yet. Assign some under Classes → Subjects first.</p>
+            </div>
+
+            <div id="noStudentsNotice" class="card" style="display:none;">
+                <p style="margin:0;">This class has no students yet.</p>
+            </div>
+
+            <div id="resultWrapper" style="display:none;">
+
+                <p class="rc-note" id="incompleteNote" style="display:none;"></p>
+                <p class="rc-note" id="setupNote" style="display:none;"></p>
+
+                <!-- Term dates (admins only) -->
+                <section class="card rc-dates-card" id="datesCard" style="display:none; margin-bottom:16px;">
+
+                    <h3 style="margin:0 0 4px;">Term dates</h3>
+                    <p style="margin:0 0 12px; font-size:12px; color:var(--text-muted);">Printed on every card for this term.</p>
+
+                    <div class="rc-dates">
+
+                        <div>
+                            <label for="resumeDate">School resumed</label>
+                            <input type="date" id="resumeDate">
+                        </div>
+
+                        <div>
+                            <label for="closeDate">School closes</label>
+                            <input type="date" id="closeDate">
+                        </div>
+
+                        <div>
+                            <label for="nextTermDate">Next term begins</label>
+                            <input type="date" id="nextTermDate">
+                        </div>
+
+                        <button type="button" class="btn-primary" id="saveDatesBtn">Save dates</button>
+
+                    </div>
+
+                </section>
+
+                <div id="cardsMount"></div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/grading.js"></script>
+    <script src="/assets/js/report-card.js"></script>
+
+</body>
+</html>

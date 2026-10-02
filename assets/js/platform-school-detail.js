@@ -241,24 +241,45 @@ async function loadMembers() {
             .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
 
-    renderRows("adminsTableBody", admins);
-    renderRows("teachersTableBody", teachers);
+    renderRows("adminsTableBody", "adminsCardsMount", admins);
+    renderRows("teachersTableBody", "teachersCardsMount", teachers);
 
 }
 
 
-function renderRows(tbodyId, members) {
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+
+function renderRows(tbodyId, cardsMountId, members) {
 
     const tbody =
         document.getElementById(tbodyId);
 
+    const cardsMount =
+        document.getElementById(cardsMountId);
+
     tbody.innerHTML =
+        "";
+
+    cardsMount.innerHTML =
         "";
 
     if (members.length === 0) {
 
         tbody.innerHTML =
             `<tr><td style="padding:10px 4px; color:var(--text-muted);">None yet.</td></tr>`;
+
+        cardsMount.innerHTML =
+            `<div style="padding:4px; font-size:14px; color:var(--text-muted);">None yet.</div>`;
 
         return;
 
@@ -267,36 +288,127 @@ function renderRows(tbodyId, members) {
     members.forEach(
         member => {
 
+            const roleLabel =
+                member.is_genesis ? "Genesis admin" :
+                    (member.role === "admin" ? "Admin" : "Teacher");
+
+            const safeName =
+                escapeHtml(member.full_name);
+
+            const safeUsername =
+                escapeHtml(member.username);
+
+            const actionHtml =
+                `<button class="btn-light reset-password-btn" data-id="${escapeHtml(member.id)}" data-name="${safeName}">Reset password</button>`;
+
+
+            // Desktop table row — unchanged, action inline.
+
             const row =
                 document.createElement("tr");
 
             row.style.borderBottom =
                 "1px solid var(--border)";
 
-            const roleLabel =
-                member.is_genesis ? "Genesis admin" :
-                    (member.role === "admin" ? "Admin" : "Teacher");
-
             row.innerHTML = `
-                <td style="padding:10px 4px;">${member.full_name}</td>
-                <td style="padding:10px 4px;"><code>${member.username}</code></td>
+                <td style="padding:10px 4px;">${safeName}</td>
+                <td style="padding:10px 4px;"><code>${safeUsername}</code></td>
                 <td style="padding:10px 4px; color:var(--text-secondary);">${roleLabel}</td>
-                <td style="padding:10px 4px; text-align:right;">
-                    <button class="btn-light reset-password-btn" data-id="${member.id}" data-name="${member.full_name}">Reset password</button>
-                </td>
+                <td style="padding:10px 4px; text-align:right;">${actionHtml}</td>
             `;
 
             tbody.appendChild(row);
 
+
+            // Mobile-only card — same layout as the school admin's
+            // Teachers page: name + role, a chevron that reveals
+            // the actions, and the username underneath.
+
+            const card =
+                document.createElement("div");
+
+            card.className =
+                "teacher-card";
+
+            card.innerHTML = `
+                <div class="teacher-card-header">
+                    <div>
+                        <div class="teacher-card-name">${safeName}</div>
+                        <div class="teacher-card-role">${roleLabel}</div>
+                    </div>
+                    <button type="button" class="row-toggle-btn" data-target="member-card-actions-${escapeHtml(member.id)}" aria-label="Show actions">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="teacher-card-body">
+                    <div><span class="teacher-card-label">Username:</span><code>${safeUsername}</code></div>
+                </div>
+                <div class="teacher-card-actions" id="member-card-actions-${escapeHtml(member.id)}" style="display:none;">
+                    ${actionHtml}
+                </div>
+            `;
+
+            cardsMount.appendChild(card);
+
         }
     );
 
-    tbody.querySelectorAll(".reset-password-btn").forEach(
+
+    // Chevron toggles (mobile cards)
+
+    cardsMount.querySelectorAll(".row-toggle-btn").forEach(
         btn => {
 
             btn.addEventListener(
                 "click",
-                () => resetPassword(btn.dataset.id, btn.dataset.name)
+                () => {
+
+                    const target =
+                        document.getElementById(btn.dataset.target);
+
+                    if (!target) {
+
+                        return;
+
+                    }
+
+                    const isOpen =
+                        target.style.display !== "none";
+
+                    target.style.display =
+                        isOpen ? "none" : "flex";
+
+                    btn.classList.toggle(
+                        "is-open",
+                        !isOpen
+                    );
+
+                    btn.setAttribute(
+                        "aria-label",
+                        isOpen ? "Show actions" : "Hide actions"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    // The reset button renders twice (table + card), so bind both.
+
+    [tbody, cardsMount].forEach(
+        container => {
+
+            container.querySelectorAll(".reset-password-btn").forEach(
+                btn => {
+
+                    btn.addEventListener(
+                        "click",
+                        () => resetPassword(btn.dataset.id, btn.dataset.name)
+                    );
+
+                }
             );
 
         }
@@ -432,7 +544,7 @@ function showConfirmModal(title, message) {
                     "confirm-modal";
 
                 modal.innerHTML = `
-                    <div class="confirm-card">
+                    <div class="confirm-card" style="max-width:calc(100vw - 32px);">
                         <div class="confirm-header"><h2 id="genericConfirmTitle"></h2></div>
                         <div class="confirm-body"><p id="genericConfirmMessage"></p></div>
                         <div class="confirm-footer">

@@ -193,7 +193,7 @@ async function loadStudents() {
     let query =
         supabaseClient
             .from("students")
-            .select("id, surname, first_name, other_name, gender, position")
+            .select("id, surname, first_name, other_name, gender, position, admission_no, date_of_birth")
             .eq("class_id", classId);
 
     query =
@@ -533,6 +533,12 @@ function openEditModal(studentId) {
     document.getElementById("gender").value =
         student.gender || "male";
 
+    document.getElementById("admissionno").value =
+        student.admission_no || "";
+
+    document.getElementById("dob").value =
+        student.date_of_birth || "";
+
     document.getElementById("studentFormError").style.display =
         "none";
 
@@ -616,6 +622,12 @@ async function submitAddStudent(event) {
     const gender =
         document.getElementById("gender").value;
 
+    const admissionNo =
+        document.getElementById("admissionno").value.trim();
+
+    const dateOfBirth =
+        document.getElementById("dob").value;
+
 
     if (!surname || !firstname) {
 
@@ -684,7 +696,9 @@ async function submitAddStudent(event) {
                     surname,
                     first_name: firstname,
                     other_name: othername || null,
-                    gender
+                    gender,
+                    admission_no: admissionNo || null,
+                    date_of_birth: dateOfBirth || null
                 })
                 .eq("id", editingStudentId);
 
@@ -752,6 +766,8 @@ async function submitAddStudent(event) {
                 first_name: firstname,
                 other_name: othername || null,
                 gender,
+                admission_no: admissionNo || null,
+                date_of_birth: dateOfBirth || null,
                 position
             });
 

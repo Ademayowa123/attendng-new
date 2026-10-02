@@ -12,9 +12,9 @@
 
 </head>
 
-<div id="toast" class="toast"></div>
-
 <body>
+
+    <div id="toast" class="toast"></div>
 
     <div class="container">
 
@@ -32,17 +32,25 @@
             </header>
 
             <div class="card">
-                <table style="width:100%; border-collapse:collapse; font-size:14px;">
-                    <thead>
-                        <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                            <th style="padding:8px 4px;">Name</th>
-                            <th style="padding:8px 4px;">Email</th>
-                            <th style="padding:8px 4px;">Added</th>
-                            <th style="padding:8px 4px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="superadminsTableBody"></tbody>
-                </table>
+
+                <!-- Desktop / tablet: table. Hidden on phones (<= 768px). -->
+                <div class="table-scroll teacher-table-scroll">
+                    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <thead>
+                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
+                                <th style="padding:8px 4px;">Name</th>
+                                <th style="padding:8px 4px;">Email</th>
+                                <th style="padding:8px 4px;">Added</th>
+                                <th style="padding:8px 4px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="superadminsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Phones: stacked cards, so nothing scrolls sideways. -->
+                <div class="teacher-cards" id="superadminCardsMount"></div>
+
             </div>
 
         </main>
@@ -51,7 +59,7 @@
 
     <!-- ADD SUPERADMIN MODAL -->
     <div class="confirm-modal" id="addSuperadminModal">
-        <div class="confirm-card" style="width:360px;">
+        <div class="confirm-card" style="width:360px; max-width:calc(100vw - 32px); max-height:calc(100vh - 32px); overflow-y:auto;">
 
             <div id="addSuperadminForm">
 

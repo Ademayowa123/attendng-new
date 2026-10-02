@@ -394,6 +394,9 @@ function renderClasses() {
                     <button class="btn-manage-students manage-students-btn" data-class-id="${classRow.id}" style="margin-right:6px;">
                         Manage students
                     </button>
+                    <button class="btn-manage-students manage-subjects-btn" data-class-id="${classRow.id}" style="margin-right:6px;">
+                        Subjects
+                    </button>
                     <button class="${registerBtnClass} finalize-btn" data-class-id="${classRow.id}" data-next="${!classRow.is_finalized}" style="margin-right:6px;">
                         ${registerBtnLabel}
                     </button>
@@ -457,6 +460,28 @@ function renderClasses() {
 
                     window.location.href =
                         "/school/admin/roster.html";
+
+                }
+            );
+
+        }
+    );
+
+
+    tbody.querySelectorAll(".manage-subjects-btn").forEach(
+        btn => {
+
+            btn.addEventListener(
+                "click",
+                () => {
+
+                    sessionStorage.setItem(
+                        "attendng_selected_class_id",
+                        btn.dataset.classId
+                    );
+
+                    window.location.href =
+                        "/school/admin/class-subjects.html";
 
                 }
             );

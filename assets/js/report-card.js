@@ -71,15 +71,63 @@ const TEACHER_COMMENTS = {
 };
 
 /*
- * Principal's remark suggested from the overall percentage.
- * Highest band first.
+ * Principal's remark, written automatically from the overall
+ * percentage. Five variants per band; one is picked at random for
+ * each student, dealt from a shuffled deck so students in the same
+ * band get an even spread before any repeats (same method as the
+ * class teacher's remark). Highest band first.
  */
 const PRINCIPAL_BANDS = [
-    { min: 80, text: "Outstanding performance. Keep it up" },
-    { min: 70, text: "Very Good. Keep pushing" },
-    { min: 60, text: "Above average performance. Aim higher" },
-    { min: 50, text: "Average performance. You need more effort" },
-    { min: 0,  text: "Poor performance. You must work harder" }
+    {
+        min: 80,
+        comments: [
+            "Outstanding performance. Keep it up!",
+            "Excellent result. Maintain this impressive standard!",
+            "An exceptional performance. Keep striving for excellence!",
+            "Remarkable achievement. Continue with the good work!",
+            "Excellent performance. Keep aiming for greater heights!"
+        ]
+    },
+    {
+        min: 70,
+        comments: [
+            "Very good performance. Keep pushing!",
+            "A very commendable result. Keep up the good work!",
+            "Very good achievement. Continue to work hard!",
+            "A strong performance. Keep striving for excellence!",
+            "Very good result. With continued effort, you can do even better!"
+        ]
+    },
+    {
+        min: 60,
+        comments: [
+            "Above average performance. Aim higher!",
+            "A good performance. Keep working towards greater achievement!",
+            "Good result. More effort can lead to an even better performance!",
+            "A commendable performance. Continue to work hard!",
+            "Good progress. Keep pushing yourself to achieve more!"
+        ]
+    },
+    {
+        min: 50,
+        comments: [
+            "Average performance. You need more effort.",
+            "A fair performance. Greater effort is needed for improvement.",
+            "Satisfactory result. Work harder to achieve better results.",
+            "An average performance. More dedication is required.",
+            "Fair result. Put in more effort and aim higher next time!"
+        ]
+    },
+    {
+        min: 0,
+        comments: [
+            "Poor performance. You must work harder.",
+            "Performance is below expectation. More effort is needed.",
+            "An unsatisfactory result. Greater commitment to studies is required.",
+            "More effort and dedication are needed to improve this performance.",
+            "This result needs significant improvement. Work harder next term."
+        ]
+    }
 ];
 
 
@@ -299,6 +347,8 @@ function ageFromDob(iso) {
 }
 
 
+const principalPickCache = {};     // `${studentId}|${term}` -> { min, index }
+
 function principalSuggestion(card) {
 
     // No scores in yet -> nothing sensible to say.
@@ -308,14 +358,26 @@ function principalSuggestion(card) {
 
     }
 
+    // Same rounding as the percentage printed on the card.
     const percentage =
-        card.percentage;
+        Math.round(card.percentage * 100) / 100;
 
     const band =
         PRINCIPAL_BANDS.find(b => percentage >= b.min) ||
         PRINCIPAL_BANDS[PRINCIPAL_BANDS.length - 1];
 
-    return band.text;
+    const key =
+        `${card.student.id}|${selectedTerm}`;
+
+    // Re-roll only if the student has moved to a different band.
+    if (!principalPickCache[key] || principalPickCache[key].min !== band.min) {
+
+        principalPickCache[key] =
+            { min: band.min, index: dealVariant(`principal|${band.min}`, band.comments.length) };
+
+    }
+
+    return band.comments[principalPickCache[key].index];
 
 }
 
@@ -369,11 +431,11 @@ function teacherCommentOptions(card) {
 
 
 const teacherPickCache = {};      // `${studentId}|${term}` -> { grade, index }
-const teacherDecks = {};          // grade -> shuffled variant indexes still to deal
+const variantDecks = {};          // deck key -> shuffled variant indexes still to deal
 
-function dealVariant(grade, size) {
+function dealVariant(deckKey, size) {
 
-    if (!teacherDecks[grade] || teacherDecks[grade].length === 0) {
+    if (!variantDecks[deckKey] || variantDecks[deckKey].length === 0) {
 
         const deck =
             Array.from({ length: size }, (_, i) => i);
@@ -388,12 +450,12 @@ function dealVariant(grade, size) {
 
         }
 
-        teacherDecks[grade] =
+        variantDecks[deckKey] =
             deck;
 
     }
 
-    return teacherDecks[grade].pop();
+    return variantDecks[deckKey].pop();
 
 }
 
@@ -419,7 +481,7 @@ function teacherSuggestion(card) {
     if (!teacherPickCache[key] || teacherPickCache[key].grade !== grade) {
 
         teacherPickCache[key] =
-            { grade, index: dealVariant(grade, options.length) };
+            { grade, index: dealVariant(`teacher|${grade}`, options.length) };
 
     }
 

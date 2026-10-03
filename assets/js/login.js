@@ -64,11 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
             errorEl.style.display =
                 "none";
 
-            submitBtn.disabled =
-                true;
-
-            submitBtn.textContent =
-                "Logging in…";
+            setLoginButtonState("loading");
 
 
             try {
@@ -102,6 +98,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 await loadAttendNGContext();
 
+
+                // Both steps worked: confirm it on the button and in a
+                // short message, then go. The pause is just long enough
+                // to read it; the overlay stays up until the page changes
+                // so the login form never flashes back.
+
+                setLoginButtonState("success");
+
+                showLoginSuccess();
+
+                await new Promise(
+                    resolve => setTimeout(resolve, LOGIN_SUCCESS_VISIBLE_MS)
+                );
+
                 routeToDashboard();
 
             }
@@ -119,11 +129,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 errorEl.style.display =
                     "block";
 
-                submitBtn.disabled =
-                    false;
+                hideLoginSuccess();
 
-                submitBtn.textContent =
-                    "Log in";
+                setLoginButtonState("idle");
+
+            }
+
+        }
+    );
+
+
+    // Back button after logging in: the browser can restore this page
+    // exactly as it was left (button stuck on "Login Successful").
+    // Put it back to a normal form.
+
+    window.addEventListener(
+        "pageshow",
+        (event) => {
+
+            if (event.persisted) {
+
+                hideLoginSuccess();
+
+                setLoginButtonState("idle");
 
             }
 
@@ -131,6 +159,62 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
 });
+
+
+const LOGIN_SUCCESS_VISIBLE_MS = 1100;
+
+
+/*
+ * The login button has three looks:
+ *   idle    -> "Log in"
+ *   loading -> spinner + "Logging in…"
+ *   success -> check + "Login Successful"
+ */
+function setLoginButtonState(state) {
+
+    const button =
+        document.getElementById("loginSubmit");
+
+    button.classList.remove("is-loading", "is-success");
+
+    if (state === "loading") {
+
+        button.disabled = true;
+        button.classList.add("is-loading");
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Logging in…`;
+
+    }
+    else if (state === "success") {
+
+        button.disabled = true;
+        button.classList.add("is-success");
+        button.innerHTML = `<i class="fa-solid fa-circle-check"></i> Login Successful`;
+
+    }
+    else {
+
+        button.disabled = false;
+        button.textContent = "Log in";
+
+    }
+
+}
+
+
+function showLoginSuccess() {
+
+    document.getElementById("loginSuccess").hidden =
+        false;
+
+}
+
+
+function hideLoginSuccess() {
+
+    document.getElementById("loginSuccess").hidden =
+        true;
+
+}
 
 
 async function redirectIfAlreadyLoggedIn() {

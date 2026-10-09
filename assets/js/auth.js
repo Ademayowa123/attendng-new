@@ -261,7 +261,10 @@ function injectSidebar() {
             <li class="${isActive('/school/results.html')}">
                 <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
             </li>
-            ${AttendNGContext.tier === "teacher" ? `<li class="${isActive('report-card.html')}">
+            ${AttendNGContext.tier === "teacher" ? `<li class="${isActive('broadsheet.html')}">
+                <a href="/school/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
+            </li>
+            <li class="${isActive('report-card.html')}">
                 <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>
             </li>` : ""}
             <li class="has-submenu ${isActive('report')}">
@@ -303,7 +306,7 @@ function injectSidebar() {
                 <a href="/school/admin/subjects.html"><i class="fa-solid fa-book"></i> Subjects</a>
             </li>
             <li class="${isActive('broadsheet.html')}">
-                <a href="/school/admin/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
+                <a href="/school/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
             </li>
             <li class="${isActive('report-card.html')}">
                 <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>

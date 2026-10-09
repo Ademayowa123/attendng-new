@@ -1,5 +1,8 @@
 /*************************************************
- * ADMIN-BROADSHEET.JS
+ * BROADSHEET.JS
+ *
+ * Admins pick any class in the session; a class teacher
+ * sees their own class only.
  *
  * Class + term view: every student x every subject
  * assigned to the class, ranked by total.
@@ -114,9 +117,20 @@ function waitForContext() {
 
 async function loadClasses() {
 
-    if (!AttendNGContext.sessionId) {
+    const isAdmin =
+        AttendNGContext.tier === "admin";
 
-        document.getElementById("noClassesNotice").style.display =
+    const noClassesEl =
+        document.getElementById("noClassesNotice");
+
+    if (!AttendNGContext.sessionId || (!isAdmin && !AttendNGContext.classId)) {
+
+        document.getElementById("noClassesText").textContent =
+            isAdmin ?
+                "There are no classes in this session yet. Create one under Classes first." :
+                "You haven't been assigned a class this session, so there's no broadsheet for you to view. Ask your admin to assign you a class.";
+
+        noClassesEl.style.display =
             "block";
 
         document.getElementById("generateBtn").disabled =
@@ -126,27 +140,39 @@ async function loadClasses() {
 
     }
 
-    const { data, error } =
-        await supabaseClient
-            .from("classes")
-            .select("id, name")
-            .eq("session_id", AttendNGContext.sessionId)
-            .order("name");
+    if (isAdmin) {
 
-    if (error) {
+        const { data, error } =
+            await supabaseClient
+                .from("classes")
+                .select("id, name")
+                .eq("session_id", AttendNGContext.sessionId)
+                .order("name");
 
-        console.error("Unable to load classes:", error);
+        if (error) {
 
-        return;
+            console.error("Unable to load classes:", error);
+
+            return;
+
+        }
+
+        classes =
+            data || [];
+
+    }
+    else {
+
+        // A class teacher only ever sees their own class.
+
+        classes =
+            [{ id: AttendNGContext.classId, name: AttendNGContext.className }];
 
     }
 
-    classes =
-        data || [];
-
     if (classes.length === 0) {
 
-        document.getElementById("noClassesNotice").style.display =
+        noClassesEl.style.display =
             "block";
 
         document.getElementById("generateBtn").disabled =
@@ -173,6 +199,15 @@ async function loadClasses() {
             remembered;
 
     }
+    else if (AttendNGContext.classId && classes.some(c => c.id === AttendNGContext.classId)) {
+
+        select.value =
+            AttendNGContext.classId;
+
+    }
+
+    select.disabled =
+        classes.length === 1;
 
 }
 
@@ -244,6 +279,9 @@ async function loadSheetData(classId, term) {
     // Teacher names, looked up separately (same approach as the
     // Class → Subjects page) rather than relying on an embed.
 
+    // Names are a nice-to-have in the "missing scores" list — if this
+    // account isn't allowed to list school members, carry on without them.
+
     const { data: members, error: membersError } =
         await supabaseClient
             .from("school_members")
@@ -252,7 +290,7 @@ async function loadSheetData(classId, term) {
 
     if (membersError) {
 
-        throw membersError;
+        console.warn("Teacher names unavailable:", membersError);
 
     }
 
@@ -267,7 +305,7 @@ async function loadSheetData(classId, term) {
                 row => ({
                     id: row.id,
                     subject_name: row.subjects.name,
-                    teacher_name: row.teacher_id ? (memberNames[row.teacher_id] || "Unknown teacher") : "No teacher assigned"
+                    teacher_name: row.teacher_id ? (memberNames[row.teacher_id] || "Subject teacher") : "No teacher assigned"
                 })
             )
             .sort((a, b) => compareSubjects(a.subject_name, b.subject_name));

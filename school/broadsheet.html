@@ -11,45 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
     <style>
-        /* A broadsheet is wide — print it landscape, and hide
-           everything that isn't the sheet itself. */
-
-        @page {
-            size: A4 landscape;
-            margin: 10mm;
-        }
-
-        @media print {
-
-            .sidebar,
-            .top-header,
-            .summary-grid,
-            .broadsheet-controls,
-            .incomplete-note {
-                display: none !important;
-            }
-
-            #printHeader {
-                display: flex !important;
-                align-items: center;
-                gap: 14px;
-            }
-
-            #printHeader.has-logo #printLogo {
-                display: block !important;
-            }
-
-            .broadsheet-table {
-                font-size: 11px !important;
-            }
-
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-        }
-
         .broadsheet-controls {
             display: flex;
             flex-wrap: wrap;
@@ -119,8 +80,7 @@
                     <p><span id="sessionLabel"></span></p>
                 </div>
                 <div class="report-actions" id="sheetActions" style="display:none;">
-                    <button type="button" class="btn-info btn-sm" id="printBtn"><i class="fa-solid fa-print"></i> Print</button>
-                    <button type="button" class="btn-success btn-sm" id="exportBtn"><i class="fa-solid fa-file-excel"></i> Export</button>
+                    <button type="button" class="btn-info btn-sm" id="pdfBtn"><i class="fa-solid fa-file-arrow-down"></i> Download PDF</button>
                 </div>
             </header>
 
@@ -165,14 +125,6 @@
                     <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-book"></i></div><div><h3>Subjects</h3><p id="cardSubjects">0</p></div></div>
                     <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-trophy"></i></div><div><h3>Highest Total</h3><p id="cardHighest">0</p></div></div>
                     <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-percent"></i></div><div><h3>Class Average</h3><p id="cardAverage">0</p></div></div>
-                </div>
-
-                <div id="printHeader" style="display:none; margin-bottom:1rem;">
-                    <img id="printLogo" alt="School logo" style="display:none; height:56px; width:56px; object-fit:contain; flex-shrink:0;">
-                    <div>
-                        <h2 id="printTitle" style="margin:0 0 4px;"></h2>
-                        <p id="printMeta" style="margin:0; font-size:13px; color:var(--text-secondary);"></p>
-                    </div>
                 </div>
 
                 <div class="card">
@@ -227,10 +179,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="/assets/js/supabase.js"></script>
     <script src="/assets/js/user-context.js"></script>
     <script src="/assets/js/auth.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="/assets/js/grading.js"></script>
     <script src="/assets/js/broadsheet.js"></script>
 
 </body>

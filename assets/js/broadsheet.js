@@ -21,6 +21,9 @@ let missingBySubject = []; // [{ subject_name, teacher_name, count }]
 let missingTotal = 0;
 let sheetClassName = "";
 let sheetTerm = "";
+let classTeacherName = "";
+let sessionStartDate = null;
+let attendance = { opened: 0, presentByStudent: {}, available: false };
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -41,14 +44,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 /*
- * Subject order for the broadsheet and report cards:
- * English first, Mathematics second, then everything else A-Z.
- * Matches by name: English / English Language / English Studies, and
- * Mathematics / Maths / Math / General or Basic Mathematics (an
+ * Subject order for the broadsheet:
+ * English first, Mathematics second, then every other subject A-Z.
+ * CRS and IRS (whatever the school calls them) always stay side by
+ * side as one block (Christian first, then Islamic). The block takes
+ * its place among the other subjects alphabetically, so it never
+ * sits straight after English and Maths unless it falls there on its
+ * own. English / English Language / English Studies and Mathematics /
+ * Maths / Math / General or Basic Mathematics are matched by name (an
  * optional "(...)" on the end is ignored). "Further Mathematics" and
  * "English Literature" are treated as ordinary subjects.
  */
-function subjectSortRank(name) {
+function coreRank(name) {
 
     const n =
         String(name || "")
@@ -69,15 +76,80 @@ function subjectSortRank(name) {
 
     }
 
-    return 2;
+    return null;
 
 }
 
 
-function compareSubjects(a, b) {
+function orderSubjects(list) {
 
-    return subjectSortRank(a) - subjectSortRank(b) ||
-        String(a).localeCompare(String(b));
+    const byName =
+        (a, b) => String(a.subject_name).localeCompare(String(b.subject_name));
+
+    const core =
+        list
+            .filter(cs => coreRank(cs.subject_name) !== null)
+            .sort((a, b) => coreRank(a.subject_name) - coreRank(b.subject_name) || byName(a, b));
+
+    const religion =
+        list
+            .filter(cs => coreRank(cs.subject_name) === null && religionOf(cs.subject_name))
+            .sort(
+                (a, b) =>
+                    (religionOf(a.subject_name) === "christian" ? 0 : 1) -
+                    (religionOf(b.subject_name) === "christian" ? 0 : 1) ||
+                    byName(a, b)
+            );
+
+    // Every other subject is one unit; the CRS + IRS pair is one unit
+    // too, filed under the name that sorts first, so the two can never
+    // be split up.
+
+    const units =
+        list
+            .filter(cs => coreRank(cs.subject_name) === null && !religionOf(cs.subject_name))
+            .map(cs => ({ key: cs.subject_name, items: [cs] }));
+
+    if (religion.length > 0) {
+
+        units.push({
+            key: religion.map(cs => cs.subject_name).sort((a, b) => a.localeCompare(b))[0],
+            items: religion
+        });
+
+    }
+
+    units.sort((a, b) => String(a.key).localeCompare(String(b.key)));
+
+    return core.concat(...units.map(u => u.items));
+
+}
+
+
+/*
+ * Christian / Islamic religious subject, whatever the school calls it
+ * (CRS, CRK, Christian Religious Studies/Knowledge, IRS, IRK, Islamic
+ * Religious Studies/Knowledge, Islamic Studies...). Returns null for
+ * every other subject.
+ */
+function religionOf(name) {
+
+    const n =
+        String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+    if (/^(crs|crk|christian)\b/.test(n)) {
+
+        return "christian";
+
+    }
+
+    if (/^(irs|irk|islamic|islamiyat)\b/.test(n)) {
+
+        return "islamic";
+
+    }
+
+    return null;
 
 }
 
@@ -299,16 +371,17 @@ async function loadSheetData(classId, term) {
     (members || []).forEach(m => { memberNames[m.id] = m.full_name; });
 
     classSubjects =
-        (csRows || [])
-            .filter(row => row.subjects)
-            .map(
-                row => ({
-                    id: row.id,
-                    subject_name: row.subjects.name,
-                    teacher_name: row.teacher_id ? (memberNames[row.teacher_id] || "Subject teacher") : "No teacher assigned"
-                })
-            )
-            .sort((a, b) => compareSubjects(a.subject_name, b.subject_name));
+        orderSubjects(
+            (csRows || [])
+                .filter(row => row.subjects)
+                .map(
+                    row => ({
+                        id: row.id,
+                        subject_name: row.subjects.name,
+                        teacher_name: row.teacher_id ? (memberNames[row.teacher_id] || "Subject teacher") : "No teacher assigned"
+                    })
+                )
+        );
 
 
     // 2. Students
@@ -316,7 +389,7 @@ async function loadSheetData(classId, term) {
     const { data: studentRows, error: studentsError } =
         await supabaseClient
             .from("students")
-            .select("id, surname, first_name")
+            .select("id, surname, first_name, gender")
             .eq("class_id", classId)
             .order("surname")
             .order("first_name");
@@ -358,12 +431,276 @@ async function loadSheetData(classId, term) {
 
     }
 
+    // 4. Class teacher + attendance (both nice-to-have — the sheet
+    //    still works without them)
+
+    await loadClassTeacher(classId);
+
+    try {
+
+        await loadAttendance(classId, term);
+
+    }
+    catch (error) {
+
+        console.warn("Attendance unavailable for broadsheet:", error);
+
+        attendance =
+            { opened: 0, presentByStudent: {}, available: false };
+
+    }
+
+}
+
+
+async function fetchPaged(makeQuery) {
+
+    const PAGE =
+        1000;
+
+    let all =
+        [];
+
+    let from =
+        0;
+
+    while (true) {
+
+        const { data, error } =
+            await makeQuery().range(from, from + PAGE - 1);
+
+        if (error) {
+
+            throw error;
+
+        }
+
+        all =
+            all.concat(data);
+
+        if (data.length < PAGE) {
+
+            return all;
+
+        }
+
+        from += PAGE;
+
+    }
+
+}
+
+
+// Full name of the class's teacher, picked up on its own.
+
+async function loadClassTeacher(classId) {
+
+    classTeacherName =
+        "";
+
+    try {
+
+        const { data: classRow } =
+            await supabaseClient
+                .from("classes")
+                .select("teacher_id")
+                .eq("id", classId)
+                .maybeSingle();
+
+        if (!classRow || !classRow.teacher_id) {
+
+            return;
+
+        }
+
+        const { data: member } =
+            await supabaseClient
+                .from("school_members")
+                .select("full_name")
+                .eq("id", classRow.teacher_id)
+                .maybeSingle();
+
+        if (member && member.full_name) {
+
+            classTeacherName =
+                member.full_name;
+
+        }
+        else if (classRow.teacher_id === AttendNGContext.memberId) {
+
+            classTeacherName =
+                AttendNGContext.fullName || "";
+
+        }
+
+    }
+    catch (error) {
+
+        console.warn("Class teacher unavailable:", error);
+
+    }
+
+}
+
+
+/*
+ * Same counting the report card and Term report use: every ticked
+ * morning or afternoon is one "time present", and "times school
+ * opened" is the sum of the weekly figures for weeks with attendance.
+ */
+async function loadSessionStartDate() {
+
+    if (sessionStartDate) {
+
+        return;
+
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("sessions")
+            .select("start_date")
+            .eq("id", AttendNGContext.sessionId)
+            .maybeSingle();
+
+    if (error) {
+
+        throw error;
+
+    }
+
+    sessionStartDate =
+        (data && data.start_date) || null;
+
+}
+
+
+function weekNumberForDate(dateISO) {
+
+    const start =
+        new Date(sessionStartDate + "T00:00:00");
+
+    const date =
+        new Date(dateISO + "T00:00:00");
+
+    const diffDays =
+        Math.floor((date - start) / (1000 * 60 * 60 * 24));
+
+    return Math.floor(diffDays / 7) + 1;
+
+}
+
+
+async function loadAttendance(classId, term) {
+
+    attendance =
+        { opened: 0, presentByStudent: {}, available: false };
+
+    await loadSessionStartDate();
+
+    if (!sessionStartDate || students.length === 0) {
+
+        return;
+
+    }
+
+    const rows =
+        await fetchPaged(
+            () => supabaseClient
+                .from("attendance")
+                .select("student_id, date, morning_present, afternoon_present")
+                .in("student_id", students.map(s => s.id))
+                .eq("term", term)
+                .order("student_id")
+                .order("date")
+        );
+
+    const weeks =
+        new Set();
+
+    rows.forEach(
+        r => {
+
+            weeks.add(weekNumberForDate(r.date));
+
+            attendance.presentByStudent[r.student_id] =
+                (attendance.presentByStudent[r.student_id] || 0) +
+                (r.morning_present ? 1 : 0) +
+                (r.afternoon_present ? 1 : 0);
+
+        }
+    );
+
+    if (weeks.size === 0) {
+
+        return;
+
+    }
+
+    const { data: settingsRows, error } =
+        await supabaseClient
+            .from("weekly_settings")
+            .select("week, school_opened")
+            .eq("class_id", classId)
+            .in("week", Array.from(weeks));
+
+    if (error) {
+
+        throw error;
+
+    }
+
+    attendance.opened =
+        settingsRows.reduce((sum, s) => sum + s.school_opened, 0);
+
+    attendance.available =
+        attendance.opened > 0;
+
 }
 
 
 /* ==========================================
    COMPUTE
 ========================================== */
+
+/*
+ * A student only takes one of CRS / IRS. When a religion cell is blank
+ * but the student has a score in the other religion subject, the blank
+ * is "not taken" — not a missing score.
+ */
+function isNotTaken(cs, student) {
+
+    const religion =
+        religionOf(cs.subject_name);
+
+    if (!religion) {
+
+        return false;
+
+    }
+
+    return classSubjects.some(
+        other => {
+
+            const otherReligion =
+                religionOf(other.subject_name);
+
+            if (!otherReligion || otherReligion === religion) {
+
+                return false;
+
+            }
+
+            const entry =
+                scoreMap[`${other.id}|${student.id}`];
+
+            return !!entry && entry.total !== null;
+
+        }
+    );
+
+}
+
 
 function findMissing() {
 
@@ -385,7 +722,7 @@ function findMissing() {
                     const entry =
                         scoreMap[`${cs.id}|${student.id}`];
 
-                    if (!entry || entry.total === null) {
+                    if ((!entry || entry.total === null) && !isNotTaken(cs, student)) {
 
                         count += 1;
 
@@ -424,6 +761,12 @@ function buildRankedRows() {
                 let scored =
                     0;
 
+                let missing =
+                    false;
+
+                const counts =
+                    { A: 0, B: 0, C: 0, P: 0, F: 0 };
+
                 const cells =
                     classSubjects.map(
                         cs => {
@@ -436,23 +779,49 @@ function buildRankedRows() {
                                 total += entry.total;
                                 scored += 1;
 
-                                return entry.total;
+                                const result =
+                                    gradeFor(entry.total);
+
+                                if (result) {
+
+                                    counts[result.grade] += 1;
+
+                                }
+
+                                return { v: entry.total, na: false };
 
                             }
 
-                            return null;
+                            if (isNotTaken(cs, student)) {
+
+                                return { v: null, na: true };
+
+                            }
+
+                            missing = true;
+
+                            return { v: null, na: false };
 
                         }
                     );
 
+                const present =
+                    attendance.presentByStudent[student.id] || 0;
+
                 return {
-                    name: `${student.surname} ${student.first_name}`,
+                    name: `${student.surname} ${student.first_name}`.toUpperCase(),
                     surname: student.surname,
+                    gender: (student.gender || "").toString().trim().charAt(0).toUpperCase(),
                     cells,
+                    counts,
                     total,
                     scored,
                     average: scored > 0 ? total / scored : 0,
-                    incomplete: scored < classSubjects.length
+                    attendancePct:
+                        attendance.available ?
+                            Math.round((Math.min(present, attendance.opened) / attendance.opened) * 100) :
+                            null,
+                    incomplete: missing
                 };
 
             }
@@ -481,6 +850,38 @@ function buildRankedRows() {
 
     sheetRows =
         rows;
+
+}
+
+
+// Average / highest / lowest for each subject, over the students
+// who have a complete score in it.
+
+function subjectStats() {
+
+    return classSubjects.map(
+        (cs, i) => {
+
+            const values =
+                sheetRows
+                    .map(row => row.cells[i].v)
+                    .filter(v => v !== null);
+
+            if (values.length === 0) {
+
+                return { name: cs.subject_name, average: null, highest: null, lowest: null };
+
+            }
+
+            return {
+                name: cs.subject_name,
+                average: values.reduce((a, b) => a + b, 0) / values.length,
+                highest: Math.max(...values),
+                lowest: Math.min(...values)
+            };
+
+        }
+    );
 
 }
 
@@ -515,23 +916,78 @@ function formatAverage(value) {
 }
 
 
+function escapeHtml(value) {
+
+    return String(value === null || value === undefined ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+}
+
+
 /* ==========================================
    RENDER
 ========================================== */
+
+// The five grade-count columns, with their score range read from the
+// grading scale so the heading can never drift from the real bands.
+
+function countColumns() {
+
+    const scale =
+        window.GRADE_SCALE || [];
+
+    const labels =
+        { A: "DISTINCTION", B: "GOOD", C: "CREDIT", P: "PASSED", F: "FAILED" };
+
+    return ["A", "B", "C", "P", "F"].map(
+        key => {
+
+            const index =
+                scale.findIndex(band => band.grade === key);
+
+            let range =
+                "";
+
+            if (index >= 0) {
+
+                const high =
+                    index === 0 ? 100 : scale[index - 1].min - 1;
+
+                range =
+                    `[${scale[index].min} - ${high}]`;
+
+            }
+
+            return { key, title: `NO OF ${labels[key]}`, range };
+
+        }
+    );
+
+}
+
 
 function renderSheet() {
 
     const thStyle =
         "padding:10px 8px; text-align:center; background:#0F766E; color:#FFFFFF; font-weight:600;";
 
+    const shortLabel =
+        { A: "D", B: "G", C: "C", P: "P", F: "F" };
+
     document.getElementById("sheetHead").innerHTML = `
         <tr>
             <th class="sticky-col1" style="${thStyle} width:56px;">S/N</th>
             <th class="sticky-col2" style="${thStyle} left:56px; min-width:180px; text-align:left;">Student Name</th>
-            ${classSubjects.map(cs => `<th style="${thStyle} min-width:90px;" title="${cs.teacher_name}">${cs.subject_name}</th>`).join("")}
+            <th style="${thStyle} min-width:50px;">Sex</th>
+            ${classSubjects.map(cs => `<th style="${thStyle} min-width:90px;" title="${escapeHtml(cs.teacher_name)}">${escapeHtml(cs.subject_name)}</th>`).join("")}
+            ${countColumns().map(c => `<th style="${thStyle} min-width:44px;" title="${escapeHtml(c.title + " " + c.range)}">${shortLabel[c.key]}</th>`).join("")}
             <th style="${thStyle} min-width:80px;">Total</th>
-            <th style="${thStyle} min-width:80px;">Average</th>
+            <th style="${thStyle} min-width:80px;">%</th>
             <th style="${thStyle} min-width:80px;">Position</th>
+            <th style="${thStyle} min-width:80px;">Attend. %</th>
         </tr>
     `;
 
@@ -540,15 +996,25 @@ function renderSheet() {
             (row, index) => `
                 <tr style="border-bottom:1px solid var(--border);">
                     <td class="sticky-col1" style="padding:10px 8px;">${index + 1}</td>
-                    <td class="sticky-col2" style="padding:10px 8px; left:56px;">${row.name}</td>
+                    <td class="sticky-col2" style="padding:10px 8px; left:56px;">${escapeHtml(row.name)}</td>
+                    <td style="padding:10px 8px; text-align:center;">${escapeHtml(row.gender) || "—"}</td>
                     ${row.cells.map(
-                        value => value === null ?
-                            `<td class="missing" style="padding:10px 8px; text-align:center;">—</td>` :
-                            `<td style="padding:10px 8px; text-align:center;">${value}</td>`
+                        cell =>
+                            cell.v !== null ?
+                                `<td style="padding:10px 8px; text-align:center;">${cell.v}</td>` :
+                                cell.na ?
+                                    `<td style="padding:10px 8px; text-align:center; color:var(--text-muted);">-</td>` :
+                                    `<td class="missing" style="padding:10px 8px; text-align:center;">—</td>`
                     ).join("")}
+                    <td style="padding:10px 8px; text-align:center;">${row.counts.A}</td>
+                    <td style="padding:10px 8px; text-align:center;">${row.counts.B}</td>
+                    <td style="padding:10px 8px; text-align:center;">${row.counts.C}</td>
+                    <td style="padding:10px 8px; text-align:center;">${row.counts.P}</td>
+                    <td style="padding:10px 8px; text-align:center;">${row.counts.F}</td>
                     <td style="padding:10px 8px; text-align:center; font-weight:600;">${row.total}</td>
                     <td style="padding:10px 8px; text-align:center;">${row.scored > 0 ? formatAverage(row.average) : "—"}</td>
                     <td style="padding:10px 8px; text-align:center; font-weight:600;">${ordinal(row.position)}</td>
+                    <td style="padding:10px 8px; text-align:center;">${row.attendancePct === null ? "—" : row.attendancePct + "%"}</td>
                 </tr>
             `
         ).join("");
@@ -568,35 +1034,6 @@ function renderSheet() {
 
     document.getElementById("incompleteNote").style.display =
         missingTotal > 0 ? "block" : "none";
-
-
-    document.getElementById("printTitle").textContent =
-        `${AttendNGContext.schoolName} — Broadsheet`;
-
-    document.getElementById("printMeta").textContent =
-        `${sheetClassName} · ${AttendNGContext.sessionName} · ${sheetTerm}`;
-
-    const printHeaderEl =
-        document.getElementById("printHeader");
-
-    const printLogoEl =
-        document.getElementById("printLogo");
-
-    if (AttendNGContext.schoolLogoUrl) {
-
-        printLogoEl.src =
-            AttendNGContext.schoolLogoUrl;
-
-        printHeaderEl.classList.add("has-logo");
-
-    }
-    else {
-
-        printLogoEl.removeAttribute("src");
-
-        printHeaderEl.classList.remove("has-logo");
-
-    }
 
     document.getElementById("sheetWrapper").style.display =
         "block";
@@ -702,19 +1139,22 @@ async function generate() {
 
 function openMissingModal() {
 
-    const totalCells =
-        classSubjects.length * students.length;
+    const takenCells =
+        classSubjects.reduce(
+            (sum, cs) => sum + students.filter(st => !isNotTaken(cs, st)).length,
+            0
+        );
 
     document.getElementById("missingSummary").textContent =
-        `${missingTotal} of ${totalCells} scores are missing or incomplete (CA and Exam both needed).`;
+        `${missingTotal} of ${takenCells} scores are missing or incomplete (CA and Exam both needed).`;
 
     document.getElementById("missingList").innerHTML =
         missingBySubject.map(
             item => `
                 <li>
-                    <strong>${item.subject_name}</strong>
+                    <strong>${escapeHtml(item.subject_name)}</strong>
                     — ${item.count} ${item.count === 1 ? "student" : "students"}
-                    <br><span>${item.teacher_name}</span>
+                    <br><span>${escapeHtml(item.teacher_name)}</span>
                 </li>
             `
         ).join("");
@@ -763,60 +1203,17 @@ function bindUI() {
         }
     );
 
-    document.getElementById("printBtn").addEventListener(
-        "click",
-        async () => {
-
-            // Make sure the logo has finished loading — printing
-            // straight away can catch it half-loaded and drop it.
-
-            const logo =
-                document.getElementById("printLogo");
-
-            if (logo.getAttribute("src")) {
-
-                try {
-
-                    await logo.decode();
-
-                }
-                catch (error) {
-
-                    console.warn("Logo not ready for print:", error);
-
-                }
-
-            }
-
-            const originalTitle =
-                document.title;
-
-            document.title =
-                "Powered by AttendNG";
-
-            window.addEventListener(
-                "afterprint",
-                () => {
-
-                    document.title =
-                        originalTitle;
-
-                },
-                { once: true }
-            );
-
-            window.print();
-
-        }
-    );
-
-    document.getElementById("exportBtn").addEventListener("click", exportExcel);
+    document.getElementById("pdfBtn").addEventListener("click", downloadPdf);
 
 }
 
 
 /* ==========================================
-   EXCEL EXPORT
+   DOWNLOAD PDF  (always A4 landscape)
+
+   Drawn straight into the PDF as a table, so the text stays sharp
+   and long classes flow onto extra pages with the header repeated.
+   The last page holds each subject's average, highest and lowest.
 ========================================== */
 
 function filenameSafe(value) {
@@ -849,255 +1246,486 @@ function schoolNamePartForFilename(schoolName) {
 }
 
 
-async function exportExcel() {
+function broadsheetFileName() {
+
+    return `${schoolNamePartForFilename(AttendNGContext.schoolName)}_${filenameSafe(sheetClassName)}_Broadsheet_${filenameSafe(sheetTerm)}.pdf`;
+
+}
+
+
+// The logo is fetched once and embedded as data, with its real
+// proportions kept.
+
+async function loadLogoForPdf() {
+
+    const url =
+        AttendNGContext.schoolLogoUrl;
+
+    if (!url) {
+
+        return null;
+
+    }
 
     try {
 
-        const workbook =
-            new ExcelJS.Workbook();
+        const response =
+            await fetch(url, { mode: "cors" });
 
-        const sheet =
-            workbook.addWorksheet("Broadsheet");
+        if (!response.ok) {
 
-        sheet.views =
-            [{ showGridLines: false }];
-
-        const headers =
-            ["SN", "Student Name", ...classSubjects.map(cs => cs.subject_name), "Total", "Average", "Position"];
-
-        const lastColumnLetter =
-            sheet.getColumn(headers.length).letter;
-
-        sheet.columns =
-            headers.map(
-                (h, i) => ({ width: i === 0 ? 10 : i === 1 ? 28 : 13 })
-            );
-
-
-        // ---- Logo, column A rows 1-4 (same treatment as the roster template) ----
-
-        const schoolLogoUrl =
-            AttendNGContext.schoolLogoUrl;
-
-        if (schoolLogoUrl) {
-
-            try {
-
-                const response =
-                    await fetch(schoolLogoUrl);
-
-                const contentType =
-                    response.headers.get("content-type") || "";
-
-                const extension =
-                    contentType.includes("png") ? "png" :
-                    contentType.includes("gif") ? "gif" :
-                    "jpeg";
-
-                const arrayBuffer =
-                    await response.arrayBuffer();
-
-                const imageId =
-                    workbook.addImage({
-                        buffer: arrayBuffer,
-                        extension
-                    });
-
-                // Fixed size (not stretched to the cell range) so a
-                // square logo stays square on a wide broadsheet.
-
-                sheet.addImage(
-                    imageId,
-                    {
-                        tl: { col: 0.1, row: 0.1 },
-                        ext: { width: 60, height: 60 }
-                    }
-                );
-
-            }
-            catch (error) {
-
-                // No logo is better than a broken export — just
-                // skip it and carry on.
-
-                console.warn(
-                    "Unable to embed school logo in broadsheet:",
-                    error
-                );
-
-            }
+            throw new Error(`HTTP ${response.status}`);
 
         }
-
-
-        // ---- School name / title / meta, columns B-end rows 1-3 ----
-
-        const titles = [
-            [AttendNGContext.schoolName || "School", { bold: true, size: 16, color: { argb: "FFFFFFFF" } }],
-            [`${sheetClassName} — Broadsheet`, { bold: true, size: 12, color: { argb: "FFE6F4F1" } }],
-            [`${AttendNGContext.sessionName} · ${sheetTerm}`, { italic: true, size: 10, color: { argb: "FFCDE6E1" } }]
-        ];
-
-        titles.forEach(
-            ([text, font], index) => {
-
-                const rowNum =
-                    index + 1;
-
-                sheet.mergeCells(`B${rowNum}:${lastColumnLetter}${rowNum}`);
-
-                const cell =
-                    sheet.getCell(`B${rowNum}`);
-
-                cell.value = text;
-                cell.font = font;
-                cell.alignment = { vertical: "middle" };
-
-            }
-        );
-
-
-        // ---- Brand-teal fill behind the whole header block, rows 1-4 ----
-
-        for (let rowNum = 1; rowNum <= 4; rowNum++) {
-
-            for (let col = 1; col <= headers.length; col++) {
-
-                sheet.getCell(rowNum, col).fill = {
-                    type: "pattern",
-                    pattern: "solid",
-                    fgColor: { argb: "FF0F766E" }
-                };
-
-            }
-
-        }
-
-        sheet.getRow(1).height = 24;
-        sheet.getRow(2).height = 18;
-        sheet.getRow(3).height = 16;
-        sheet.getRow(4).height = 14; // spacer under the logo
-
-
-        // ---- Table ----
-
-        const HEADER_ROW =
-            5;
-
-        const border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" }
-        };
-
-        const headerRow =
-            sheet.getRow(HEADER_ROW);
-
-        headerRow.values =
-            headers;
-
-        headerRow.font =
-            { bold: true, color: { argb: "FFFFFFFF" } };
-
-        headerRow.eachCell(
-            cell => {
-
-                cell.border = border;
-                cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-                cell.fill = {
-                    type: "pattern",
-                    pattern: "solid",
-                    fgColor: { argb: "FF0F766E" }
-                };
-
-            }
-        );
-
-        sheetRows.forEach(
-            (row, index) => {
-
-                const dataRow =
-                    sheet.getRow(HEADER_ROW + 1 + index);
-
-                // Missing scores are left blank (not "—" text) so Excel
-                // formulas on the sheet still work.
-
-                dataRow.values = [
-                    index + 1,
-                    row.name,
-                    ...row.cells.map(v => v === null ? null : v),
-                    row.total,
-                    row.scored > 0 ? Math.round(row.average * 10) / 10 : null,
-                    row.position
-                ];
-
-                dataRow.eachCell(
-                    { includeEmpty: true },
-                    (cell, colNumber) => {
-
-                        cell.border = border;
-
-                        if (colNumber !== 2) {
-
-                            cell.alignment = { horizontal: "center" };
-
-                        }
-
-                    }
-                );
-
-            }
-        );
-
-        const footerRowNumber =
-            HEADER_ROW + sheetRows.length + 2;
-
-        sheet.mergeCells(`A${footerRowNumber}:${lastColumnLetter}${footerRowNumber}`);
-
-        const footerCell =
-            sheet.getCell(`A${footerRowNumber}`);
-
-        footerCell.value =
-            "Powered by AttendNG";
-
-        footerCell.font =
-            { italic: true, size: 9, color: { argb: "FF999999" } };
-
-        footerCell.alignment =
-            { horizontal: "center" };
-
-        sheet.pageSetup =
-            { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
-
-
-        const buffer =
-            await workbook.xlsx.writeBuffer();
 
         const blob =
-            new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            await response.blob();
 
-        const url =
-            URL.createObjectURL(blob);
+        const dataUrl =
+            await new Promise(
+                (resolve, reject) => {
 
-        const link =
-            document.createElement("a");
+                    const reader =
+                        new FileReader();
 
-        link.href = url;
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
 
-        link.download =
-            `${schoolNamePartForFilename(AttendNGContext.schoolName)}_${filenameSafe(sheetClassName)}_Broadsheet_${filenameSafe(sheetTerm)}.xlsx`;
+                }
+            );
 
-        link.click();
+        const img =
+            new Image();
 
-        URL.revokeObjectURL(url);
+        img.src =
+            dataUrl;
+
+        await img.decode();
+
+        // jsPDF can only place PNG / JPEG directly, so anything else
+        // (webp, svg...) is redrawn as PNG first.
+
+        let format =
+            /^data:image\/png/i.test(dataUrl) ? "PNG" :
+            /^data:image\/jpe?g/i.test(dataUrl) ? "JPEG" :
+            null;
+
+        let finalData =
+            dataUrl;
+
+        if (!format) {
+
+            const canvas =
+                document.createElement("canvas");
+
+            canvas.width = img.naturalWidth || 200;
+            canvas.height = img.naturalHeight || 200;
+
+            canvas.getContext("2d").drawImage(img, 0, 0);
+
+            finalData = canvas.toDataURL("image/png");
+            format = "PNG";
+
+        }
+
+        return {
+            data: finalData,
+            format,
+            ratio: (img.naturalWidth || 1) / (img.naturalHeight || 1)
+        };
 
     }
     catch (error) {
 
-        console.error("Excel export failed:", error);
+        console.warn("Logo could not be embedded in the PDF:", error);
 
-        alert("Unable to export the broadsheet to Excel.");
+        return null;
+
+    }
+
+}
+
+
+const BS_TEAL = [15, 118, 110];
+const BS_MARGIN_X = 10;
+const BS_HEADER_BOTTOM = 30;   // table starts below this on every page
+
+
+async function downloadPdf() {
+
+    const button =
+        document.getElementById("pdfBtn");
+
+    if (button.disabled) {
+
+        return;
+
+    }
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+
+        showToast("The PDF tools didn't load. Check your connection and refresh the page.");
+
+        return;
+
+    }
+
+    if (sheetRows.length === 0) {
+
+        return;
+
+    }
+
+    const originalHtml =
+        button.innerHTML;
+
+    button.disabled =
+        true;
+
+    try {
+
+        button.innerHTML =
+            `<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF…`;
+
+        const doc =
+            new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
+
+        if (typeof doc.autoTable !== "function") {
+
+            showToast("The PDF tools didn't load. Check your connection and refresh the page.");
+
+            return;
+
+        }
+
+        const logo =
+            await loadLogoForPdf();
+
+        const pageW =
+            doc.internal.pageSize.getWidth();
+
+        const pageH =
+            doc.internal.pageSize.getHeight();
+
+        const contentW =
+            pageW - BS_MARGIN_X * 2;
+
+        // ---- Header, drawn on every page ----
+
+        const drawHeader =
+            () => {
+
+                let textX =
+                    BS_MARGIN_X;
+
+                if (logo) {
+
+                    const box =
+                        16;
+
+                    const w =
+                        logo.ratio >= 1 ? box : box * logo.ratio;
+
+                    const h =
+                        logo.ratio >= 1 ? box / logo.ratio : box;
+
+                    try {
+
+                        doc.addImage(logo.data, logo.format, BS_MARGIN_X, 8, w, h);
+
+                        textX =
+                            BS_MARGIN_X + box + 4;
+
+                    }
+                    catch (error) {
+
+                        console.warn("Logo skipped:", error);
+
+                    }
+
+                }
+
+                doc.setTextColor(0, 0, 0);
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.text(String(AttendNGContext.schoolName || "School").toUpperCase(), textX, 13);
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text(`${sheetClassName} Broadsheet  |  ${sheetTerm}  |  ${AttendNGContext.sessionName || ""}`, textX, 19);
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.text(`Class Teacher: ${classTeacherName || "—"}`, textX, 24.5);
+
+            };
+
+        // ---- Main table ----
+
+        const countCols =
+            countColumns();
+
+        // Subject and grade-count headings are written vertically
+        // (reading bottom to top). autoTable can't rotate text, so
+        // those head cells are left empty and drawn by hand in
+        // didDrawCell; here we work out each heading's lines and how
+        // tall the head row has to be to fit the longest one.
+
+        const rotatedHead =
+            {};
+
+        rotatedHead[2] =
+            ["SEX"];
+
+        classSubjects.forEach(
+            (cs, i) => { rotatedHead[3 + i] = [String(cs.subject_name).toUpperCase()]; }
+        );
+
+        countCols.forEach(
+            (c, i) => { rotatedHead[3 + classSubjects.length + i] = [c.title, c.range].filter(Boolean); }
+        );
+
+        const HEAD_FONT = 6.5;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(HEAD_FONT);
+
+        const headHeight =
+            Math.max(
+                18,
+                ...Object.values(rotatedHead).flat().map(line => doc.getTextWidth(line))
+            ) + 5;
+
+        const blankHead =
+            (index) => ({ content: "", styles: index === 0 ? { minCellHeight: headHeight } : {} });
+
+        const head = [[
+            { content: "S/N", styles: { minCellHeight: headHeight, valign: "bottom" } },
+            { content: "NAME OF STUDENTS", styles: { valign: "bottom" } },
+            blankHead(1),
+            ...classSubjects.map(() => blankHead(1)),
+            ...countCols.map(() => blankHead(1)),
+            { content: "TOTAL", styles: { valign: "bottom" } },
+            { content: "%", styles: { valign: "bottom" } },
+            { content: "POS.", styles: { valign: "bottom" } },
+            { content: "ATT. %", styles: { valign: "bottom" } }
+        ]];
+
+        const MISSING_FILL =
+            [255, 247, 230];
+
+        const body =
+            sheetRows.map(
+                (row, index) => [
+                    index + 1,
+                    row.name,
+                    row.gender || "-",
+                    ...row.cells.map(
+                        cell =>
+                            cell.v !== null ?
+                                cell.v :
+                                cell.na ?
+                                    "-" :
+                                    { content: "-", styles: { fillColor: MISSING_FILL } }
+                    ),
+                    ...countCols.map(c => row.counts[c.key]),
+                    row.total,
+                    row.scored > 0 ? formatAverage(row.average) : "-",
+                    ordinal(row.position).toUpperCase(),
+                    row.attendancePct === null ? "-" : `${row.attendancePct}%`
+                ]
+            );
+
+        const subjectCount =
+            classSubjects.length;
+
+        const columnStyles =
+            {
+                0: { cellWidth: 8 },
+                1: { cellWidth: 44, halign: "left" },
+                2: { cellWidth: 8 }
+            };
+
+        const tailStart =
+            3 + subjectCount;
+
+        [7, 7, 7, 7, 7, 11, 10, 10, 11].forEach(
+            (width, i) => {
+
+                columnStyles[tailStart + i] = { cellWidth: width };
+
+            }
+        );
+
+        doc.autoTable({
+            head,
+            body,
+            startY: BS_HEADER_BOTTOM,
+            margin: { top: BS_HEADER_BOTTOM, left: BS_MARGIN_X, right: BS_MARGIN_X, bottom: 12 },
+            tableWidth: contentW,
+            theme: "grid",
+            styles: {
+                font: "helvetica",
+                fontSize: 7.5,
+                cellPadding: { top: 1.1, bottom: 1.1, left: 0.8, right: 0.8 },
+                halign: "center",
+                valign: "middle",
+                lineColor: [170, 170, 170],
+                lineWidth: 0.1,
+                textColor: [20, 20, 20],
+                overflow: "linebreak"
+            },
+            headStyles: {
+                fillColor: BS_TEAL,
+                textColor: [255, 255, 255],
+                fontStyle: "bold",
+                fontSize: 6.5,
+                valign: "middle"
+            },
+            columnStyles,
+            showHead: "everyPage",
+            rowPageBreak: "avoid",
+            didDrawCell: (data) => {
+
+                if (data.section !== "head" || !rotatedHead[data.column.index]) {
+
+                    return;
+
+                }
+
+                const lines =
+                    rotatedHead[data.column.index];
+
+                const lineH =
+                    HEAD_FONT * 0.3528 * 1.2;   // pt -> mm, with a little leading
+
+                const sizeMm =
+                    HEAD_FONT * 0.3528;
+
+                const left =
+                    data.cell.x + data.cell.width / 2 - (lines.length * lineH) / 2;
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(HEAD_FONT);
+                doc.setTextColor(255, 255, 255);
+
+                lines.forEach(
+                    (line, i) => {
+
+                        doc.text(
+                            line,
+                            left + lineH * (i + 0.5) + sizeMm * 0.36,
+                            data.cell.y + data.cell.height - 2,
+                            { angle: 90 }
+                        );
+
+                    }
+                );
+
+            },
+            didDrawPage: drawHeader
+        });
+
+        const mainPages =
+            doc.internal.getNumberOfPages();
+
+        // ---- Last page: subject average / highest / lowest ----
+
+        doc.addPage();
+
+        const stats =
+            subjectStats();
+
+        const statsWidth =
+            Math.min(contentW, 150);
+
+        doc.autoTable({
+            head: [["SUBJECT", "SUBJECT AVERAGE", "CLASS HIGHEST", "CLASS LOWEST"]],
+            body: stats.map(
+                st => [
+                    st.name,
+                    st.average === null ? "-" : formatAverage(st.average),
+                    st.highest === null ? "-" : st.highest,
+                    st.lowest === null ? "-" : st.lowest
+                ]
+            ),
+            startY: BS_HEADER_BOTTOM,
+            margin: { top: BS_HEADER_BOTTOM, left: BS_MARGIN_X, right: BS_MARGIN_X, bottom: 12 },
+            tableWidth: statsWidth,
+            theme: "grid",
+            styles: {
+                font: "helvetica",
+                fontSize: 9,
+                cellPadding: 1.8,
+                halign: "center",
+                valign: "middle",
+                lineColor: [170, 170, 170],
+                lineWidth: 0.1,
+                textColor: [20, 20, 20]
+            },
+            headStyles: {
+                fillColor: BS_TEAL,
+                textColor: [255, 255, 255],
+                fontStyle: "bold",
+                fontSize: 8.5
+            },
+            columnStyles: {
+                0: { halign: "left", cellWidth: statsWidth - 3 * 32, fontStyle: "bold" },
+                1: { cellWidth: 32 },
+                2: { cellWidth: 32 },
+                3: { cellWidth: 32 }
+            },
+            didDrawPage: drawHeader
+        });
+
+        // ---- Footer on every page ----
+
+        const totalPages =
+            doc.internal.getNumberOfPages();
+
+        for (let page = 1; page <= totalPages; page++) {
+
+            doc.setPage(page);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7);
+            doc.setTextColor(110, 110, 110);
+
+            if (page <= mainPages) {
+
+                doc.text(
+                    "D = Distinction   G = Good   C = Credit   P = Passed   F = Failed   (ATT. % = student attendance)",
+                    BS_MARGIN_X,
+                    pageH - 5
+                );
+
+            }
+
+            doc.text("Powered by AttendNG", pageW / 2, pageH - 5, { align: "center" });
+
+            doc.text(`Page ${page} of ${totalPages}`, pageW - BS_MARGIN_X, pageH - 5, { align: "right" });
+
+        }
+
+        doc.save(broadsheetFileName());
+
+    }
+    catch (error) {
+
+        console.error("Unable to create the PDF:", error);
+
+        showToast("Couldn't create the PDF. Please try again.");
+
+    }
+    finally {
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            originalHtml;
 
     }
 

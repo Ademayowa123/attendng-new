@@ -60,6 +60,51 @@ window.AttendNGContext = {
 
 
 // =========================================
+// BROWSER TAB TITLE
+// School accounts see their school's name.
+// Long names (over 20 characters) become the
+// first letter of each word, e.g.
+// "State Comprehensive Junior College" -> "SCJC".
+// Platform (super admin) pages keep their own title.
+// =========================================
+
+const TAB_TITLE_MAX_LENGTH = 20;
+
+function tabTitleForSchool(schoolName) {
+
+    const name =
+        String(schoolName || "").trim().replace(/\s+/g, " ");
+
+    if (name.length <= TAB_TITLE_MAX_LENGTH) {
+
+        return name;
+
+    }
+
+    return name
+        .split(" ")
+        .map(word => (word.match(/[A-Za-z0-9]/) || [""])[0])
+        .join("")
+        .toUpperCase();
+
+}
+
+
+function applyTabTitle() {
+
+    if (AttendNGContext.tier === "platform" || !AttendNGContext.schoolName) {
+
+        return;
+
+    }
+
+    document.title =
+        tabTitleForSchool(AttendNGContext.schoolName);
+
+}
+
+
+// =========================================
 // BROWSER TAB ICON
 // AttendNG's logo by default; the school's own
 // logo once the school has uploaded one.
@@ -384,6 +429,7 @@ async function loadAttendNGContext() {
             true;
 
         applyFavicon();
+        applyTabTitle();
 
 
         console.log(
@@ -493,3 +539,6 @@ window.updateAttendNGContextUI =
 
 window.applyFavicon =
     applyFavicon;
+
+window.applyTabTitle =
+    applyTabTitle;

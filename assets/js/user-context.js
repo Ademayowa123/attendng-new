@@ -61,14 +61,21 @@ window.AttendNGContext = {
 
 // =========================================
 // BROWSER TAB TITLE
-// School accounts see their school's name.
-// Long names (over 20 characters) become the
-// first letter of each word, e.g.
+// School accounts see "School Name | Page", e.g.
+// "Matem College | Dashboard".
+// Long school names (over 20 characters) become
+// the first letter of each word, e.g.
 // "State Comprehensive Junior College" -> "SCJC".
+// The page part is taken from each page's own
+// <title> ("AttendNG | Dashboard" -> "Dashboard").
 // Platform (super admin) pages keep their own title.
 // =========================================
 
 const TAB_TITLE_MAX_LENGTH = 20;
+
+// Read once, before the title is ever replaced.
+const TAB_PAGE_NAME =
+    (document.title.split("|")[1] || "").trim();
 
 function tabTitleForSchool(schoolName) {
 
@@ -98,8 +105,11 @@ function applyTabTitle() {
 
     }
 
-    document.title =
+    const schoolPart =
         tabTitleForSchool(AttendNGContext.schoolName);
+
+    document.title =
+        TAB_PAGE_NAME ? `${schoolPart} | ${TAB_PAGE_NAME}` : schoolPart;
 
 }
 

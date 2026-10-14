@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Attendance, results and report cards for your school</title>
+    <meta name="description" content="AttendNG helps Nigerian schools take attendance, collect scores from subject teachers, and produce broadsheets and report cards in minutes.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link rel="icon" href="/assets/images/logo.png">
+
+    <style>
+
+        :root {
+            --teal: #0F766E;
+            --teal-dark: #0B5C56;
+            --teal-soft: #E6F4F1;
+            --ink: #14221F;
+            --muted: #5B6B67;
+            --line: #E2EBE9;
+            --bg: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            font-family: "Poppins", system-ui, sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ---------- Buttons ---------- */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+
+        .btn-primary { background: var(--teal); color: #fff; }
+        .btn-primary:hover { background: var(--teal-dark); }
+
+        .btn-outline { border-color: var(--teal); color: var(--teal); background: #fff; }
+        .btn-outline:hover { background: var(--teal-soft); }
+
+        .btn-light { background: #fff; color: var(--teal); }
+        .btn-light:hover { background: var(--teal-soft); }
+
+        .btn-sm { padding: 8px 16px; font-size: 14px; }
+
+        /* ---------- Nav ---------- */
+
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255, 255, 255, .95);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .nav .wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 76px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--teal);
+        }
+
+        .brand img { width: 52px; height: 52px; object-fit: contain; }
+
+        .nav-links { display: flex; align-items: center; gap: 26px; }
+
+        .nav-links a.link { font-size: 14px; color: var(--muted); font-weight: 500; }
+        .nav-links a.link:hover { color: var(--teal); }
+
+        /* ---------- Hero ---------- */
+
+        .hero {
+            background: linear-gradient(180deg, var(--teal-soft) 0%, #fff 100%);
+            padding: 64px 0 56px;
+        }
+
+        .hero .wrap {
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+            gap: 44px;
+            align-items: center;
+        }
+
+        .pill {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid var(--line);
+            color: var(--teal);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 5px 14px;
+            border-radius: 999px;
+            margin-bottom: 18px;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            line-height: 1.2;
+            margin: 0 0 16px;
+            letter-spacing: -.5px;
+        }
+
+        .hero h1 span { color: var(--teal); }
+
+        .hero p.lead {
+            font-size: 17px;
+            color: var(--muted);
+            margin: 0 0 26px;
+            max-width: 520px;
+        }
+
+        .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+        /* a small mock of the broadsheet, built in CSS */
+
+        .mock {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(15, 118, 110, .15);
+            overflow: hidden;
+        }
+
+        .mock-bar {
+            background: var(--teal);
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mock table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .mock th {
+            background: var(--teal-soft);
+            color: var(--teal-dark);
+            padding: 8px 6px;
+            font-weight: 600;
+        }
+
+        .mock td {
+            padding: 8px 6px;
+            text-align: center;
+            border-top: 1px solid var(--line);
+        }
+
+        .mock td.name { text-align: left; font-weight: 500; padding-left: 12px; }
+        .mock td.pos { font-weight: 700; color: var(--teal); }
+
+
+        /* ---------- "See it in action" mocks ---------- */
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        .preview-item h3 { font-size: 18px; margin: 18px 0 4px; }
+
+        .preview-item p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+        .mock-sub {
+            padding: 9px 16px;
+            font-size: 12px;
+            color: var(--muted);
+            background: #F7FBFA;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .mock-sub b { color: var(--teal-dark); }
+
+        .ticks { display: inline-flex; gap: 3px; }
+
+        .tick {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1.5px solid #C9D7D4;
+            display: inline-block;
+            position: relative;
+        }
+
+        .tick.on { background: var(--teal); border-color: var(--teal); }
+
+        .tick.on::after {
+            content: "";
+            position: absolute;
+            left: 3.5px;
+            top: 0.5px;
+            width: 4px;
+            height: 8px;
+            border: solid #fff;
+            border-width: 0 1.8px 1.8px 0;
+            transform: rotate(45deg);
+        }
+
+        .mock td.total { font-weight: 700; color: var(--teal); }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 14px 14px 4px;
+        }
+
+        .stat {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .stat small { display: block; font-size: 11px; color: var(--muted); }
+
+        .stat strong { font-size: 20px; color: var(--teal-dark); }
+
+        .chart-box { padding: 12px 14px 14px; }
+
+        .chart-box h4 { margin: 0 0 22px; font-size: 13px; }
+
+        .bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 118px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .bar {
+            flex: 1;
+            background: var(--teal);
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            opacity: .9;
+        }
+
+        .bar span {
+            position: absolute;
+            top: -17px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--teal-dark);
+        }
+
+        .bar-labels {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .bar-labels span { flex: 1; text-align: center; }
+
+        .gender-row { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-top: 10px; }
+
+        .gender-row label { width: 52px; color: var(--muted); }
+
+        .gender-track { flex: 1; height: 9px; background: var(--teal-soft); border-radius: 99px; overflow: hidden; }
+
+        .gender-fill { height: 100%; background: var(--teal); border-radius: 99px; }
+
+        .gender-row b { width: 36px; text-align: right; }
+
+        /* ---------- Sections ---------- */
+
+        section { padding: 64px 0; }
+
+        .section-head { text-align: center; max-width: 620px; margin: 0 auto 40px; }
+
+        .section-head h2 { font-size: 30px; margin: 0 0 10px; letter-spacing: -.3px; }
+
+        .section-head p { margin: 0; color: var(--muted); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .feature {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 24px;
+            background: #fff;
+        }
+
+        .feature .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--teal-soft);
+            color: var(--teal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 14px;
+        }
+
+        .feature h3 { font-size: 17px; margin: 0 0 6px; }
+
+        .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+        /* ---------- How it works ---------- */
+
+        .steps-bg { background: #F7FBFA; }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            counter-reset: step;
+        }
+
+        .step { text-align: center; padding: 0 6px; }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            background: var(--teal);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .step h3 { font-size: 16px; margin: 0 0 6px; }
+        .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+        /* ---------- Contact ---------- */
+
+        .cta {
+            background: var(--teal);
+            color: #fff;
+            border-radius: 20px;
+            padding: 48px 28px;
+            text-align: center;
+        }
+
+        .cta h2 { margin: 0 0 10px; font-size: 30px; }
+
+        .cta p { margin: 0 auto 26px; max-width: 540px; opacity: .92; }
+
+        .cta .hero-actions { justify-content: center; }
+
+        .cta .btn-ghost {
+            border-color: rgba(255, 255, 255, .6);
+            color: #fff;
+        }
+
+        .cta .btn-ghost:hover { background: rgba(255, 255, 255, .12); }
+
+        /* ---------- Footer ---------- */
+
+        footer {
+            border-top: 1px solid var(--line);
+            padding: 26px 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        footer .wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ---------- Small screens ---------- */
+
+        @media (max-width: 900px) {
+
+            .hero .wrap { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 34px; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .steps { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
+            .preview-grid { grid-template-columns: 1fr; }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .nav-links a.link { display: none; }
+            .hero { padding-top: 40px; }
+            .hero h1 { font-size: 29px; }
+            .grid { grid-template-columns: 1fr; }
+            .section-head h2, .cta h2 { font-size: 25px; }
+            section { padding: 48px 0; }
+            .hero-mock th:nth-child(n+5), .hero-mock td:nth-child(n+5) { display: none; }
+            .att-mock th:first-child, .att-mock td:first-child { display: none; }
+            .att-mock th, .att-mock td { padding-left: 3px; padding-right: 3px; }
+            .att-mock td.name { padding-left: 10px; font-size: 11.5px; }
+            .att-mock .tick { width: 11px; height: 11px; }
+            .att-mock .tick.on::after { left: 2.5px; top: 0; width: 3px; height: 6.5px; }
+            .att-mock .ticks { gap: 2px; }
+            .mock-sub span:last-child { display: none; }
+
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <!-- NAV -->
+    <header class="nav">
+        <div class="wrap">
+            <a href="/" class="brand"><img src="/assets/images/logo.png" alt="AttendNG logo"> AttendNG</a>
+            <nav class="nav-links">
+                <a class="link" href="#features">Features</a>
+                <a class="link" href="#how">How it works</a>
+                <a class="link" href="#contact">Contact</a>
+                <a class="btn btn-primary btn-sm" href="/login.html"><i class="fa-solid fa-right-to-bracket"></i> Log in</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="wrap">
+
+            <div>
+                <span class="pill"><i class="fa-solid fa-school"></i> Built for Nigerian schools</span>
+                <h1>From attendance to report cards, <span>without the stress.</span></h1>
+                <p class="lead">
+                    AttendNG lets your teachers take attendance and enter scores, then gives you
+                    ranked broadsheets and printable report cards in a few clicks.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#contact" data-contact="demo"><i class="fa-brands fa-whatsapp"></i> Request a demo</a>
+                    <a class="btn btn-outline" href="/login.html">Log in</a>
+                </div>
+            </div>
+
+            <div class="mock hero-mock" aria-hidden="true">
+                <div class="mock-bar"><span>JSS 2B Broadsheet</span><span>3rd Term</span></div>
+                <table>
+                    <thead>
+                        <tr><th>#</th><th style="text-align:left;padding-left:12px;">Name</th><th>Eng</th><th>Maths</th><th>Total</th><th>%</th><th>Pos.</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td class="name">Azeez Moturayo</td><td>73</td><td>78</td><td>791</td><td>71.9</td><td class="pos">1st</td></tr>
+                        <tr><td>2</td><td class="name">Adams Akorede</td><td>79</td><td>66</td><td>791</td><td>71.9</td><td class="pos">1st</td></tr>
+                        <tr><td>3</td><td class="name">Taiwo Daniel</td><td>64</td><td>69</td><td>770</td><td>70.0</td><td class="pos">3rd</td></tr>
+                        <tr><td>4</td><td class="name">Folawewo Fulfilment</td><td>64</td><td>75</td><td>745</td><td>67.7</td><td class="pos">4th</td></tr>
+                        <tr><td>5</td><td class="name">Nelson Chukwuemeka</td><td>63</td><td>68</td><td>741</td><td>67.4</td><td class="pos">5th</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features">
+        <div class="wrap">
+
+            <div class="section-head">
+                <h2>Everything a term needs, in one place</h2>
+                <p>Stop chasing paper registers and score sheets. Each person enters their own part, and AttendNG does the adding up.</p>
+            </div>
+
+            <div class="grid">
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <h3>Attendance</h3>
+                    <p>Class teachers tick morning and afternoon attendance each day. Weekly and term attendance reports are worked out for you.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <h3>Score entry by subject teachers</h3>
+                    <p>Each teacher enters CA and exam scores for their own subjects only. Totals and grades are calculated automatically.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-table-list"></i></div>
+                    <h3>Broadsheets</h3>
+                    <p>A ranked class broadsheet with positions, grade counts and subject averages, downloaded as a landscape PDF.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-file-lines"></i></div>
+                    <h3>Report cards</h3>
+                    <p>Professional report cards with your school logo, attendance and teacher remarks, ready to download for the whole class.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <h3>Analytics</h3>
+                    <p>See how classes and subjects are performing, so you can spot problems early instead of at the end of term.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="icon"><i class="fa-solid fa-user-shield"></i></div>
+                    <h3>Separate access for each role</h3>
+                    <p>Admins manage the whole school. Teachers only see their own classes and subjects. Your data stays organised and private.</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- SEE IT IN ACTION -->
+    <section id="preview" style="padding-top:0;">
+        <div class="wrap">
+
+            <div class="section-head">
+                <h2>See it in action</h2>
+                <p>Take attendance in seconds, then watch the trends build up by themselves.</p>
+            </div>
+
+            <div class="preview-grid">
+
+                <div class="preview-item">
+                    <div class="mock att-mock" aria-hidden="true">
+                        <div class="mock-bar"><span>Attendance</span><span>JSS 2B &middot; Week 4</span></div>
+                        <div class="mock-sub"><span>School opened: <b>5 days</b></span><span>Tick morning and afternoon</span></div>
+                        <table>
+                            <thead>
+                                <tr><th>#</th><th style="text-align:left;padding-left:12px;">Student</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>1</td><td class="name">Amaka Obi</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">10/10</td></tr>
+                                <tr><td>2</td><td class="name">Tunde Bello</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">9/10</td></tr>
+                                <tr><td>3</td><td class="name">Zainab Musa</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick"></i><i class="tick"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">8/10</td></tr>
+                                <tr><td>4</td><td class="name">David Okoro</td><td><span class="ticks"><i class="tick"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick"></i></span></td><td class="total">8/10</td></tr>
+                                <tr><td>5</td><td class="name">Funke Adeyemi</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">10/10</td></tr>
+                                <tr><td>6</td><td class="name">Chidi Nwosu</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">9/10</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h3>Attendance</h3>
+                    <p>Class teachers tick morning and afternoon for each student. Weekly totals update as they go.</p>
+                </div>
+
+                <div class="preview-item">
+                    <div class="mock" aria-hidden="true">
+                        <div class="mock-bar"><span>Analytics</span><span>JSS 2B &middot; 1st Term</span></div>
+                        <div class="stat-row">
+                            <div class="stat"><small>Average</small><strong>91%</strong></div>
+                            <div class="stat"><small>Best</small><strong>100%</strong></div>
+                            <div class="stat"><small>Lowest</small><strong>62%</strong></div>
+                        </div>
+                        <div class="chart-box">
+                            <h4>Weekly attendance trend</h4>
+                            <div class="bars"><div class="bar" style="height:70%;"><span>88%</span></div><div class="bar" style="height:78%;"><span>91%</span></div><div class="bar" style="height:65%;"><span>86%</span></div><div class="bar" style="height:82%;"><span>93%</span></div><div class="bar" style="height:75%;"><span>90%</span></div><div class="bar" style="height:88%;"><span>95%</span></div><div class="bar" style="height:80%;"><span>92%</span></div><div class="bar" style="height:85%;"><span>94%</span></div></div>
+                            <div class="bar-labels"><span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span></div>
+                            <div class="gender-row"><label>Male</label><div class="gender-track"><div class="gender-fill" style="width:90%;"></div></div><b>90%</b></div>
+                            <div class="gender-row"><label>Female</label><div class="gender-track"><div class="gender-fill" style="width:93%;"></div></div><b>93%</b></div>
+                        </div>
+                    </div>
+                    <h3>Analytics</h3>
+                    <p>See weekly trends, boys versus girls, and which students are falling below 75% before it becomes a problem.</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="steps-bg" id="how">
+        <div class="wrap">
+
+            <div class="section-head">
+                <h2>How it works</h2>
+                <p>Simple enough to start using this term.</p>
+            </div>
+
+            <div class="steps">
+
+                <div class="step">
+                    <h3>We set up your school</h3>
+                    <p>Your logo, classes, subjects and students are added for you.</p>
+                </div>
+
+                <div class="step">
+                    <h3>Teachers get their logins</h3>
+                    <p>Each teacher signs in and sees only what they need.</p>
+                </div>
+
+                <div class="step">
+                    <h3>Enter attendance and scores</h3>
+                    <p>Done from any phone or computer during the term.</p>
+                </div>
+
+                <div class="step">
+                    <h3>Download your results</h3>
+                    <p>Broadsheets and report cards as PDFs, with positions already worked out.</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact">
+        <div class="wrap">
+            <div class="cta">
+                <h2>Want AttendNG for your school?</h2>
+                <p>Send us a message and we'll show you how it works and set up your school. No long forms.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-light" href="#" data-contact="whatsapp"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a>
+                    <a class="btn btn-ghost" href="#" data-contact="email"><i class="fa-regular fa-envelope"></i> Send an email</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="wrap">
+            <span>&copy; <span id="year"></span> AttendNG. All rights reserved.</span>
+            <a href="/login.html" style="color:var(--teal); font-weight:600;">Already have an account? Log in</a>
+        </div>
+    </footer>
+
+    <script>
+
+        /*
+         * CHANGE THESE TWO LINES.
+         * WHATSAPP: your number in international format with no + or spaces
+         *           (Nigeria example: 2348012345678).
+         * EMAIL:    the address you want enquiries sent to.
+         */
+        const CONTACT = {
+            WHATSAPP: "2348091481196",
+            EMAIL: "adetonaademayowa@gmail.com"
+        };
+
+        const WHATSAPP_TEXT =
+            "Hello, I'd like to know more about AttendNG for my school.";
+
+        document.querySelectorAll("[data-contact]").forEach(
+            link => {
+
+                const type =
+                    link.dataset.contact;
+
+                if (type === "email") {
+
+                    link.href =
+                        `mailto:${CONTACT.EMAIL}?subject=${encodeURIComponent("AttendNG enquiry")}`;
+
+                }
+                else {
+
+                    // "demo" and "whatsapp" both open a WhatsApp chat.
+
+                    link.href =
+                        `https://wa.me/${CONTACT.WHATSAPP}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
+
+                    link.target =
+                        "_blank";
+
+                    link.rel =
+                        "noopener";
+
+                }
+
+            }
+        );
+
+        document.getElementById("year").textContent =
+            new Date().getFullYear();
+
+    </script>
+
+</body>
+</html>

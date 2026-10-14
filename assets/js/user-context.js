@@ -60,6 +60,48 @@ window.AttendNGContext = {
 
 
 // =========================================
+// BROWSER TAB ICON
+// AttendNG's logo by default; the school's own
+// logo once the school has uploaded one.
+// Platform (super admin) accounts always get
+// the AttendNG logo.
+// =========================================
+
+function applyFavicon() {
+
+    const url =
+        (AttendNGContext.tier !== "platform" && AttendNGContext.schoolLogoUrl) ?
+            AttendNGContext.schoolLogoUrl :
+            "/assets/images/logo.png";
+
+    let link =
+        document.querySelector("link[rel~='icon']");
+
+    if (!link) {
+
+        link =
+            document.createElement("link");
+
+        link.rel =
+            "icon";
+
+        document.head.appendChild(link);
+
+    }
+
+    link.removeAttribute("type");
+
+    if (link.getAttribute("href") !== url) {
+
+        link.href =
+            url;
+
+    }
+
+}
+
+
+// =========================================
 // LOAD CONTEXT
 // =========================================
 
@@ -145,6 +187,8 @@ async function loadAttendNGContext() {
 
             AttendNGContext.loaded =
                 true;
+
+            applyFavicon();
 
             return AttendNGContext;
 
@@ -339,6 +383,8 @@ async function loadAttendNGContext() {
         AttendNGContext.loaded =
             true;
 
+        applyFavicon();
+
 
         console.log(
             "AttendNG context loaded:",
@@ -444,3 +490,6 @@ window.loadAttendNGContext =
 
 window.updateAttendNGContextUI =
     updateAttendNGContextUI;
+
+window.applyFavicon =
+    applyFavicon;

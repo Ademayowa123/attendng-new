@@ -11,44 +11,44 @@ const RATING_TRAIT_GROUPS = [
         key: "personal",
         title: "Personal Development",
         traits: [
-            { key: "obedience", label: "Obedience" },
-            { key: "honesty", label: "Honesty" },
-            { key: "self_control", label: "Self-control" },
-            { key: "self_reliance", label: "Self-reliance" },
-            { key: "initiative", label: "Use of initiative" }
+            { key: "obedience", label: "OBEDIENCE" },
+            { key: "honesty", label: "HONESTY" },
+            { key: "self_control", label: "SELF-CONTROL" },
+            { key: "self_reliance", label: "SELF-RELIANCE" },
+            { key: "initiative", label: "USE OF INITIATIVE" }
         ]
     },
     {
         key: "responsibility",
         title: "Sense of Responsibility",
         traits: [
-            { key: "punctuality", label: "Punctuality" },
-            { key: "neatness", label: "Neatness" },
-            { key: "perseverance", label: "Perseverance" },
-            { key: "attendance", label: "Attendance", auto: true },
-            { key: "attentiveness", label: "Attentiveness" }
+            { key: "punctuality", label: "PUNCTUALITY" },
+            { key: "neatness", label: "NEATNESS" },
+            { key: "perseverance", label: "PERSEVERANCE" },
+            { key: "attendance", label: "ATTENDANCE", auto: true },
+            { key: "attentiveness", label: "ATTENTIVENESS" }
         ]
     },
     {
         key: "social",
         title: "Social Development",
         traits: [
-            { key: "courtesy", label: "Courtesy / Politeness" },
-            { key: "consideration", label: "Consideration for others" },
-            { key: "sociability", label: "Sociability / Team player" },
-            { key: "promptness", label: "Promptness in completing work" },
-            { key: "responsibilities", label: "Accepts responsibilities" }
+            { key: "courtesy", label: "COURTSY/POLITENESS" },
+            { key: "consideration", label: "CONSIDERATION FOR OTHERS" },
+            { key: "sociability", label: "SOCIABILITY/TEAM-PLAYER" },
+            { key: "promptness", label: "PROMPTNESS IN COMPLETING WORK" },
+            { key: "responsibilities", label: "ACCEPTS RESPONSIBILITIES" }
         ]
     },
     {
         key: "psychomotor",
         title: "Psychomotor (Skills) Development",
         traits: [
-            { key: "reading_writing", label: "Reading and writing skills" },
-            { key: "verbal_communication", label: "Verbal communication" },
-            { key: "sport_game", label: "Sport and game" },
-            { key: "inquisitiveness", label: "Inquisitiveness" },
-            { key: "dexterity", label: "Dexterity (musical & art materials)" }
+            { key: "reading_writing", label: "READING & WRITING SKILLS" },
+            { key: "verbal_communication", label: "VERBAL COMMUNICATION" },
+            { key: "sport_game", label: "SPORT A& GAME" },
+            { key: "inquisitiveness", label: "INQUISITIVENESS" },
+            { key: "dexterity", label: "DEXTERITY(Musical & Art Materials)" }
         ]
     }
 ];

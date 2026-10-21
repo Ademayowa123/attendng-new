@@ -1874,7 +1874,22 @@ function bindUI() {
 const PDF_PAGE_W_MM = 210;
 const PDF_PAGE_H_MM = 297;
 const PDF_MARGIN_MM = 8;
-const PDF_RENDER_SCALE = 2;          // 2x = about 190 dpi on the page
+const PDF_STAGE_WIDTH_PX = 733;      // 194mm (A4 minus margins) in CSS px
+const PDF_RENDER_SCALE = pdfRenderScale();
+
+// How sharp the PDF is. 4x is about 390 dpi on the page, so text and
+// lines stay crisp when zoomed in. Phones get 3x so they don't run
+// out of memory.
+function pdfRenderScale() {
+
+    const smallDevice =
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.deviceMemory && navigator.deviceMemory <= 4);
+
+    return smallDevice ? 3 : 4;
+
+}
+
 const PDF_LAYOUT_VIEWPORT = 1200;    // so desktop CSS applies, even on a phone
 
 let logoDataUrlCache = { url: null, data: null };
@@ -2025,16 +2040,58 @@ async function renderCardToCanvas(card, logoData) {
 
         }
 
+        const cardElement =
+            stage.firstElementChild;
+
+        // The card must fill the A4 page exactly. If its content is
+        // taller than the page at the normal width, lay it out a little
+        // wider until it fits, so it still fills the page in both
+        // directions and is never squashed or stretched.
+        const pageRatio =
+            (PDF_PAGE_H_MM - PDF_MARGIN_MM * 2) / (PDF_PAGE_W_MM - PDF_MARGIN_MM * 2);
+
+        let layoutWidth =
+            PDF_STAGE_WIDTH_PX;
+
+        for (let attempt = 0; attempt < 8; attempt++) {
+
+            const pageHeight =
+                Math.floor(layoutWidth * pageRatio);
+
+            stage.style.width =
+                `${layoutWidth}px`;
+
+            stage.style.setProperty("--rc-page-h", `${pageHeight}px`);
+
+            const contentHeight =
+                cardElement.getBoundingClientRect().height;
+
+            if (contentHeight <= pageHeight + 1 || layoutWidth >= 1100) {
+
+                break;
+
+            }
+
+            layoutWidth =
+                Math.min(1100, Math.ceil(contentHeight / pageRatio) + 2);
+
+        }
+
         return await html2canvas(
-            stage.firstElementChild,
+            cardElement,
             {
-                scale: PDF_RENDER_SCALE,
+                // Stay under the ~16 million pixel canvas limit some
+                // browsers (iPhone Safari) enforce.
+                scale: Math.min(
+                    PDF_RENDER_SCALE,
+                    Math.sqrt(16000000 / (layoutWidth * Math.floor(layoutWidth * pageRatio)))
+                ),
                 backgroundColor: "#ffffff",
                 useCORS: true,
                 logging: false,
                 scrollX: 0,
                 scrollY: 0,
-                windowWidth: PDF_LAYOUT_VIEWPORT,
+                windowWidth: Math.max(PDF_LAYOUT_VIEWPORT, layoutWidth + 100),
                 onclone: (clonedDocument) => {
 
                     const clonedStage =
@@ -2155,9 +2212,10 @@ async function downloadPdf() {
 
             }
 
+            // PNG, not JPEG: JPEG leaves fuzz around text and thin lines.
             pdf.addImage(
-                canvas.toDataURL("image/jpeg", 0.92),
-                "JPEG",
+                canvas.toDataURL("image/png"),
+                "PNG",
                 (PDF_PAGE_W_MM - w) / 2,
                 PDF_MARGIN_MM,
                 w,

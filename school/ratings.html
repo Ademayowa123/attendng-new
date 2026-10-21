@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendNG | Behaviour &amp; Skills</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/scss/sytle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+    <style>
+
+        .rt-key summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .rt-key-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rt-key-row:last-child { border-bottom: 0; }
+
+        .rt-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* ---------- list ---------- */
+
+        .rt-progress-bar {
+            height: 8px;
+            background: #e5ece9;
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 8px 0 14px;
+        }
+
+        .rt-progress-bar i {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: var(--primary);
+            border-radius: 99px;
+            transition: width .25s;
+        }
+
+        .rt-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .rt-student {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 6px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .rt-student:hover { background: #f5faf9; }
+
+        .rt-student .rt-n {
+            width: 28px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .rt-student .rt-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .rt-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 99px;
+            white-space: nowrap;
+        }
+
+        .rt-status.done { background: #dcf3ea; color: #0b6b4b; }
+        .rt-status.part { background: #fdf0d5; color: #8a5a00; }
+        .rt-status.none { background: #eef1f0; color: #6b7280; }
+
+        /* ---------- editor ---------- */
+
+        .rt-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .rt-student-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 2px;
+        }
+
+        .rt-setall {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px 0 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .rt-group {
+            margin-top: 18px;
+        }
+
+        .rt-group h3 {
+            margin: 0 0 6px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--primary-dark);
+        }
+
+        .rt-trait {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rt-trait:last-child { border-bottom: 0; }
+
+        .rt-trait .rt-label {
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rt-trait .rt-note {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 400;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        .rt-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .rt-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1.8px solid #c9d7d4;
+            background: #fff;
+            color: #4b5a57;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .rt-btn:hover { border-color: var(--primary); }
+
+        /* Attendance: worked out from the register, can't be clicked */
+
+        .rt-btn.locked,
+        .rt-btn.locked:hover {
+            cursor: not-allowed;
+            pointer-events: none;
+            border-color: #d8e1df;
+            color: #9aa8a5;
+            background: #f3f6f5;
+        }
+
+        .rt-btn.locked.on {
+            background: #6f9f9a;
+            border-color: #6f9f9a;
+            color: #fff;
+        }
+
+        .rt-btn.on {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .rt-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            padding: 10px 0 4px;
+            margin-top: 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .rt-footer button { flex: 1; min-width: 120px; }
+
+        @media (max-width: 560px) {
+
+            .rt-trait { flex-direction: column; align-items: flex-start; }
+            .rt-btns { width: 100%; justify-content: space-between; }
+            .rt-btn { width: 52px; height: 46px; border-radius: 12px; }
+
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+
+        <aside class="sidebar" id="sidebarMount"></aside>
+
+        <main class="main-content">
+
+            <header class="top-header">
+                <div>
+                    <h1>Behaviour &amp; Skills</h1>
+                    <p><span id="className"></span> · <span id="term"></span></p>
+                </div>
+            </header>
+
+            <div id="noClassNotice" class="card" style="display:none;">
+                <p style="margin:0;">You haven't been assigned a class yet.</p>
+            </div>
+
+            <div id="app" style="display:none;">
+
+                <section class="card rt-key" style="margin-bottom:16px;">
+                    <details>
+                        <summary>Keys to ratings (what 1 to 5 mean)</summary>
+                        <div style="margin-top:8px;" id="keyRows"></div>
+                    </details>
+                </section>
+
+                <!-- STUDENT LIST -->
+                <section class="card" id="listView">
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <strong id="progressText">0 of 0 students done</strong>
+                    </div>
+                    <div class="rt-progress-bar"><i id="progressFill"></i></div>
+
+                    <input type="search" id="searchBox" class="rt-search" placeholder="Search student…">
+
+                    <div id="studentList"></div>
+
+                    <p id="noStudentsNotice" style="display:none; color:var(--text-muted); margin:12px 0 4px;">
+                        No students in this class yet.
+                    </p>
+
+                </section>
+
+                <!-- ONE STUDENT -->
+                <section class="card" id="editorView" style="display:none;">
+
+                    <div class="rt-bar">
+                        <button type="button" class="btn-light btn-sm" id="backBtn"><i class="fa-solid fa-arrow-left"></i> All students</button>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" class="btn-light btn-sm" id="prevBtn" title="Previous student"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button type="button" class="btn-light btn-sm" id="nextBtn" title="Next student"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                    <h2 class="rt-student-title" id="studentTitle"></h2>
+                    <div style="font-size:12.5px; color:var(--text-muted);" id="studentCounter"></div>
+
+                    <div class="rt-setall">
+                        <span>Quick fill, set every trait to:</span>
+                        <span class="rt-btns" id="setAllBtns"></span>
+                    </div>
+                    <div id="setAllHint" style="font-size:11.5px; color:var(--text-muted);"></div>
+
+                    <div id="groups"></div>
+
+                    <div class="rt-footer">
+                        <button type="button" class="btn-light btn-sm" id="saveBtn">Save</button>
+                        <button type="button" class="btn-primary btn-sm" id="saveNextBtn">Save &amp; next student</button>
+                    </div>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user-context.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/ratings-traits.js"></script>
+    <script src="/assets/js/ratings.js"></script>
+
+</body>
+</html>

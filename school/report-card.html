@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AttendNG | Report Card</title>
-    <link rel="icon" href="/assets/images/logo.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/scss/sytle.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
@@ -135,9 +135,130 @@
         .rc-info td.k {
             font-weight: 700;
             background: #f1f1f1;
-            width: 17%;
+            width: 34%;
             text-transform: uppercase;
             font-size: 10px;
+        }
+
+        .rc-info {
+            margin-bottom: 0;
+        }
+
+        .rc-info td {
+            padding: 4px 6px;
+            font-weight: 700;
+        }
+
+        /* Section bands — each part of the card sits under one */
+
+        .rc-sec {
+            background: #d6d6d6;
+            border: 1px solid #000;
+            border-bottom: 0;
+            text-align: center;
+            font-weight: 700;
+            font-size: 10.5px;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+            padding: 3px 4px;
+        }
+
+        .rc-top {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 8px;
+        }
+
+        /* The personal data box grows to the same height as the
+           Attendance + Terminal Duration stack beside it. */
+
+        .rc-col-main {
+            flex: 1 1 50%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rc-col-main .rc-info {
+            flex: 1 1 auto;
+            height: 100%;
+        }
+
+        .rc-col-side {
+            flex: 1 1 50%;
+            min-width: 0;
+        }
+
+        .rc-keys {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            table-layout: fixed;
+        }
+
+        .rc-keys td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            font-size: 9px;
+        }
+
+        .rc-skills {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            table-layout: fixed;
+        }
+
+        .rc-skills th,
+        .rc-skills td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+            font-size: 8.5px;
+            vertical-align: middle;
+        }
+
+        .rc-skills th {
+            background: #f1f1f1;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .rc-skills th.pt,
+        .rc-skills td.pt {
+            width: 7%;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .rc-trio {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+        }
+
+        .rc-trio.rc-last {
+            margin-bottom: 0;
+        }
+
+        .rc-trio th,
+        .rc-trio td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+            text-align: center;
+            width: 33.33%;
+        }
+
+        .rc-trio th {
+            background: #f1f1f1;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .rc-trio td {
+            font-weight: 700;
+            font-size: 10.5px;
+            padding: 3px 4px;
         }
 
         .rc-scores {
@@ -168,6 +289,7 @@
         .rc-scores td.left,
         .rc-scores th.left {
             text-align: left;
+            font-weight: 700;
         }
 
         /* The column that holds the score being used this term —
@@ -231,7 +353,7 @@
             display: flex;
             justify-content: space-between;
             gap: 14px;
-            margin-top: 60px;
+            margin-top: 44px;
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -471,6 +593,7 @@
     <script src="/assets/js/user-context.js"></script>
     <script src="/assets/js/auth.js"></script>
     <script src="/assets/js/grading.js"></script>
+    <script src="/assets/js/ratings-traits.js"></script>
     <script src="/assets/js/report-card.js"></script>
 
 </body>

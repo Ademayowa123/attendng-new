@@ -146,6 +146,7 @@ let students = [];
 let scoreMap = {};          // `${cs}|${student}|${term}` -> { ca, exam, total|null }
 let termDates = { resume_date: null, close_date: null, next_term_date: null };
 let attendance = { opened: 0, presentByStudent: {}, available: false };
+let ratingsByStudent = {};     // ratingsByStudent[studentId] = { traitKey: 1..5 }
 
 let cards = [];
 let visibleStudentId = "all";
@@ -909,7 +910,58 @@ async function loadData(classId, term) {
     // 6. Attendance for this term
     await loadAttendance(classId, term);
 
+    // 7. Behaviour & skills ratings entered by the class teacher.
+    //    The card still works without them (they just show as "—").
+    await loadRatings(term);
+
     return setupProblems;
+
+}
+
+
+async function loadRatings(term) {
+
+    ratingsByStudent = {};
+
+    if (students.length === 0) {
+
+        return;
+
+    }
+
+    try {
+
+        const rows =
+            await fetchPaged(
+                () => supabaseClient
+                    .from("student_ratings")
+                    .select("student_id, trait, rating")
+                    .in("student_id", students.map(s => s.id))
+                    .eq("term", term)
+                    .order("student_id")
+                    .order("trait")
+            );
+
+        rows.forEach(
+            r => {
+
+                if (!ratingsByStudent[r.student_id]) {
+
+                    ratingsByStudent[r.student_id] = {};
+
+                }
+
+                ratingsByStudent[r.student_id][r.trait] = r.rating;
+
+            }
+        );
+
+    }
+    catch (error) {
+
+        console.warn("Behaviour ratings unavailable:", error);
+
+    }
 
 }
 
@@ -1276,6 +1328,90 @@ function commentBlockHtml(label, value) {
 }
 
 
+// A trait's rating for one student. Attendance is always worked out
+// from this term's register; everything else is what the class
+// teacher entered.
+
+function ratingFor(card, trait) {
+
+    if (trait.auto && attendance.available) {
+
+        return attendancePercentToRating(
+            Math.round((card.present / attendance.opened) * 100)
+        );
+
+    }
+
+    const saved =
+        (ratingsByStudent[card.student.id] || {})[trait.key];
+
+    return saved === undefined ? null : saved;
+
+}
+
+
+function ratingKeysHtml() {
+
+    const cell =
+        (item, span) => `<td colspan="${span}"><strong>${item.value}.)</strong> ${escapeHtml(item.text)}</td>`;
+
+    // Same arrangement as the paper form: 5, 4, 3 on top; 2, 1 below.
+    const [k5, k4, k3, k2, k1] = RATING_KEY;
+
+    return `
+        <table class="rc-keys">
+            <tr>${cell(k5, 2)}${cell(k4, 2)}${cell(k3, 2)}</tr>
+            <tr>${cell(k2, 3)}${cell(k1, 3)}</tr>
+        </table>
+    `;
+
+}
+
+
+function ratingSkillsHtml(card) {
+
+    const head =
+        RATING_TRAIT_GROUPS.map(
+            g => `<th>${escapeHtml(g.title)}</th><th class="pt">Points</th>`
+        ).join("");
+
+    const rowCount =
+        Math.max(...RATING_TRAIT_GROUPS.map(g => g.traits.length));
+
+    let body = "";
+
+    for (let i = 0; i < rowCount; i++) {
+
+        body += "<tr>" + RATING_TRAIT_GROUPS.map(
+            g => {
+
+                const trait = g.traits[i];
+
+                if (!trait) {
+
+                    return `<td></td><td class="pt"></td>`;
+
+                }
+
+                const value = ratingFor(card, trait);
+
+                return `<td>${escapeHtml(trait.label)}</td><td class="pt">${value === null ? "—" : value}</td>`;
+
+            }
+        ).join("") + "</tr>";
+
+    }
+
+    return `
+        <table class="rc-skills">
+            <thead><tr>${head}</tr></thead>
+            <tbody>${body}</tbody>
+        </table>
+    `;
+
+}
+
+
 function cardHtml(card) {
 
     const student =
@@ -1323,39 +1459,74 @@ function cardHtml(card) {
 
             <div class="rc-title">Student Report Card — ${escapeHtml(selectedTerm)} · ${escapeHtml(AttendNGContext.sessionName)} Session</div>
 
-            <table class="rc-info">
-                <tr>
-                    <td class="k">Student name</td>
-                    <td colspan="3"><strong>${escapeHtml(card.name)}</strong></td>
-                </tr>
-                <tr>
-                    <td class="k">Class</td>
-                    <td>${escapeHtml(selectedClassName)}</td>
-                    <td class="k">Gender</td>
-                    <td style="text-transform:capitalize;">${escapeHtml(student.gender || "—")}</td>
-                </tr>
-                <tr>
-                    <td class="k">Admission no.</td>
-                    <td>${escapeHtml(student.admission_no || "—")}</td>
-                    <td class="k">Date of birth</td>
-                    <td>${formatShortDate(student.date_of_birth)}${student.date_of_birth ? ` (age ${ageFromDob(student.date_of_birth)})` : ""}</td>
-                </tr>
-                <tr>
-                    <td class="k">Times school opened</td>
-                    <td>${opened}</td>
-                    <td class="k">Times present</td>
-                    <td>${present}</td>
-                </tr>
-                <tr>
-                    <td class="k">Times absent</td>
-                    <td>${absent}</td>
-                    <td class="k">Term</td>
-                    <td>${escapeHtml(selectedTerm)}</td>
-                </tr>
-            </table>
+            <div class="rc-top">
 
+                <div class="rc-col rc-col-main">
+                    <div class="rc-sec">Student's Personal Data</div>
+                    <table class="rc-info">
+                        <tr>
+                            <td class="k">Name</td>
+                            <td><strong>${escapeHtml(card.name)}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="k">Admission no.</td>
+                            <td>${escapeHtml(student.admission_no || "—")}</td>
+                        </tr>
+                        <tr>
+                            <td class="k">Gender</td>
+                            <td style="text-transform:capitalize;">${escapeHtml(student.gender || "—")}</td>
+                        </tr>
+                        <tr>
+                            <td class="k">Class</td>
+                            <td>${escapeHtml(selectedClassName)}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="rc-col rc-col-side">
+
+                    <div class="rc-sec">Attendance</div>
+                    <table class="rc-trio">
+                        <tr>
+                            <th>Times school opened</th>
+                            <th>Times present</th>
+                            <th>Times absent</th>
+                        </tr>
+                        <tr>
+                            <td>${opened}</td>
+                            <td>${present}</td>
+                            <td>${absent}</td>
+                        </tr>
+                    </table>
+
+                    <div class="rc-sec">Terminal Duration</div>
+                    <table class="rc-trio rc-last">
+                        <tr>
+                            <th>School resumed</th>
+                            <th>School closes</th>
+                            <th>Next term begins</th>
+                        </tr>
+                        <tr>
+                            <td>${formatLongDate(termDates.resume_date)}</td>
+                            <td>${formatLongDate(termDates.close_date)}</td>
+                            <td>${formatLongDate(termDates.next_term_date)}</td>
+                        </tr>
+                    </table>
+
+                </div>
+
+            </div>
+
+            <div class="rc-sec">Keys to Ratings on Observable Behaviour</div>
+            ${ratingKeysHtml()}
+
+            <div class="rc-sec">Skills Development and Behavioural Attributes</div>
+            ${ratingSkillsHtml(card)}
+
+            <div class="rc-sec">Academic Performance</div>
             ${scoreTableHtml(card)}
 
+            <div class="rc-sec">Result Summary</div>
             <table class="rc-summary">
                 <tr>
                     <td class="k">Total students in class</td>
@@ -1375,18 +1546,9 @@ function cardHtml(card) {
                     <td class="k">Grade</td>
                     <td>${card.scored > 0 && percentageGrade ? `${percentageGrade.grade} (${percentageGrade.remark})` : "—"}</td>
                 </tr>
-                <tr>
-                    <td class="k">School resumed</td>
-                    <td>${formatLongDate(termDates.resume_date)}</td>
-                    <td class="k">School closes</td>
-                    <td>${formatLongDate(termDates.close_date)}</td>
-                </tr>
-                <tr>
-                    <td class="k">Next term begins</td>
-                    <td colspan="3">${formatLongDate(termDates.next_term_date)}</td>
-                </tr>
             </table>
 
+            <div class="rc-sec">Remarks</div>
             ${commentBlockHtml("Class teacher's remark", comments.teacher)}
             ${commentBlockHtml("Principal's remark", comments.principal)}
 

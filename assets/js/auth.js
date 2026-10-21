@@ -258,6 +258,9 @@ function injectSidebar() {
             <li class="${isActive('students.html')}">
                 <a href="/school/students.html"><i class="fa-solid fa-user-graduate"></i> Students</a>
             </li>
+            <li class="${isActive('ratings.html')}">
+                <a href="/school/ratings.html"><i class="fa-solid fa-star-half-stroke"></i> Behaviour &amp; Skills</a>
+            </li>
             <li class="${isActive('/school/results.html')}">
                 <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
             </li>

@@ -33,7 +33,7 @@ const RATING_TRAIT_GROUPS = [
         key: "social",
         title: "Social Development",
         traits: [
-            { key: "courtesy", label: "COURTSY/POLITENESS" },
+            { key: "courtesy", label: "COURTESY/POLITENESS" },
             { key: "consideration", label: "CONSIDERATION FOR OTHERS" },
             { key: "sociability", label: "SOCIABILITY/TEAM-PLAYER" },
             { key: "promptness", label: "PROMPTNESS IN COMPLETING WORK" },
@@ -46,7 +46,7 @@ const RATING_TRAIT_GROUPS = [
         traits: [
             { key: "reading_writing", label: "READING & WRITING SKILLS" },
             { key: "verbal_communication", label: "VERBAL COMMUNICATION" },
-            { key: "sport_game", label: "SPORT A& GAME" },
+            { key: "sport_game", label: "SPORT & GAME" },
             { key: "inquisitiveness", label: "INQUISITIVENESS" },
             { key: "dexterity", label: "DEXTERITY(Musical & Art Materials)" }
         ]

@@ -1860,37 +1860,42 @@ function bindUI() {
 
 }
 
-
 /* ==========================================
    DOWNLOAD PDF
 
-   Each card is drawn off-screen at one fixed A4 layout width and
-   photographed, so the file is identical whether it's made on a
-   phone or a PC: same width, same fonts, same desktop styling, no
-   dependence on the screen size or the browser's print engine.
-   One card per A4 page.
+   The PDF is drawn directly onto each A4 page (text, lines and
+   boxes), not photographed. So the text is real text: it stays
+   sharp at any zoom, can be selected and searched, and the file is
+   small. One card per A4 page; the card fills the page inside an
+   8mm margin.
+
+   All layout maths below is in "px" (the same sizes the on-screen
+   card uses) and is converted to millimetres only when drawing.
 ========================================== */
 
 const PDF_PAGE_W_MM = 210;
 const PDF_PAGE_H_MM = 297;
 const PDF_MARGIN_MM = 8;
-const PDF_STAGE_WIDTH_PX = 733;      // 194mm (A4 minus margins) in CSS px
-const PDF_RENDER_SCALE = pdfRenderScale();
+const PDF_BASE_WIDTH_PX = 733;      // card width at normal size (194mm)
+const PDF_MAX_WIDTH_PX = 1500;      // only reached by extremely dense cards
 
-// How sharp the PDF is. 4x is about 390 dpi on the page, so text and
-// lines stay crisp when zoomed in. Phones get 3x so they don't run
-// out of memory.
-function pdfRenderScale() {
+// Spacing levels. A normal card uses level 0. A very full card (many
+// subjects) is tried at tighter levels first, so the text can stay
+// larger instead of shrinking the whole card.
+const PDF_DENSITY = [
+    { lineHeight: 1.35, rowPad: 2.5, skillPad: 2,   infoPad: 4,   sumPad: 3,   bandPad: 6, gap: 8, sign: 60, remarkMin: 26 },
+    { lineHeight: 1.27, rowPad: 1.6, skillPad: 1.2, infoPad: 3,   sumPad: 2,   bandPad: 4, gap: 5, sign: 52, remarkMin: 20 },
+    { lineHeight: 1.2,  rowPad: 1,   skillPad: 0.8, infoPad: 2.5, sumPad: 1.5, bandPad: 3, gap: 4, sign: 46, remarkMin: 14 }
+];
 
-    const smallDevice =
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-        (navigator.deviceMemory && navigator.deviceMemory <= 4);
+// Liberation Sans (Arial-style, free licence). Unlike Poppins it has
+// the Yoruba letters (ọ ẹ ṣ) that Nigerian names need.
+const PDF_FONT_FILES = {
+    normal: "/assets/fonts/LiberationSans-Regular.ttf",
+    bold: "/assets/fonts/LiberationSans-Bold.ttf"
+};
 
-    return smallDevice ? 3 : 4;
-
-}
-
-const PDF_LAYOUT_VIEWPORT = 1200;    // so desktop CSS applies, even on a phone
+let pdfFontCache = null;
 
 let logoDataUrlCache = { url: null, data: null };
 
@@ -1907,38 +1912,6 @@ function reportFileName() {
 }
 
 
-// Poppins has to be fully loaded or the text would be drawn in a
-// fallback font and look different from device to device.
-async function ensureFontsLoaded() {
-
-    if (!document.fonts || !document.fonts.load) {
-
-        return;
-
-    }
-
-    try {
-
-        await Promise.all(
-            ["400", "500", "600", "700"].map(
-                weight => document.fonts.load(`${weight} 11px Poppins`)
-            )
-        );
-
-        await document.fonts.ready;
-
-    }
-    catch (error) {
-
-        console.warn("Fonts not ready for PDF:", error);
-
-    }
-
-}
-
-
-// The logo is fetched once and embedded as data, so it can't be
-// blocked by cross-origin rules while the card is drawn.
 async function logoDataUrl() {
 
     const url =
@@ -2001,120 +1974,1324 @@ async function logoDataUrl() {
 
 }
 
+function arrayBufferToBase64(buffer) {
 
-async function renderCardToCanvas(card, logoData) {
+    const bytes =
+        new Uint8Array(buffer);
 
-    const stage =
-        document.createElement("div");
+    const chunkSize =
+        0x8000;
 
-    stage.id = "rcPdfStage";
-    stage.className = "rc-pdf-stage";
-    stage.innerHTML = cardHtml(card);
+    let binary =
+        "";
 
-    document.body.appendChild(stage);
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+
+        binary +=
+            String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+
+    }
+
+    return btoa(binary);
+
+}
+
+
+async function loadPdfFonts() {
+
+    if (pdfFontCache) {
+
+        return pdfFontCache;
+
+    }
 
     try {
 
-        const logo =
-            stage.querySelector(".rc-head img");
+        const entries =
+            await Promise.all(
+                Object.entries(PDF_FONT_FILES).map(
+                    async ([style, url]) => {
+
+                        const response =
+                            await fetch(url);
+
+                        if (!response.ok) {
+
+                            throw new Error(`HTTP ${response.status} for ${url}`);
+
+                        }
+
+                        return [style, arrayBufferToBase64(await response.arrayBuffer())];
+
+                    }
+                )
+            );
+
+        pdfFontCache =
+            Object.fromEntries(entries);
+
+    }
+    catch (error) {
+
+        console.warn("PDF fonts could not be loaded, using the built-in font:", error);
+
+        pdfFontCache =
+            null;
+
+        showToast("PDF font file missing — special letters may not show correctly.");
+
+    }
+
+    return pdfFontCache;
+
+}
+
+
+function registerPdfFonts(pdf, fonts) {
+
+    if (!fonts) {
+
+        return "helvetica";
+
+    }
+
+    pdf.addFileToVFS("LiberationSans-Regular.ttf", fonts.normal);
+    pdf.addFont("LiberationSans-Regular.ttf", "LiberationSans", "normal");
+
+    pdf.addFileToVFS("LiberationSans-Bold.ttf", fonts.bold);
+    pdf.addFont("LiberationSans-Bold.ttf", "LiberationSans", "bold");
+
+    return "LiberationSans";
+
+}
+
+
+// The logo is shrunk to a sensible size and kept as PNG, so the PDF
+// stays small and any image type (even WEBP) can be embedded.
+async function logoForPdf(logoData) {
+
+    if (!logoData) {
+
+        return null;
+
+    }
+
+    try {
+
+        const image =
+            new Image();
+
+        image.src =
+            logoData;
+
+        await image.decode();
+
+        if (!image.naturalWidth || !image.naturalHeight) {
+
+            return null;
+
+        }
+
+        const ratio =
+            Math.min(1, 400 / Math.max(image.naturalWidth, image.naturalHeight));
+
+        const canvas =
+            document.createElement("canvas");
+
+        canvas.width =
+            Math.max(1, Math.round(image.naturalWidth * ratio));
+
+        canvas.height =
+            Math.max(1, Math.round(image.naturalHeight * ratio));
+
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        return {
+            data: canvas.toDataURL("image/png"),
+            mark: greyWatermarkData(image),
+            aspect: image.naturalWidth / image.naturalHeight
+        };
+
+    }
+    catch (error) {
+
+        console.warn("Logo could not be prepared for the PDF:", error);
+
+        return null;
+
+    }
+
+}
+
+
+// A grey copy of the logo for the watermark. Done pixel by pixel
+// because not every browser supports canvas filters.
+function greyWatermarkData(image) {
+
+    try {
+
+        const ratio =
+            Math.min(1, 700 / Math.max(image.naturalWidth, image.naturalHeight));
+
+        const canvas =
+            document.createElement("canvas");
+
+        canvas.width =
+            Math.max(1, Math.round(image.naturalWidth * ratio));
+
+        canvas.height =
+            Math.max(1, Math.round(image.naturalHeight * ratio));
+
+        const context =
+            canvas.getContext("2d");
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const pixels =
+            context.getImageData(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < pixels.data.length; i += 4) {
+
+            const grey =
+                Math.round(pixels.data[i] * 0.299 + pixels.data[i + 1] * 0.587 + pixels.data[i + 2] * 0.114);
+
+            pixels.data[i] = grey;
+            pixels.data[i + 1] = grey;
+            pixels.data[i + 2] = grey;
+
+        }
+
+        context.putImageData(pixels, 0, 0);
+
+        return canvas.toDataURL("image/png");
+
+    }
+    catch (error) {
+
+        console.warn("Watermark could not be prepared:", error);
+
+        return null;
+
+    }
+
+}
+
+
+function gradeKeyPlainText() {
+
+    return GRADE_SCALE.map(
+        (band, index) => {
+
+            const max =
+                index === 0 ? 100 : GRADE_SCALE[index - 1].min - 1;
+
+            return `${band.grade} = ${band.min}–${max} ${band.remark}`;
+
+        }
+    ).join("   ·   ");
+
+}
+
+
+/* ------------------------------------------
+   Lay out one report card at a given width.
+
+   Returns { height, paint(x_mm, y_mm) }.
+   `extra` is spare height (px) to hand out: the page is taller
+   than the card's natural height, so rows and remark boxes get
+   roomier. Text is never scaled, so nothing looks stretched.
+------------------------------------------ */
+
+function planCard(pdf, card, logo, fontName, W, extra, level) {
+
+    const D = PDF_DENSITY[level || 0];
+
+    const LH = D.lineHeight;
+
+    const bandHeight =
+        10.5 * LH + D.bandPad + 1;
+
+    const k =
+        (PDF_PAGE_W_MM - PDF_MARGIN_MM * 2) / W;          // mm per px
+
+    const ptPerPx =
+        k * 72 / 25.4;
+
+    const fills = [];
+    const strokes = [];
+    const texts = [];
+    const images = [];
+
+    let OX = 0;
+    let OY = 0;
+
+    // ----- measuring helpers -----
+
+    function useFont(size, bold) {
+
+        pdf.setFont(fontName, bold ? "bold" : "normal");
+        pdf.setFontSize(size * ptPerPx);
+
+    }
+
+    function textWidth(text, size, bold) {
+
+        useFont(size, bold);
+
+        return pdf.getTextWidth(String(text)) / k;
+
+    }
+
+    function wrap(text, maxWidth, size, bold) {
+
+        useFont(size, bold);
+
+        const lines =
+            pdf.splitTextToSize(String(text), Math.max(maxWidth, 1) * k);
+
+        return lines.length > 0 ? lines : [""];
+
+    }
+
+    // Wrap text that has a bold part and a normal part on one line.
+    function wrapRich(tokens, maxWidth, size) {
+
+        const lines = [];
+        let current = [];
+        let used = 0;
+
+        tokens.forEach(
+            token => {
+
+                const width =
+                    textWidth(token.t + " ", size, token.bold);
+
+                if (used > 0 && used + textWidth(token.t, size, token.bold) > maxWidth) {
+
+                    lines.push(current);
+                    current = [];
+                    used = 0;
+
+                }
+
+                current.push(token);
+                used += width;
+
+            }
+        );
+
+        lines.push(current);
+
+        return lines;
+
+    }
+
+    // ----- drawing primitives (queued, painted later in layers) -----
+
+    function box(x, y, w, h, fill) {
+
+        if (fill) {
+
+            fills.push(() => {
+
+                pdf.setFillColor(fill[0], fill[1], fill[2]);
+                pdf.rect(OX + x * k, OY + y * k, w * k, h * k, "F");
+
+            });
+
+        }
+
+        strokes.push(() => {
+
+            pdf.setLineWidth(k);
+            pdf.setDrawColor(0, 0, 0);
+            pdf.rect(OX + x * k, OY + y * k, w * k, h * k, "S");
+
+        });
+
+    }
+
+    function solid(x, y, w, h, color) {
+
+        fills.push(() => {
+
+            pdf.setFillColor(color[0], color[1], color[2]);
+            pdf.rect(OX + x * k, OY + y * k, w * k, h * k, "F");
+
+        });
+
+    }
+
+    // One line of text. `top` is the top of its line box.
+    function textLine(line, x, top, size, bold, align, color) {
+
+        const baseline =
+            top + size * LH / 2 + size * 0.3465;
+
+        texts.push(() => {
+
+            pdf.setTextColor(color[0], color[1], color[2]);
+
+            if (Array.isArray(line)) {
+
+                let cursor = x;
+
+                line.forEach(
+                    token => {
+
+                        useFont(size, token.bold);
+
+                        pdf.text(token.t, OX + cursor * k, OY + baseline * k);
+
+                        cursor += textWidth(token.t + " ", size, token.bold);
+
+                    }
+                );
+
+                return;
+
+            }
+
+            useFont(size, bold);
+
+            pdf.text(line, OX + x * k, OY + baseline * k, { align });
+
+        });
+
+    }
+
+    // ----- table cells -----
+
+    function measureCell(cell, width) {
+
+        const padX = cell.padX === undefined ? 6 : cell.padX;
+        const padY = cell.padY === undefined ? 3 : cell.padY;
+        const innerWidth = width - padX * 2 - 1;
+
+        let contentHeight = 0;
+
+        const blocks =
+            cell.parts.map(
+                part => {
+
+                    const lines =
+                        part.rich ?
+                            wrapRich(part.rich, innerWidth, part.size) :
+                            wrap(part.upper ? String(part.text).toUpperCase() : part.text, innerWidth, part.size, part.bold);
+
+                    contentHeight += lines.length * part.size * LH;
+
+                    return { part, lines };
+
+                }
+            );
+
+        return { blocks, contentHeight, padX, padY };
+
+    }
+
+    // rows: [{ cells: [{span, parts, align, fill, valign, padX, padY}], extra }]
+    // Returns the table's height. Borders are shared like on screen.
+    function table(x, y, widths, rows) {
+
+        let cursorY = y;
+
+        rows.forEach(
+            row => {
+
+                let column = 0;
+                let rowHeight = 0;
+                const placed = [];
+
+                row.cells.forEach(
+                    cell => {
+
+                        const span = cell.span || 1;
+
+                        const cellX =
+                            x + widths.slice(0, column).reduce((a, b) => a + b, 0);
+
+                        const cellW =
+                            widths.slice(column, column + span).reduce((a, b) => a + b, 0);
+
+                        const measured =
+                            measureCell(cell, cellW);
+
+                        rowHeight =
+                            Math.max(rowHeight, measured.contentHeight + measured.padY * 2 + 1);
+
+                        placed.push({ cell, measured, cellX, cellW });
+
+                        column += span;
+
+                    }
+                );
+
+                rowHeight =
+                    Math.max(rowHeight, row.minHeight || 0) + (row.extra || 0);
+
+                placed.forEach(
+                    ({ cell, measured, cellX, cellW }) => {
+
+                        box(cellX, cursorY, cellW, rowHeight, cell.fill);
+
+                        let lineTop =
+                            cell.valign === "top" ?
+                                cursorY + measured.padY + 0.5 :
+                                cursorY + (rowHeight - measured.contentHeight) / 2 + 0.25;
+
+                        const align =
+                            cell.align || "left";
+
+                        const textX =
+                            align === "center" ? cellX + cellW / 2 :
+                                align === "right" ? cellX + cellW - measured.padX :
+                                    cellX + measured.padX + 0.5;
+
+                        measured.blocks.forEach(
+                            ({ part, lines }) => {
+
+                                lines.forEach(
+                                    line => {
+
+                                        textLine(line, textX, lineTop, part.size, part.bold, align, part.color || [0, 0, 0]);
+
+                                        lineTop += part.size * LH;
+
+                                    }
+                                );
+
+                            }
+                        );
+
+                    }
+                );
+
+                cursorY += rowHeight;
+
+            }
+        );
+
+        return cursorY - y + 1;
+
+    }
+
+    const GREY_HEAD = [241, 241, 241];
+    const GREY_BAND = [214, 214, 214];
+    const GREY_HIGHLIGHT = [227, 227, 227];
+    const BLACK = [0, 0, 0];
+    const WHITE = [255, 255, 255];
+
+    function plain(text, size, bold, extraPart) {
+
+        return Object.assign({ text, size, bold: !!bold }, extraPart || {});
+
+    }
+
+    // The grey band that sits above each part of the card.
+    function band(x, y, w, label) {
+
+        const h =
+            bandHeight;
+
+        box(x, y, w, h, GREY_BAND);
+
+        textLine(label.toUpperCase(), x + w / 2, y + D.bandPad / 2 + 0.5, 10.5, true, "center", BLACK);
+
+        return h;
+
+    }
+
+    // ----- how spare height is shared out -----
+
+    const termCount =
+        TERMS.indexOf(selectedTerm) + 1;
+
+    const skillRowCount =
+        Math.max(...RATING_TRAIT_GROUPS.map(g => g.traits.length));
+
+    const subjectRowCount =
+        Math.max(card.rows.length, 1);
+
+    const share = {
+        skills: Math.min(extra / 7, skillRowCount * 6),
+        scores: Math.min(extra * 3 / 7, subjectRowCount * 14)
+    };
+
+    const rest =
+        Math.max(0, extra - share.skills - share.scores);
+
+    share.remarks =
+        rest * 0.6;
+
+    share.sign =
+        rest * 0.4;
+
+    // ----- the card -----
+
+    const BORDER = 1;
+    const PAD_X = 16;
+    const PAD_Y = 14;
+
+    const x0 = BORDER + PAD_X;
+    const innerW = W - (BORDER + PAD_X) * 2;
+
+    let y = BORDER + PAD_Y;
+
+    // Header: logo + school name, address, phone
+    {
+
+        const logoSize =
+            logo ? 64 : 0;
+
+        const gap =
+            logo ? 14 : 0;
+
+        const textX =
+            x0 + logoSize + gap;
+
+        const textW =
+            innerW - logoSize - gap;
+
+        const name =
+            String(schoolInfo.name || AttendNGContext.schoolName || "").toUpperCase();
+
+        const nameLines = wrap(name, textW, 18, true);
+        const addressLines = schoolInfo.address ? wrap(schoolInfo.address, textW, 11, false) : [];
+        const phoneLines = schoolInfo.phone ? wrap(`Tel: ${schoolInfo.phone}`, textW, 11, false) : [];
+
+        const textHeight =
+            nameLines.length * 18 * LH + 2 +
+            (addressLines.length + phoneLines.length) * 11 * LH;
+
+        const headHeight =
+            Math.max(logoSize, textHeight);
+
+        let lineTop =
+            y + (headHeight - textHeight) / 2;
+
+        nameLines.forEach(
+            line => {
+
+                textLine(line, textX + textW / 2, lineTop, 18, true, "center", BLACK);
+
+                lineTop += 18 * LH;
+
+            }
+        );
+
+        lineTop += 2;
+
+        addressLines.concat(phoneLines).forEach(
+            line => {
+
+                textLine(line, textX + textW / 2, lineTop, 11, false, "center", BLACK);
+
+                lineTop += 11 * LH;
+
+            }
+        );
 
         if (logo) {
 
-            if (logoData) {
+            const logoW = logo.aspect >= 1 ? 64 : 64 * logo.aspect;
+            const logoH = logo.aspect >= 1 ? 64 / logo.aspect : 64;
 
-                logo.src =
-                    logoData;
+            const logoX = x0 + (64 - logoW) / 2;
+            const logoY = y + (headHeight - 64) / 2 + (64 - logoH) / 2;
 
-            }
+            images.push(() => {
 
-            try {
+                pdf.addImage(logo.data, "PNG", OX + logoX * k, OY + logoY * k, logoW * k, logoH * k, "schoollogo");
 
-                await logo.decode();
-
-            }
-            catch (error) {
-
-                console.warn("Logo not ready for PDF:", error);
-
-            }
+            });
 
         }
 
-        const cardElement =
-            stage.firstElementChild;
+        // 2px rule under the header
+        solid(x0 - PAD_X, y + headHeight + 8, innerW + PAD_X * 2, 2, BLACK);
 
-        // The card must fill the A4 page exactly. If its content is
-        // taller than the page at the normal width, lay it out a little
-        // wider until it fits, so it still fills the page in both
-        // directions and is never squashed or stretched.
-        const pageRatio =
-            (PDF_PAGE_H_MM - PDF_MARGIN_MM * 2) / (PDF_PAGE_W_MM - PDF_MARGIN_MM * 2);
+        y += headHeight + 8 + 2 + 8;
 
-        let layoutWidth =
-            PDF_STAGE_WIDTH_PX;
+    }
 
-        for (let attempt = 0; attempt < 8; attempt++) {
+    // Title bar
+    {
 
-            const pageHeight =
-                Math.floor(layoutWidth * pageRatio);
+        const title =
+            `Student Report Card — ${selectedTerm} · ${AttendNGContext.sessionName} Session`.toUpperCase();
 
-            stage.style.width =
-                `${layoutWidth}px`;
+        const lines =
+            wrap(title, innerW - 10, 12, true);
 
-            stage.style.setProperty("--rc-page-h", `${pageHeight}px`);
+        const h =
+            lines.length * 12 * LH + 8 + 2;
 
-            const contentHeight =
-                cardElement.getBoundingClientRect().height;
+        box(x0, y, innerW, h, null);
 
-            if (contentHeight <= pageHeight + 1 || layoutWidth >= 1100) {
+        lines.forEach(
+            (line, index) => textLine(line, x0 + innerW / 2, y + 5 + index * 12 * LH, 12, true, "center", BLACK)
+        );
 
-                break;
+        y += h + D.gap;
 
-            }
+    }
 
-            layoutWidth =
-                Math.min(1100, Math.ceil(contentHeight / pageRatio) + 2);
+    // Personal data (left) + Attendance and Terminal Duration (right)
+    {
 
-        }
+        const student =
+            card.student;
 
-        return await html2canvas(
-            cardElement,
-            {
-                // Stay under the ~16 million pixel canvas limit some
-                // browsers (iPhone Safari) enforce.
-                scale: Math.min(
-                    PDF_RENDER_SCALE,
-                    Math.sqrt(16000000 / (layoutWidth * Math.floor(layoutWidth * pageRatio)))
+        const colW =
+            (innerW - 8) / 2;
+
+        const rightX =
+            x0 + colW + 8;
+
+        const bandH =
+            bandHeight;
+
+        const gender =
+            student.gender ? String(student.gender).charAt(0).toUpperCase() + String(student.gender).slice(1) : "—";
+
+        const infoRows =
+            [
+                ["Name", card.name],
+                ["Admission no.", student.admission_no || "—"],
+                ["Gender", gender],
+                ["Class", selectedClassName]
+            ].map(
+                ([key, value]) => ({
+                    cells: [
+                        { parts: [plain(key, 10, true, { upper: true })], fill: GREY_HEAD, padX: 6, padY: D.infoPad },
+                        { parts: [plain(value, 11, true)], padX: 6, padY: D.infoPad }
+                    ]
+                })
+            );
+
+        const opened = attendance.available ? attendance.opened : "—";
+        const present = attendance.available ? card.present : "—";
+        const absent = attendance.available ? card.absent : "—";
+
+        const trio =
+            (heads, values) => [
+                {
+                    cells: heads.map(
+                        head => ({
+                            parts: [plain(head, 9, true, { upper: true })],
+                            align: "center",
+                            fill: GREY_HEAD,
+                            padX: 4,
+                            padY: D.skillPad
+                        })
+                    )
+                },
+                {
+                    cells: values.map(
+                        value => ({
+                            parts: [plain(value, 10.5, true)],
+                            align: "center",
+                            padX: 4,
+                            padY: D.sumPad
+                        })
+                    )
+                }
+            ];
+
+        const trioWidths =
+            [colW / 3, colW / 3, colW / 3];
+
+        // Right column first, because the left box grows to match it.
+        let rightY = y;
+
+        band(rightX, rightY, colW, "Attendance");
+        rightY += bandH;
+
+        rightY += table(
+            rightX, rightY, trioWidths,
+            trio(
+                ["Times school opened", "Times present", "Times absent"],
+                [opened, present, absent]
+            )
+        ) + 4;
+
+        band(rightX, rightY, colW, "Terminal Duration");
+        rightY += bandH;
+
+        rightY += table(
+            rightX, rightY, trioWidths,
+            trio(
+                ["School resumed", "School closes", "Next term begins"],
+                [
+                    formatLongDate(termDates.resume_date),
+                    formatLongDate(termDates.close_date),
+                    formatLongDate(termDates.next_term_date)
+                ]
+            )
+        );
+
+        // Left column: measure the natural height, then grow rows to match.
+        band(x0, y, colW, "Student's Personal Data");
+
+        const infoWidths =
+            [colW * 0.34, colW * 0.66];
+
+        const naturalLeft =
+            bandH + infoRows.reduce(
+                (sum, row) => sum + Math.max(
+                    ...row.cells.map(c => measureCell(c, 0 + (c === row.cells[0] ? infoWidths[0] : infoWidths[1])).contentHeight + D.infoPad * 2 + 1)
                 ),
-                backgroundColor: "#ffffff",
-                useCORS: true,
-                logging: false,
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: Math.max(PDF_LAYOUT_VIEWPORT, layoutWidth + 100),
-                onclone: (clonedDocument) => {
+                0
+            ) + 1;
 
-                    const clonedStage =
-                        clonedDocument.getElementById("rcPdfStage");
+        const topHeight =
+            Math.max(rightY - y, naturalLeft);
 
-                    if (clonedStage) {
+        const rowGrow =
+            Math.max(0, (topHeight - naturalLeft) / infoRows.length);
 
-                        clonedStage.style.position = "absolute";
-                        clonedStage.style.left = "0";
-                        clonedStage.style.top = "0";
+        infoRows.forEach(row => { row.extra = rowGrow; });
+
+        table(x0, y + bandH, infoWidths, infoRows);
+
+        y += topHeight + D.gap;
+
+    }
+
+    // Keys to ratings
+    {
+
+        band(x0, y, innerW, "Keys to Ratings on Observable Behaviour");
+        y += bandHeight;
+
+        const [k5, k4, k3, k2, k1] =
+            RATING_KEY;
+
+        const keyCell =
+            (item, span) => ({
+                span,
+                parts: [{
+                    rich: [{ t: `${item.value}.)`, bold: true }].concat(
+                        String(item.text).split(/\s+/).filter(Boolean).map(word => ({ t: word, bold: false }))
+                    ),
+                    size: 9.5
+                }],
+                padX: 5,
+                padY: D.sumPad
+            });
+
+        const sixth =
+            innerW / 6;
+
+        y += table(
+            x0, y, [sixth, sixth, sixth, sixth, sixth, sixth],
+            [
+                { cells: [keyCell(k5, 2), keyCell(k4, 2), keyCell(k3, 2)] },
+                { cells: [keyCell(k2, 3), keyCell(k1, 3)] }
+            ]
+        ) + D.gap;
+
+    }
+
+    // Skills development and behavioural attributes
+    {
+
+        band(x0, y, innerW, "Skills Development and Behavioural Attributes");
+        y += bandHeight;
+
+        const groupCount =
+            RATING_TRAIT_GROUPS.length;
+
+        const pointsW =
+            Math.max(innerW * 0.07, textWidth("POINTS", 9, true) + 10);
+
+        const labelW =
+            (innerW - pointsW * groupCount) / groupCount;
+
+        const widths = [];
+
+        RATING_TRAIT_GROUPS.forEach(() => widths.push(labelW, pointsW));
+
+        const rows = [];
+
+        rows.push({
+            cells: RATING_TRAIT_GROUPS.flatMap(
+                group => [
+                    { parts: [plain(group.title, 9, true, { upper: true })], fill: GREY_HEAD, padX: 4, padY: D.skillPad },
+                    { parts: [plain("Points", 9, true, { upper: true })], fill: GREY_HEAD, align: "center", padX: 4, padY: D.skillPad }
+                ]
+            )
+        });
+
+        for (let i = 0; i < skillRowCount; i++) {
+
+            rows.push({
+                extra: share.skills / skillRowCount,
+                cells: RATING_TRAIT_GROUPS.flatMap(
+                    group => {
+
+                        const trait = group.traits[i];
+
+                        if (!trait) {
+
+                            return [
+                                { parts: [plain("", 9, false)], padX: 4, padY: D.skillPad },
+                                { parts: [plain("", 9, true)], align: "center", padX: 4, padY: D.skillPad }
+                            ];
+
+                        }
+
+                        const value = ratingFor(card, trait);
+
+                        return [
+                            { parts: [plain(trait.label, 9, false)], padX: 4, padY: D.skillPad },
+                            { parts: [plain(value === null ? "—" : value, 9, true)], align: "center", padX: 4, padY: D.skillPad }
+                        ];
+
+                    }
+                )
+            });
+
+        }
+
+        y += table(x0, y, widths, rows) + D.gap;
+
+    }
+
+    // Academic performance
+    {
+
+        band(x0, y, innerW, "Academic Performance");
+        y += bandHeight;
+
+        const highlight =
+            termCount === 1 ? "t1" : termCount === 2 ? "t2" : "avg";
+
+        const columns = [
+            { label: "S/N", kind: "sn" },
+            { label: "Subject", kind: "subject", left: true },
+            { label: "CA", sub: "40", kind: "ca" },
+            { label: "Exam", sub: "60", kind: "exam" },
+            { label: "1st", sub: "100", kind: "t1" }
+        ];
+
+        if (termCount >= 2) {
+
+            columns.push({ label: "2nd", sub: "100", kind: "t2" });
+
+        }
+
+        if (termCount >= 3) {
+
+            columns.push({ label: "3rd", sub: "100", kind: "t3" });
+            columns.push({ label: "AVG", sub: "100", kind: "avg" });
+
+        }
+
+        columns.push({ label: "Grade", kind: "grade" });
+        columns.push({ label: "Remark", kind: "remark" });
+
+        const numericWidth =
+            termCount >= 3 ? 50 : 56;
+
+        const fixedWidth = (kind) =>
+            kind === "sn" ? 36 :
+                kind === "grade" ? 48 :
+                    kind === "remark" ? 92 :
+                        kind === "subject" ? 0 :
+                            numericWidth;
+
+        const fixedTotal =
+            columns.reduce((sum, c) => sum + fixedWidth(c.kind), 0);
+
+        const widths =
+            columns.map(
+                c => c.kind === "subject" ? Math.max(120, innerW - fixedTotal) : fixedWidth(c.kind)
+            );
+
+        const scale =
+            innerW / widths.reduce((a, b) => a + b, 0);
+
+        const scaledWidths =
+            widths.map(w => w * scale);
+
+        const rows = [];
+
+        rows.push({
+            cells: columns.map(
+                column => {
+
+                    const highlighted = column.kind === highlight;
+
+                    const color = highlighted ? WHITE : BLACK;
+
+                    const parts = [plain(column.label, 10, true, { upper: true, color })];
+
+                    if (column.sub) {
+
+                        parts.push(plain(column.sub, 9, false, { color }));
 
                     }
 
+                    return {
+                        parts,
+                        align: column.left ? "left" : "center",
+                        fill: highlighted ? BLACK : GREY_HEAD,
+                        padX: 5,
+                        padY: D.rowPad
+                    };
+
                 }
+            )
+        });
+
+        card.rows.forEach(
+            (row, index) => {
+
+                const valueFor = {
+                    sn: index + 1,
+                    subject: row.subject,
+                    ca: row.ca !== null ? row.ca : "—",
+                    exam: row.exam !== null ? row.exam : "—",
+                    t1: formatScore(row.termTotals[0] !== undefined ? row.termTotals[0] : null),
+                    t2: formatScore(row.termTotals[1]),
+                    t3: formatScore(row.termTotals[2]),
+                    avg: formatScore(row.used),
+                    grade: row.grade ? row.grade.grade : "—",
+                    remark: row.grade ? row.grade.remark : "—"
+                };
+
+                rows.push({
+                    extra: share.scores / subjectRowCount,
+                    cells: columns.map(
+                        column => {
+
+                            const highlighted = column.kind === highlight;
+
+                            return {
+                                parts: [plain(valueFor[column.kind], 11, column.kind === "subject" || column.kind === "grade" || highlighted)],
+                                align: column.left ? "left" : "center",
+                                fill: highlighted ? GREY_HIGHLIGHT : null,
+                                padX: 5,
+                                padY: D.rowPad
+                            };
+
+                        }
+                    )
+                });
+
+            }
+        );
+
+        rows.push({
+            cells: [
+                { span: 2, parts: [plain(`TOTAL NUMBER OF SUBJECTS: ${card.scored}`, 11, true)], fill: GREY_HEAD, padX: 5, padY: D.rowPad },
+                { span: columns.length - 2, parts: [plain(`TOTAL SCORE: ${formatScore(card.total)}`, 11, true)], fill: GREY_HEAD, align: "right", padX: 5, padY: D.rowPad }
+            ]
+        });
+
+        y += table(x0, y, scaledWidths, rows) + D.gap;
+
+    }
+
+    // Result summary
+    {
+
+        band(x0, y, innerW, "Result Summary");
+        y += bandHeight;
+
+        const percentageGrade =
+            gradeFor(card.percentage);
+
+        const key =
+            text => ({ parts: [plain(text, 10, true, { upper: true })], fill: GREY_HEAD, valign: "top", padX: 6, padY: D.sumPad });
+
+        const value =
+            (text, bold) => ({ parts: [plain(text, 11, bold)], valign: "top", padX: 6, padY: D.sumPad });
+
+        const summaryWidths =
+            [innerW * 0.22, innerW * 0.28, innerW * 0.22, innerW * 0.28];
+
+        y += table(
+            x0, y, summaryWidths,
+            [
+                {
+                    cells: [
+                        key("Total students in class"), value(students.length),
+                        key("Percentage"), value(card.scored > 0 ? formatPercent(card.percentage) : "—")
+                    ]
+                },
+                {
+                    cells: [
+                        key("Total score obtained"), value(formatScore(card.total)),
+                        key("Position"), value(card.scored > 0 ? ordinal(card.position) : "—", true)
+                    ]
+                },
+                {
+                    cells: [
+                        key("Score obtainable"), value(card.obtainable),
+                        key("Grade"), value(card.scored > 0 && percentageGrade ? `${percentageGrade.grade} (${percentageGrade.remark})` : "—")
+                    ]
+                }
+            ]
+        ) + D.gap;
+
+    }
+
+    // Remarks
+    {
+
+        band(x0, y, innerW, "Remarks");
+        y += bandHeight;
+
+        const comments =
+            commentValues(card);
+
+        [
+            ["Class teacher's remark", comments.teacher],
+            ["Principal's remark", comments.principal]
+        ].forEach(
+            ([label, value], index) => {
+
+                const lines =
+                    wrap(value || "", innerW - 12 - 2, 11, false);
+
+                const textHeight =
+                    Math.max(D.remarkMin, lines.length * 11 * LH);
+
+                const h =
+                    4 + 10 * LH + 2 + textHeight + 4 + 2 + share.remarks / 2;
+
+                box(x0, y, innerW, h, null);
+
+                textLine(label.toUpperCase(), x0 + 6.5, y + 5, 10, true, "left", BLACK);
+
+                lines.forEach(
+                    (line, lineIndex) => textLine(line, x0 + 6.5, y + 5 + 10 * LH + 2 + lineIndex * 11 * LH, 11, false, "left", BLACK)
+                );
+
+                y += h + (index === 0 ? D.gap - 2 : 0);
+
             }
         );
 
     }
-    finally {
 
-        stage.remove();
+    // Signatures
+    {
+
+        y += D.sign + share.sign;
+
+        const gap = 14;
+        const spanW = (innerW - gap * 2) / 3;
+
+        const labels = [
+            "Teacher's signature & date",
+            "Principal's signature & date",
+            "Parent's name & signature"
+        ];
+
+        let tallest = 0;
+
+        labels.forEach(
+            (label, index) => {
+
+                const spanX = x0 + index * (spanW + gap);
+
+                const lines = wrap(label.toUpperCase(), spanW, 10, true);
+
+                solid(spanX, y, spanW, 1, BLACK);
+
+                lines.forEach(
+                    (line, lineIndex) => textLine(line, spanX, y + 3 + lineIndex * 10 * LH, 10, true, "left", BLACK)
+                );
+
+                tallest = Math.max(tallest, 3 + lines.length * 10 * LH);
+
+            }
+        );
+
+        y += tallest + 6;
 
     }
+
+    // Grade key and footer
+    {
+
+        solid(x0, y, innerW, 1, BLACK);
+
+        y += 1 + 4;
+
+        const keyLines =
+            wrap(`GRADE / REMARK KEY: ${gradeKeyPlainText()}`, innerW, 9.5, false);
+
+        keyLines.forEach(
+            line => {
+
+                textLine(line, x0 + innerW / 2, y, 9.5, false, "center", BLACK);
+
+                y += 9.5 * LH;
+
+            }
+        );
+
+        if (termCount === 3) {
+
+            y += 3;
+
+            wrap("AVG = total of the terms with scores ÷ number of those terms.", innerW, 9.5, false).forEach(
+                line => {
+
+                    textLine(line, x0 + innerW / 2, y, 9.5, false, "center", BLACK);
+
+                    y += 9.5 * LH;
+
+                }
+            );
+
+        }
+
+        y += 4;
+
+        textLine("Powered by AttendNG", x0 + innerW / 2, y, 9, false, "center", [102, 102, 102]);
+
+        y += 9 * LH;
+
+    }
+
+    const height =
+        y + PAD_Y + BORDER;
+
+    return {
+
+        height,
+
+        paint(xMm, yMm) {
+
+            OX = xMm;
+            OY = yMm;
+
+            // The school logo, big, grey and very faint, behind everything.
+            // If the PDF library can't do transparency, skip it rather
+            // than risk a solid block over the page.
+            if (logo && logo.mark && pdf.GState) {
+
+                try {
+
+                    const markW =
+                        Math.min(innerW * 0.55, height * 0.5 * logo.aspect);
+
+                    const markH =
+                        markW / logo.aspect;
+
+                    pdf.saveGraphicsState();
+                    pdf.setGState(new pdf.GState({ opacity: 0.08 }));
+
+                    pdf.addImage(
+                        logo.mark, "PNG",
+                        OX + (W - markW) / 2 * k,
+                        OY + (height * 0.54 - markH / 2) * k,
+                        markW * k, markH * k,
+                        "schoolwatermark"
+                    );
+
+                    pdf.restoreGraphicsState();
+
+                }
+                catch (error) {
+
+                    console.warn("Watermark skipped:", error);
+
+                }
+
+            }
+
+            fills.forEach(op => op());
+
+            // The outer frame
+            pdf.setLineWidth(k);
+            pdf.setDrawColor(0, 0, 0);
+            pdf.rect(OX + 0.5 * k, OY + 0.5 * k, (W - 1) * k, (height - 1) * k, "S");
+
+            strokes.forEach(op => op());
+            images.forEach(op => op());
+            texts.forEach(op => op());
+
+        }
+
+    };
+
+}
+
+
+// Lays the card out so it fills the A4 page exactly. If its content
+// is taller than the page at the normal width, it is laid out a
+// little wider (everything shrinks together) until it fits.
+function drawCardPage(pdf, card, logo, fontName) {
+
+    const pageRatio =
+        (PDF_PAGE_H_MM - PDF_MARGIN_MM * 2) / (PDF_PAGE_W_MM - PDF_MARGIN_MM * 2);
+
+    // For one spacing level: the narrowest layout width at which the
+    // card fits the page (normal width if it already fits).
+    function fit(level) {
+
+        let width =
+            PDF_BASE_WIDTH_PX;
+
+        for (let attempt = 0; attempt < 12; attempt++) {
+
+            const plan =
+                planCard(pdf, card, logo, fontName, width, 0, level);
+
+            if (plan.height <= width * pageRatio || width >= PDF_MAX_WIDTH_PX) {
+
+                return { width, height: plan.height, level };
+
+            }
+
+            width =
+                Math.min(PDF_MAX_WIDTH_PX, Math.ceil(plan.height / pageRatio) + 1);
+
+        }
+
+        return { width, level };
+
+    }
+
+    // Prefer normal spacing. Only tighten it when that clearly lets
+    // the text stay bigger.
+    let best =
+        null;
+
+    for (let level = 0; level < PDF_DENSITY.length; level++) {
+
+        const result =
+            fit(level);
+
+        if (!best || result.width < best.width * 0.98) {
+
+            best = result;
+
+        }
+
+        if (result.width <= PDF_BASE_WIDTH_PX + 1) {
+
+            break;
+
+        }
+
+    }
+
+    const natural =
+        planCard(pdf, card, logo, fontName, best.width, 0, best.level);
+
+    const spare =
+        Math.max(0, best.width * pageRatio - natural.height);
+
+    planCard(pdf, card, logo, fontName, best.width, spare, best.level)
+        .paint(PDF_MARGIN_MM, PDF_MARGIN_MM);
 
 }
 
@@ -2130,7 +3307,7 @@ async function downloadPdf() {
 
     }
 
-    if (!window.html2canvas || !window.jspdf) {
+    if (!window.jspdf) {
 
         showToast("The PDF tools didn't load. Check your connection and refresh the page.");
 
@@ -2160,10 +3337,11 @@ async function downloadPdf() {
         button.innerHTML =
             `<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF…`;
 
-        await ensureFontsLoaded();
+        const [fonts, logoData] =
+            await Promise.all([loadPdfFonts(), logoDataUrl()]);
 
-        const logoData =
-            await logoDataUrl();
+        const logo =
+            await logoForPdf(logoData);
 
         const { jsPDF } =
             window.jspdf;
@@ -2171,11 +3349,10 @@ async function downloadPdf() {
         const pdf =
             new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-        const maxW =
-            PDF_PAGE_W_MM - PDF_MARGIN_MM * 2;
+        const fontName =
+            registerPdfFonts(pdf, fonts);
 
-        const maxH =
-            PDF_PAGE_H_MM - PDF_MARGIN_MM * 2;
+        pdf.setProperties({ title: reportFileName().replace(/\.pdf$/i, "") });
 
         for (let i = 0; i < list.length; i++) {
 
@@ -2189,44 +3366,13 @@ async function downloadPdf() {
             // Let the button text repaint between cards.
             await new Promise(resolve => setTimeout(resolve, 0));
 
-            const canvas =
-                await renderCardToCanvas(list[i], logoData);
-
-            let w =
-                maxW;
-
-            let h =
-                w * canvas.height / canvas.width;
-
-            // A card taller than one page is shrunk to fit, never split.
-            if (h > maxH) {
-
-                h = maxH;
-                w = h * canvas.width / canvas.height;
-
-            }
-
             if (i > 0) {
 
                 pdf.addPage();
 
             }
 
-            // PNG, not JPEG: JPEG leaves fuzz around text and thin lines.
-            pdf.addImage(
-                canvas.toDataURL("image/png"),
-                "PNG",
-                (PDF_PAGE_W_MM - w) / 2,
-                PDF_MARGIN_MM,
-                w,
-                h,
-                undefined,
-                "FAST"
-            );
-
-            // Free the memory right away (matters on phones).
-            canvas.width = 0;
-            canvas.height = 0;
+            drawCardPage(pdf, list[i], logo, fontName);
 
         }
 

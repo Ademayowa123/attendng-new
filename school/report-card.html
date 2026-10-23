@@ -406,63 +406,6 @@
             display: none;
         }
 
-        /* Off-screen stage the PDF is drawn from. Fixed A4 layout width
-           (A4 minus 8mm margins = 194mm = 733px) so a PDF made on a phone
-           matches one made on a PC. */
-
-        .rc-pdf-stage {
-            position: fixed;
-            left: -10000px;
-            top: 0;
-            width: 733px;
-            background: #fff;
-            font-family: "Poppins", sans-serif;
-            -webkit-text-size-adjust: 100%;
-            text-size-adjust: 100%;
-        }
-
-        /* The card fills the whole A4 page (A4 minus 8mm margins =
-           194mm x 281mm = 733px x 1061px). Spare height is shared out
-           as roomier rows and remark boxes, so the text keeps its true
-           proportions and nothing is stretched. */
-
-        .rc-pdf-stage .rc-card {
-            max-width: none;
-            width: 100%;
-            margin: 0;
-            border: 1px solid #000;
-            min-height: var(--rc-page-h, 1061px);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .rc-pdf-stage .rc-card > .rc-skills {
-            flex: 1 1 auto;
-        }
-
-        .rc-pdf-stage .rc-card > .rc-scores {
-            flex: 3 1 auto;
-        }
-
-        .rc-pdf-stage .rc-card > .rc-block {
-            flex: 1 1 auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .rc-pdf-stage .rc-card > .rc-block .rc-text {
-            flex: 1 1 auto;
-        }
-
-        .rc-pdf-stage .rc-card > .rc-sign {
-            margin-top: auto;
-            padding-top: 44px;
-        }
-
-        .rc-pdf-stage .rc-hide-print {
-            display: none !important;
-        }
-
         @media print {
 
             .sidebar,
@@ -618,7 +561,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="/assets/js/supabase.js"></script>
     <script src="/assets/js/user-context.js"></script>

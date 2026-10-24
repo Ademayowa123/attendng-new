@@ -16,13 +16,26 @@
     <style>
 
         :root {
-            --teal: #0F766E;
-            --teal-dark: #0B5C56;
-            --teal-soft: #E6F4F1;
-            --ink: #14221F;
-            --muted: #5B6B67;
-            --line: #E2EBE9;
-            --bg: #FFFFFF;
+            --primary: #0F766E;
+            --primary-dark: #0B5C56;
+            --primary-hover: #0D9488;
+            --primary-light: #CCFBF1;
+            --primary-soft: #F0FDFA;
+            --text-main: #0F172A;
+            --text-secondary: #334155;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --border-light: #F1F5F9;
+            --surface: #FFFFFF;
+            --surface-alt: #F8FAFC;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --indigo: #6366F1;
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 16px 40px rgba(15, 118, 110, 0.12);
+            --shadow-xl: 0 24px 60px rgba(15, 23, 42, 0.14);
         }
 
         * { box-sizing: border-box; }
@@ -31,18 +44,19 @@
 
         body {
             margin: 0;
-            font-family: "Poppins", system-ui, sans-serif;
-            color: var(--ink);
-            background: var(--bg);
+            font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-main);
+            background: var(--surface);
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
         a { color: inherit; text-decoration: none; }
 
         .wrap {
-            max-width: 1120px;
+            max-width: 1160px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
         }
 
         /* ---------- Buttons ---------- */
@@ -50,186 +64,549 @@
         .btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            padding: 12px 22px;
+            padding: 12px 24px;
             border-radius: 10px;
             font-weight: 600;
             font-size: 15px;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
             cursor: pointer;
-            transition: background .15s, color .15s, border-color .15s;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            white-space: nowrap;
         }
 
-        .btn-primary { background: var(--teal); color: #fff; }
-        .btn-primary:hover { background: var(--teal-dark); }
+        .btn:active {
+            transform: scale(0.98);
+        }
 
-        .btn-outline { border-color: var(--teal); color: var(--teal); background: #fff; }
-        .btn-outline:hover { background: var(--teal-soft); }
+        .btn-primary {
+            background: linear-gradient(180deg, #0F766E 0%, #0B5C56 100%);
+            color: #FFFFFF;
+            box-shadow: 0 2px 10px rgba(15, 118, 110, 0.28);
+        }
 
-        .btn-light { background: #fff; color: var(--teal); }
-        .btn-light:hover { background: var(--teal-soft); }
+        .btn-primary:hover {
+            background: linear-gradient(180deg, #115E59 0%, #094944 100%);
+            box-shadow: 0 4px 16px rgba(15, 118, 110, 0.36);
+            transform: translateY(-1px);
+        }
 
-        .btn-sm { padding: 8px 16px; font-size: 14px; }
+        .btn-outline {
+            border: 1.5px solid var(--border);
+            color: var(--text-main);
+            background: #FFFFFF;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .btn-light {
+            background: #FFFFFF;
+            color: var(--primary);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-light:hover {
+            background: var(--primary-soft);
+            transform: translateY(-1px);
+        }
+
+        .btn-sm {
+            padding: 8px 18px;
+            font-size: 13.5px;
+            border-radius: 8px;
+        }
 
         /* ---------- Nav ---------- */
 
         .nav {
             position: sticky;
             top: 0;
-            z-index: 10;
-            background: rgba(255, 255, 255, .95);
-            backdrop-filter: blur(6px);
-            border-bottom: 1px solid var(--line);
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.2s ease;
         }
 
         .nav .wrap {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 76px;
+            height: 72px;
         }
 
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 700;
-            font-size: 22px;
-            color: var(--teal);
+            font-size: 21px;
+            color: var(--text-main);
+            letter-spacing: -0.4px;
         }
 
-        .brand img { width: 52px; height: 52px; object-fit: contain; }
+        .brand img {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
 
-        .nav-links { display: flex; align-items: center; gap: 26px; }
+        .brand span.tag {
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-        .nav-links a.link { font-size: 14px; color: var(--muted); font-weight: 500; }
-        .nav-links a.link:hover { color: var(--teal); }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .nav-links a.link {
+            font-size: 14.5px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.15s ease;
+            position: relative;
+        }
+
+        .nav-links a.link:hover {
+            color: var(--primary);
+        }
+
+        .nav-mobile-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .mobile-menu-drawer {
+            display: none;
+            position: fixed;
+            top: 72px;
+            left: 0;
+            right: 0;
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-lg);
+            z-index: 99;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mobile-menu-drawer.open {
+            display: flex;
+        }
+
+        .mobile-menu-drawer a.link {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
 
         /* ---------- Hero ---------- */
 
         .hero {
-            background: linear-gradient(180deg, var(--teal-soft) 0%, #fff 100%);
-            padding: 64px 0 56px;
+            position: relative;
+            background: radial-gradient(120% 80% at 50% -10%, rgba(15, 118, 110, 0.10) 0%, rgba(240, 253, 250, 0.5) 45%, #FFFFFF 100%);
+            padding: 72px 0 68px;
+            overflow: hidden;
+        }
+
+        .hero-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #FFFFFF;
+            border: 1px solid #CCFBF1;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            margin-bottom: 22px;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .hero-badge-pill .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+            animation: pulse-beacon 2s infinite;
+        }
+
+        @keyframes pulse-beacon {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
         }
 
         .hero .wrap {
             display: grid;
             grid-template-columns: 1.05fr 1fr;
-            gap: 44px;
+            gap: 48px;
             align-items: center;
         }
 
-        .pill {
-            display: inline-block;
-            background: #fff;
-            border: 1px solid var(--line);
-            color: var(--teal);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 5px 14px;
-            border-radius: 999px;
-            margin-bottom: 18px;
-        }
-
         .hero h1 {
-            font-size: 42px;
-            line-height: 1.2;
-            margin: 0 0 16px;
-            letter-spacing: -.5px;
+            font-size: 44px;
+            line-height: 1.18;
+            margin: 0 0 18px;
+            letter-spacing: -0.8px;
+            color: var(--text-main);
+            font-weight: 700;
         }
 
-        .hero h1 span { color: var(--teal); }
+        .hero h1 span.highlight {
+            background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
         .hero p.lead {
             font-size: 17px;
-            color: var(--muted);
-            margin: 0 0 26px;
+            color: var(--text-secondary);
+            margin: 0 0 28px;
             max-width: 520px;
+            line-height: 1.65;
         }
 
-        .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+        .hero-benefits {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
 
-        /* a small mock of the broadsheet, built in CSS */
+        .hero-benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .hero-benefit-item i {
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+
+        /* Hero Broadsheet Mockup */
 
         .mock {
-            background: #fff;
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            box-shadow: 0 18px 50px rgba(15, 118, 110, .15);
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-xl);
             overflow: hidden;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .mock:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 28px 70px rgba(15, 118, 110, 0.18);
         }
 
         .mock-bar {
-            background: var(--teal);
-            color: #fff;
-            padding: 10px 16px;
-            font-size: 13px;
+            background: linear-gradient(90deg, #0F766E 0%, #115E59 100%);
+            color: #FFFFFF;
+            padding: 12px 18px;
+            font-size: 13.5px;
             font-weight: 600;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+
+        .mock-bar-pills {
+            display: flex;
+            gap: 6px;
+        }
+
+        .mock-bar-pill {
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 99px;
+            padding: 2px 10px;
+            font-size: 11.5px;
+            font-weight: 500;
         }
 
         .mock table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 12.5px;
         }
 
         .mock th {
-            background: var(--teal-soft);
-            color: var(--teal-dark);
-            padding: 8px 6px;
+            background: var(--surface-alt);
+            color: var(--text-secondary);
+            padding: 10px 8px;
             font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
         }
 
         .mock td {
-            padding: 8px 6px;
+            padding: 10px 8px;
             text-align: center;
-            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-main);
         }
 
-        .mock td.name { text-align: left; font-weight: 500; padding-left: 12px; }
-        .mock td.pos { font-weight: 700; color: var(--teal); }
+        .mock tr:last-child td {
+            border-bottom: none;
+        }
 
+        .mock td.name {
+            text-align: left;
+            font-weight: 600;
+            padding-left: 14px;
+        }
 
-        /* ---------- "See it in action" mocks ---------- */
+        .mock td.pos {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .mock td.score-pill {
+            font-weight: 600;
+        }
+
+        /* Floating Badge on Hero Mock */
+
+        .floating-mock-badge {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            border: 1px solid #CCFBF1;
+            box-shadow: var(--shadow-md);
+            border-radius: 10px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        /* ---------- Trust / Metrics Bar ---------- */
+
+        .trust-bar {
+            background: var(--surface-alt);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 28px 0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            text-align: center;
+        }
+
+        .metric-item strong {
+            display: block;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+
+        .metric-item span {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ---------- Sections ---------- */
+
+        section { padding: 80px 0; }
+
+        .section-head {
+            text-align: center;
+            max-width: 660px;
+            margin: 0 auto 48px;
+        }
+
+        .section-eyebrow {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 4px 12px;
+            border-radius: 99px;
+            margin-bottom: 12px;
+        }
+
+        .section-head h2 {
+            font-size: 34px;
+            margin: 0 0 14px;
+            letter-spacing: -0.6px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .section-head p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* Feature Cards Grid */
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            background: #FFFFFF;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature:hover {
+            transform: translateY(-4px);
+            border-color: #99F6E4;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--primary-soft);
+            border: 1px solid #CCFBF1;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 18px;
+        }
+
+        .feature h3 {
+            font-size: 18px;
+            margin: 0 0 8px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .feature p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        /* ---------- Preview / See it in Action ---------- */
 
         .preview-grid {
             display: grid;
             grid-template-columns: 1.15fr 1fr;
-            gap: 28px;
+            gap: 32px;
             align-items: start;
         }
 
-        .preview-item h3 { font-size: 18px; margin: 18px 0 4px; }
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
-        .preview-item p { margin: 0; color: var(--muted); font-size: 14.5px; }
+        .preview-item h3 {
+            font-size: 19px;
+            margin: 8px 0 4px;
+            font-weight: 600;
+        }
+
+        .preview-item p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            line-height: 1.6;
+        }
 
         .mock-sub {
-            padding: 9px 16px;
-            font-size: 12px;
-            color: var(--muted);
-            background: #F7FBFA;
-            border-bottom: 1px solid var(--line);
+            padding: 10px 16px;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            background: var(--surface-alt);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
+            align-items: center;
             gap: 8px;
         }
 
-        .mock-sub b { color: var(--teal-dark); }
+        .mock-sub b { color: var(--primary); }
 
-        .ticks { display: inline-flex; gap: 3px; }
+        .ticks { display: inline-flex; gap: 4px; }
 
         .tick {
-            width: 14px;
-            height: 14px;
+            width: 15px;
+            height: 15px;
             border-radius: 4px;
-            border: 1.5px solid #C9D7D4;
+            border: 1.5px solid #CBD5E1;
             display: inline-block;
             position: relative;
+            background: #FFFFFF;
         }
 
-        .tick.on { background: var(--teal); border-color: var(--teal); }
+        .tick.on {
+            background: var(--success);
+            border-color: var(--success);
+        }
 
         .tick.on::after {
             content: "";
@@ -238,133 +615,152 @@
             top: 0.5px;
             width: 4px;
             height: 8px;
-            border: solid #fff;
+            border: solid #FFFFFF;
             border-width: 0 1.8px 1.8px 0;
             transform: rotate(45deg);
         }
 
-        .mock td.total { font-weight: 700; color: var(--teal); }
+        .mock td.total {
+            font-weight: 700;
+            color: var(--primary);
+        }
 
         .stat-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            padding: 14px 14px 4px;
+            gap: 12px;
+            padding: 16px 16px 6px;
         }
 
         .stat {
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: var(--surface-alt);
         }
 
-        .stat small { display: block; font-size: 11px; color: var(--muted); }
+        .stat small {
+            display: block;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
 
-        .stat strong { font-size: 20px; color: var(--teal-dark); }
+        .stat strong {
+            font-size: 22px;
+            color: var(--primary);
+            font-weight: 700;
+        }
 
-        .chart-box { padding: 12px 14px 14px; }
+        .chart-box { padding: 14px 16px 16px; }
 
-        .chart-box h4 { margin: 0 0 22px; font-size: 13px; }
+        .chart-box h4 {
+            margin: 0 0 24px;
+            font-size: 13.5px;
+            color: var(--text-secondary);
+        }
 
         .bars {
             display: flex;
             align-items: flex-end;
-            gap: 8px;
-            height: 118px;
-            border-bottom: 1px solid var(--line);
+            gap: 10px;
+            height: 120px;
+            border-bottom: 1px solid var(--border);
         }
 
         .bar {
             flex: 1;
-            background: var(--teal);
-            border-radius: 5px 5px 0 0;
+            background: linear-gradient(180deg, #0F766E 0%, #14B8A6 100%);
+            border-radius: 6px 6px 0 0;
             position: relative;
-            opacity: .9;
+            opacity: 0.92;
+            transition: height 0.3s ease;
         }
 
         .bar span {
             position: absolute;
-            top: -17px;
+            top: -19px;
             left: 0;
             right: 0;
             text-align: center;
             font-size: 10px;
             font-weight: 600;
-            color: var(--teal-dark);
+            color: var(--primary-dark);
         }
 
         .bar-labels {
             display: flex;
-            gap: 8px;
-            margin-top: 5px;
-            font-size: 10px;
-            color: var(--muted);
+            gap: 10px;
+            margin-top: 6px;
+            font-size: 10.5px;
+            color: var(--text-muted);
         }
 
         .bar-labels span { flex: 1; text-align: center; }
 
-        .gender-row { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-top: 10px; }
-
-        .gender-row label { width: 52px; color: var(--muted); }
-
-        .gender-track { flex: 1; height: 9px; background: var(--teal-soft); border-radius: 99px; overflow: hidden; }
-
-        .gender-fill { height: 100%; background: var(--teal); border-radius: 99px; }
-
-        .gender-row b { width: 36px; text-align: right; }
-
-        /* ---------- Sections ---------- */
-
-        section { padding: 64px 0; }
-
-        .section-head { text-align: center; max-width: 620px; margin: 0 auto 40px; }
-
-        .section-head h2 { font-size: 30px; margin: 0 0 10px; letter-spacing: -.3px; }
-
-        .section-head p { margin: 0; color: var(--muted); }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .feature {
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            padding: 24px;
-            background: #fff;
-        }
-
-        .feature .icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: var(--teal-soft);
-            color: var(--teal);
+        .gender-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            margin-bottom: 14px;
+            gap: 10px;
+            font-size: 12.5px;
+            margin-top: 12px;
         }
 
-        .feature h3 { font-size: 17px; margin: 0 0 6px; }
+        .gender-row label {
+            width: 56px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
 
-        .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+        .gender-track {
+            flex: 1;
+            height: 8px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .gender-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 99px;
+        }
+
+        .gender-row b {
+            width: 38px;
+            text-align: right;
+            color: var(--text-main);
+        }
 
         /* ---------- How it works ---------- */
 
-        .steps-bg { background: #F7FBFA; }
+        .steps-bg {
+            background: var(--surface-alt);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
 
         .steps {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            gap: 24px;
             counter-reset: step;
         }
 
-        .step { text-align: center; padding: 0 6px; }
+        .step {
+            text-align: center;
+            padding: 24px 16px;
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-xs);
+            transition: transform 0.2s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-2px);
+        }
 
         .step::before {
             counter-increment: step;
@@ -374,83 +770,135 @@
             justify-content: center;
             width: 44px;
             height: 44px;
-            margin: 0 auto 14px;
+            margin: 0 auto 16px;
             border-radius: 50%;
-            background: var(--teal);
-            color: #fff;
+            background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%);
+            color: #FFFFFF;
             font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
         }
 
-        .step h3 { font-size: 16px; margin: 0 0 6px; }
-        .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
+        .step h3 {
+            font-size: 16.5px;
+            margin: 0 0 8px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
 
-        /* ---------- Contact ---------- */
+        .step p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        /* ---------- Contact & CTA ---------- */
 
         .cta {
-            background: var(--teal);
-            color: #fff;
-            border-radius: 20px;
-            padding: 48px 28px;
+            background: linear-gradient(135deg, #0F766E 0%, #064E3B 100%);
+            color: #FFFFFF;
+            border-radius: 24px;
+            padding: 56px 36px;
             text-align: center;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            overflow: hidden;
         }
 
-        .cta h2 { margin: 0 0 10px; font-size: 30px; }
+        .cta::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(204, 251, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
 
-        .cta p { margin: 0 auto 26px; max-width: 540px; opacity: .92; }
+        .cta h2 {
+            margin: 0 0 12px;
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .cta p {
+            margin: 0 auto 30px;
+            max-width: 560px;
+            opacity: 0.92;
+            font-size: 16.5px;
+            line-height: 1.6;
+        }
 
         .cta .hero-actions { justify-content: center; }
 
         .cta .btn-ghost {
-            border-color: rgba(255, 255, 255, .6);
-            color: #fff;
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
+            color: #FFFFFF;
+            background: transparent;
         }
 
-        .cta .btn-ghost:hover { background: rgba(255, 255, 255, .12); }
+        .cta .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: #FFFFFF;
+        }
 
         /* ---------- Footer ---------- */
 
         footer {
-            border-top: 1px solid var(--line);
-            padding: 26px 0;
+            border-top: 1px solid var(--border);
+            padding: 32px 0;
             font-size: 14px;
-            color: var(--muted);
+            color: var(--text-muted);
+            background: #FFFFFF;
         }
 
         footer .wrap {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 16px;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* ---------- Small screens ---------- */
+        /* ---------- Small Screens Responsive ---------- */
 
         @media (max-width: 900px) {
 
-            .hero .wrap { grid-template-columns: 1fr; }
-            .hero h1 { font-size: 34px; }
+            .hero .wrap { grid-template-columns: 1fr; gap: 36px; }
+            .hero h1 { font-size: 36px; }
             .grid { grid-template-columns: repeat(2, 1fr); }
-            .steps { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+            .steps { grid-template-columns: repeat(2, 1fr); gap: 20px; }
             .preview-grid { grid-template-columns: 1fr; }
 
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 640px) {
 
             .nav-links a.link { display: none; }
-            .hero { padding-top: 40px; }
-            .hero h1 { font-size: 29px; }
+            .nav-mobile-toggle { display: block; }
+            .hero { padding: 44px 0 48px; }
+            .hero h1 { font-size: 30px; }
+            .hero-actions { flex-direction: column; width: 100%; }
+            .hero-actions .btn { width: 100%; }
             .grid { grid-template-columns: 1fr; }
-            .section-head h2, .cta h2 { font-size: 25px; }
-            section { padding: 48px 0; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+            .steps { grid-template-columns: 1fr; }
+            .section-head h2, .cta h2 { font-size: 26px; }
+            section { padding: 56px 0; }
+            .cta { padding: 40px 20px; }
+            .cta .hero-actions { flex-direction: column; width: 100%; }
+            .cta .hero-actions .btn { width: 100%; }
+
             .hero-mock th:nth-child(n+5), .hero-mock td:nth-child(n+5) { display: none; }
             .att-mock th:first-child, .att-mock td:first-child { display: none; }
-            .att-mock th, .att-mock td { padding-left: 3px; padding-right: 3px; }
-            .att-mock td.name { padding-left: 10px; font-size: 11.5px; }
-            .att-mock .tick { width: 11px; height: 11px; }
-            .att-mock .tick.on::after { left: 2.5px; top: 0; width: 3px; height: 6.5px; }
-            .att-mock .ticks { gap: 2px; }
+            .att-mock th, .att-mock td { padding-left: 4px; padding-right: 4px; }
+            .att-mock td.name { padding-left: 8px; font-size: 11.5px; }
+            .att-mock .tick { width: 13px; height: 13px; }
             .mock-sub span:last-child { display: none; }
 
         }
@@ -463,97 +911,159 @@
     <!-- NAV -->
     <header class="nav">
         <div class="wrap">
-            <a href="/" class="brand"><img src="/assets/images/logo.png" alt="AttendNG logo"> AttendNG</a>
+            <a href="/" class="brand">
+                <img src="/assets/images/logo.png" alt="AttendNG logo">
+                <span>AttendNG</span>
+                <span class="tag">School OS</span>
+            </a>
             <nav class="nav-links">
                 <a class="link" href="#features">Features</a>
+                <a class="link" href="#preview">Preview</a>
                 <a class="link" href="#how">How it works</a>
                 <a class="link" href="#contact">Contact</a>
                 <a class="btn btn-primary btn-sm" href="/login.html"><i class="fa-solid fa-right-to-bracket"></i> Log in</a>
             </nav>
+            <button class="nav-mobile-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars"></i>
+            </button>
         </div>
     </header>
+
+    <!-- MOBILE MENU DRAWER -->
+    <div class="mobile-menu-drawer" id="mobileDrawer">
+        <a class="link" href="#features">Features</a>
+        <a class="link" href="#preview">Preview</a>
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#contact">Contact</a>
+        <a class="btn btn-primary" href="/login.html"><i class="fa-solid fa-right-to-bracket"></i> Sign in to Portal</a>
+    </div>
 
     <!-- HERO -->
     <section class="hero">
         <div class="wrap">
 
             <div>
-                <span class="pill"><i class="fa-solid fa-school"></i> Built for Nigerian schools</span>
-                <h1>From attendance to report cards, <span>without the stress.</span></h1>
+                <div class="hero-badge-pill">
+                    <span class="pulse-dot"></span>
+                    <span>Built exclusively for Nigerian Schools</span>
+                </div>
+                <h1>From attendance to report cards, <span class="highlight">without the stress.</span></h1>
                 <p class="lead">
-                    AttendNG lets your teachers take attendance and enter scores, then gives you
-                    ranked broadsheets and printable report cards in a few clicks.
+                    AttendNG empowers teachers to take daily attendance and enter scores in seconds — producing
+                    ranked broadsheets and professional report cards in just a few clicks.
                 </p>
+
+                <div class="hero-benefits">
+                    <div class="hero-benefit-item"><i class="fa-solid fa-circle-check"></i> <span>Automatic class ranking, totals &amp; grade assignments</span></div>
+                    <div class="hero-benefit-item"><i class="fa-solid fa-circle-check"></i> <span>1-click landscape broadsheet &amp; single-page report card PDFs</span></div>
+                    <div class="hero-benefit-item"><i class="fa-solid fa-circle-check"></i> <span>Secure role-based access for admins &amp; subject teachers</span></div>
+                </div>
+
                 <div class="hero-actions">
                     <a class="btn btn-primary" href="#contact" data-contact="demo"><i class="fa-brands fa-whatsapp"></i> Request a demo</a>
-                    <a class="btn btn-outline" href="/login.html">Log in</a>
+                    <a class="btn btn-outline" href="/login.html"><i class="fa-solid fa-arrow-right-to-bracket"></i> Log in to portal</a>
                 </div>
             </div>
 
             <div class="mock hero-mock" aria-hidden="true">
-                <div class="mock-bar"><span>JSS 2B Broadsheet</span><span>3rd Term</span></div>
+                <div class="mock-bar">
+                    <span>JSS 2B Broadsheet</span>
+                    <div class="mock-bar-pills">
+                        <span class="mock-bar-pill">3rd Term</span>
+                        <span class="mock-bar-pill">Finalized</span>
+                    </div>
+                </div>
                 <table>
                     <thead>
-                        <tr><th>#</th><th style="text-align:left;padding-left:12px;">Name</th><th>Eng</th><th>Maths</th><th>Total</th><th>%</th><th>Pos.</th></tr>
+                        <tr><th>#</th><th style="text-align:left;padding-left:14px;">Student Name</th><th>Eng</th><th>Maths</th><th>Total</th><th>%</th><th>Pos.</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>1</td><td class="name">Azeez Moturayo</td><td>73</td><td>78</td><td>791</td><td>71.9</td><td class="pos">1st</td></tr>
-                        <tr><td>2</td><td class="name">Adams Akorede</td><td>79</td><td>66</td><td>791</td><td>71.9</td><td class="pos">1st</td></tr>
-                        <tr><td>3</td><td class="name">Taiwo Daniel</td><td>64</td><td>69</td><td>770</td><td>70.0</td><td class="pos">3rd</td></tr>
-                        <tr><td>4</td><td class="name">Folawewo Fulfilment</td><td>64</td><td>75</td><td>745</td><td>67.7</td><td class="pos">4th</td></tr>
-                        <tr><td>5</td><td class="name">Nelson Chukwuemeka</td><td>63</td><td>68</td><td>741</td><td>67.4</td><td class="pos">5th</td></tr>
+                        <tr><td>1</td><td class="name">Azeez Moturayo</td><td class="score-pill">73</td><td class="score-pill">78</td><td class="score-pill">791</td><td>71.9</td><td class="pos">1st</td></tr>
+                        <tr><td>2</td><td class="name">Adams Akorede</td><td class="score-pill">79</td><td class="score-pill">66</td><td class="score-pill">791</td><td>71.9</td><td class="pos">1st</td></tr>
+                        <tr><td>3</td><td class="name">Taiwo Daniel</td><td class="score-pill">64</td><td class="score-pill">69</td><td class="score-pill">770</td><td>70.0</td><td class="pos">3rd</td></tr>
+                        <tr><td>4</td><td class="name">Folawewo Fulfilment</td><td class="score-pill">64</td><td class="score-pill">75</td><td class="score-pill">745</td><td>67.7</td><td class="pos">4th</td></tr>
+                        <tr><td>5</td><td class="name">Nelson Chukwuemeka</td><td class="score-pill">63</td><td class="score-pill">68</td><td class="score-pill">741</td><td>67.4</td><td class="pos">5th</td></tr>
                     </tbody>
                 </table>
+                <div class="floating-mock-badge">
+                    <i class="fa-solid fa-bolt" style="color:var(--warning);"></i>
+                    <span>Automatic Ranks &amp; Grades</span>
+                </div>
             </div>
 
         </div>
     </section>
+
+    <!-- TRUST / METRICS BAR -->
+    <div class="trust-bar">
+        <div class="wrap">
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <strong>&lt; 2 mins</strong>
+                    <span>Complete Term Broadsheet</span>
+                </div>
+                <div class="metric-item">
+                    <strong>0%</strong>
+                    <span>Calculation &amp; Ranking Errors</span>
+                </div>
+                <div class="metric-item">
+                    <strong>100%</strong>
+                    <span>Mobile &amp; PC Responsive</span>
+                </div>
+                <div class="metric-item">
+                    <strong>Zero</strong>
+                    <span>Complicated Installation</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- FEATURES -->
     <section id="features">
         <div class="wrap">
 
             <div class="section-head">
+                <span class="section-eyebrow">Comprehensive Platform</span>
                 <h2>Everything a term needs, in one place</h2>
-                <p>Stop chasing paper registers and score sheets. Each person enters their own part, and AttendNG does the adding up.</p>
+                <p>Stop chasing paper registers and handwritten score sheets. Each teacher enters their own subject, and AttendNG does all the mathematical heavy lifting.</p>
             </div>
 
             <div class="grid">
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-clipboard-user"></i></div>
-                    <h3>Attendance</h3>
-                    <p>Class teachers tick morning and afternoon attendance each day. Weekly and term attendance reports are worked out for you.</p>
+                    <h3>Attendance Tracking</h3>
+                    <p>Class teachers tick morning and afternoon attendance in seconds. Automatic weekly totals, averages, and male/female breakdown reports are generated live.</p>
                 </div>
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-pen-to-square"></i></div>
-                    <h3>Score entry by subject teachers</h3>
-                    <p>Each teacher enters CA and exam scores for their own subjects only. Totals and grades are calculated automatically.</p>
+                    <h3>Subject Teacher Score Entry</h3>
+                    <p>Each teacher enters CA and exam scores for their assigned subjects only. Totals and letter grades are calculated automatically as they type.</p>
                 </div>
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-table-list"></i></div>
-                    <h3>Broadsheets</h3>
-                    <p>A ranked class broadsheet with positions, grade counts and subject averages, downloaded as a landscape PDF.</p>
+                    <h3>Ranked Broadsheets</h3>
+                    <p>Generate a complete ranked class broadsheet with student positions, subject averages, and distinction/credit counts, downloadable as a PDF.</p>
                 </div>
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-file-lines"></i></div>
-                    <h3>Report cards</h3>
-                    <p>Professional report cards with your school logo, attendance and teacher remarks, ready to download for the whole class.</p>
+                    <h3>Single-Page Report Cards</h3>
+                    <p>Professional report cards with your school logo, attendance statistics, affective traits, and teacher remarks — perfectly fitted to 1 page per student.</p>
                 </div>
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-chart-line"></i></div>
-                    <h3>Analytics</h3>
-                    <p>See how classes and subjects are performing, so you can spot problems early instead of at the end of term.</p>
+                    <h3>Actionable Analytics</h3>
+                    <p>Monitor class performance and attendance trends across terms so you can identify struggling students and reward excellence early.</p>
                 </div>
 
                 <div class="feature">
                     <div class="icon"><i class="fa-solid fa-user-shield"></i></div>
-                    <h3>Separate access for each role</h3>
-                    <p>Admins manage the whole school. Teachers only see their own classes and subjects. Your data stays organised and private.</p>
+                    <h3>Role-Based Permissions</h3>
+                    <p>Admins manage school sessions, classes, and teachers. Subject teachers only access their assigned classes. Your student records remain private and secure.</p>
                 </div>
 
             </div>
@@ -561,25 +1071,31 @@
         </div>
     </section>
 
-
     <!-- SEE IT IN ACTION -->
     <section id="preview" style="padding-top:0;">
         <div class="wrap">
 
             <div class="section-head">
+                <span class="section-eyebrow">Interactive Preview</span>
                 <h2>See it in action</h2>
-                <p>Take attendance in seconds, then watch the trends build up by themselves.</p>
+                <p>Take attendance in seconds, then watch the reports build themselves automatically.</p>
             </div>
 
             <div class="preview-grid">
 
                 <div class="preview-item">
                     <div class="mock att-mock" aria-hidden="true">
-                        <div class="mock-bar"><span>Attendance</span><span>JSS 2B &middot; Week 4</span></div>
-                        <div class="mock-sub"><span>School opened: <b>5 days</b></span><span>Tick morning and afternoon</span></div>
+                        <div class="mock-bar">
+                            <span>Attendance Register</span>
+                            <span>JSS 2B &middot; Week 4</span>
+                        </div>
+                        <div class="mock-sub">
+                            <span>School opened: <b>5 days (10 sessions)</b></span>
+                            <span>Morning (M) &amp; Afternoon (A)</span>
+                        </div>
                         <table>
                             <thead>
-                                <tr><th>#</th><th style="text-align:left;padding-left:12px;">Student</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr>
+                                <tr><th>#</th><th style="text-align:left;padding-left:14px;">Student</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr>
                             </thead>
                             <tbody>
                                 <tr><td>1</td><td class="name">Amaka Obi</td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td><span class="ticks"><i class="tick on"></i><i class="tick on"></i></span></td><td class="total">10/10</td></tr>
@@ -591,28 +1107,50 @@
                             </tbody>
                         </table>
                     </div>
-                    <h3>Attendance</h3>
-                    <p>Class teachers tick morning and afternoon for each student. Weekly totals update as they go.</p>
+                    <h3>Live Attendance Register</h3>
+                    <p>Teachers mark presence with one tap on phone or laptop. Student totals and percentages update continuously in real time.</p>
                 </div>
 
                 <div class="preview-item">
                     <div class="mock" aria-hidden="true">
-                        <div class="mock-bar"><span>Analytics</span><span>JSS 2B &middot; 1st Term</span></div>
+                        <div class="mock-bar">
+                            <span>Attendance Trends</span>
+                            <span>JSS 2B &middot; 1st Term</span>
+                        </div>
                         <div class="stat-row">
                             <div class="stat"><small>Average</small><strong>91%</strong></div>
                             <div class="stat"><small>Best</small><strong>100%</strong></div>
                             <div class="stat"><small>Lowest</small><strong>62%</strong></div>
                         </div>
                         <div class="chart-box">
-                            <h4>Weekly attendance trend</h4>
-                            <div class="bars"><div class="bar" style="height:70%;"><span>88%</span></div><div class="bar" style="height:78%;"><span>91%</span></div><div class="bar" style="height:65%;"><span>86%</span></div><div class="bar" style="height:82%;"><span>93%</span></div><div class="bar" style="height:75%;"><span>90%</span></div><div class="bar" style="height:88%;"><span>95%</span></div><div class="bar" style="height:80%;"><span>92%</span></div><div class="bar" style="height:85%;"><span>94%</span></div></div>
-                            <div class="bar-labels"><span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span></div>
-                            <div class="gender-row"><label>Male</label><div class="gender-track"><div class="gender-fill" style="width:90%;"></div></div><b>90%</b></div>
-                            <div class="gender-row"><label>Female</label><div class="gender-track"><div class="gender-fill" style="width:93%;"></div></div><b>93%</b></div>
+                            <h4>Weekly attendance progress</h4>
+                            <div class="bars">
+                                <div class="bar" style="height:70%;"><span>88%</span></div>
+                                <div class="bar" style="height:78%;"><span>91%</span></div>
+                                <div class="bar" style="height:65%;"><span>86%</span></div>
+                                <div class="bar" style="height:82%;"><span>93%</span></div>
+                                <div class="bar" style="height:75%;"><span>90%</span></div>
+                                <div class="bar" style="height:88%;"><span>95%</span></div>
+                                <div class="bar" style="height:80%;"><span>92%</span></div>
+                                <div class="bar" style="height:85%;"><span>94%</span></div>
+                            </div>
+                            <div class="bar-labels">
+                                <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span>
+                            </div>
+                            <div class="gender-row">
+                                <label>Male</label>
+                                <div class="gender-track"><div class="gender-fill" style="width:90%;"></div></div>
+                                <b>90%</b>
+                            </div>
+                            <div class="gender-row">
+                                <label>Female</label>
+                                <div class="gender-track"><div class="gender-fill" style="width:93%;"></div></div>
+                                <b>93%</b>
+                            </div>
                         </div>
                     </div>
-                    <h3>Analytics</h3>
-                    <p>See weekly trends, boys versus girls, and which students are falling below 75% before it becomes a problem.</p>
+                    <h3>Visual Analytics &amp; Reports</h3>
+                    <p>Clear visual charts showcase weekly attendance trends, male vs. female ratios, and pinpoint students needing guidance early.</p>
                 </div>
 
             </div>
@@ -625,30 +1163,31 @@
         <div class="wrap">
 
             <div class="section-head">
+                <span class="section-eyebrow">Simple Setup</span>
                 <h2>How it works</h2>
-                <p>Simple enough to start using this term.</p>
+                <p>Designed to be straightforward, intuitive, and ready to deploy in minutes.</p>
             </div>
 
             <div class="steps">
 
                 <div class="step">
-                    <h3>We set up your school</h3>
-                    <p>Your logo, classes, subjects and students are added for you.</p>
+                    <h3>1. Quick School Setup</h3>
+                    <p>Your school profile, classes, subjects, and student roster are loaded effortlessly.</p>
                 </div>
 
                 <div class="step">
-                    <h3>Teachers get their logins</h3>
-                    <p>Each teacher signs in and sees only what they need.</p>
+                    <h3>2. Teacher Invites</h3>
+                    <p>Teachers receive secure credentials to log in from their phones or desktop computers.</p>
                 </div>
 
                 <div class="step">
-                    <h3>Enter attendance and scores</h3>
-                    <p>Done from any phone or computer during the term.</p>
+                    <h3>3. Mark &amp; Enter Scores</h3>
+                    <p>Daily attendance and term CA/Exam marks are recorded smoothly throughout the term.</p>
                 </div>
 
                 <div class="step">
-                    <h3>Download your results</h3>
-                    <p>Broadsheets and report cards as PDFs, with positions already worked out.</p>
+                    <h3>4. Instant Results</h3>
+                    <p>Generate ranked broadsheets and printable student report cards with a single click.</p>
                 </div>
 
             </div>
@@ -656,15 +1195,15 @@
         </div>
     </section>
 
-    <!-- CONTACT -->
+    <!-- CONTACT & CTA -->
     <section id="contact">
         <div class="wrap">
             <div class="cta">
-                <h2>Want AttendNG for your school?</h2>
-                <p>Send us a message and we'll show you how it works and set up your school. No long forms.</p>
+                <h2>Ready to modernize your school?</h2>
+                <p>Contact our support team to schedule a demo and get your school set up in minutes. No long setup procedures.</p>
                 <div class="hero-actions">
                     <a class="btn btn-light" href="#" data-contact="whatsapp"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a>
-                    <a class="btn btn-ghost" href="#" data-contact="email"><i class="fa-regular fa-envelope"></i> Send an email</a>
+                    <a class="btn btn-ghost" href="#" data-contact="email"><i class="fa-regular fa-envelope"></i> Send an Email</a>
                 </div>
             </div>
         </div>
@@ -673,18 +1212,15 @@
     <!-- FOOTER -->
     <footer>
         <div class="wrap">
-            <span>&copy; <span id="year"></span> AttendNG. All rights reserved.</span>
-            <a href="/login.html" style="color:var(--teal); font-weight:600;">Already have an account? Log in</a>
+            <span>&copy; <span id="year"></span> AttendNG. Built for Nigerian Schools. All rights reserved.</span>
+            <a href="/login.html" style="color:var(--primary); font-weight:600;"><i class="fa-solid fa-lock" style="font-size:12px;"></i> School Portal Login</a>
         </div>
     </footer>
 
     <script>
 
         /*
-         * CHANGE THESE TWO LINES.
-         * WHATSAPP: your number in international format with no + or spaces
-         *           (Nigeria example: 2348012345678).
-         * EMAIL:    the address you want enquiries sent to.
+         * CONTACT CONFIGURATION
          */
         const CONTACT = {
             WHATSAPP: "2348091481196",
@@ -726,6 +1262,26 @@
 
         document.getElementById("year").textContent =
             new Date().getFullYear();
+
+        // Mobile drawer navigation toggle
+        const toggleBtn = document.getElementById("mobileMenuToggle");
+        const drawer = document.getElementById("mobileDrawer");
+
+        if (toggleBtn && drawer) {
+            toggleBtn.addEventListener("click", () => {
+                drawer.classList.toggle("open");
+                toggleBtn.innerHTML = drawer.classList.contains("open") ?
+                    '<i class="fa-solid fa-xmark"></i>' :
+                    '<i class="fa-solid fa-bars"></i>';
+            });
+
+            drawer.querySelectorAll("a").forEach(link => {
+                link.addEventListener("click", () => {
+                    drawer.classList.remove("open");
+                    toggleBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+                });
+            });
+        }
 
     </script>
 

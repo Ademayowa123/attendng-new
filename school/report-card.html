@@ -63,6 +63,29 @@
             color: #92650b;
         }
 
+        @media (max-width: 640px) {
+            .rc-controls,
+            .rc-dates {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .rc-controls > div,
+            .rc-controls select,
+            .rc-controls button,
+            .rc-dates > div,
+            .rc-dates input[type="date"],
+            .rc-dates button {
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+        }
+
+        .cards-mount-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 20px;
+        }
+
         /* ---------- the report card itself ---------- */
 
         .rc-card {
@@ -472,7 +495,9 @@
             <header class="top-header">
                 <div>
                     <h1>Report Card</h1>
-                    <p><span id="sessionLabel"></span></p>
+                    <div class="dashboard-meta-pill" style="margin-top:4px;">
+                        <span id="sessionLabel"></span>
+                    </div>
                 </div>
                 <div class="report-actions" id="cardActions" style="display:none;">
                     <button type="button" class="btn-info btn-sm" id="pdfBtn"><i class="fa-solid fa-file-arrow-down"></i> Download PDF</button>
@@ -552,7 +577,9 @@
 
                 </section>
 
-                <div id="cardsMount"></div>
+                <div class="cards-mount-container">
+                    <div id="cardsMount"></div>
+                </div>
 
             </div>
 

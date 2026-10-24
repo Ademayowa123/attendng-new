@@ -77,9 +77,11 @@
             <header class="top-header">
                 <div>
                     <h1>Broadsheet</h1>
-                    <p><span id="sessionLabel"></span></p>
+                    <div class="dashboard-meta-pill" style="margin-top:4px;">
+                        <span id="sessionLabel"></span>
+                    </div>
                 </div>
-                <div class="report-actions" id="sheetActions" style="display:none;">
+                <div class="report-actions" id="sheetActions" style="display:none; gap:8px;">
                     <button type="button" class="btn-info btn-sm" id="pdfBtn"><i class="fa-solid fa-file-arrow-down"></i> Download PDF</button>
                 </div>
             </header>
@@ -129,12 +131,23 @@
 
                 <div class="card">
 
+                    <div class="scores-toolbar" style="margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <span style="font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-arrows-left-right" style="color:var(--primary);"></i>
+                            Swipe or scroll horizontally to inspect student scores, totals, averages, and positions.
+                        </span>
+                        <div style="position:relative; min-width:240px;">
+                            <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:12px;"></i>
+                            <input type="text" id="searchBroadsheetStudent" placeholder="Filter student name…" style="width:100%; padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                    </div>
+
                     <p class="incomplete-note" id="incompleteNote" style="display:none; margin:0 0 10px; font-size:13px; color:#92650b;">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         Some scores are still missing — highlighted cells are incomplete, and those students' totals only count the scores that are in.
                     </p>
 
-                    <div class="table-scroll">
+                    <div class="table-responsive-hybrid" style="overflow-x:auto;">
                         <table class="report-table broadsheet-table" style="width:100%; border-collapse:collapse; font-size:14px;">
                             <thead id="sheetHead"></thead>
                             <tbody id="sheetBody"></tbody>

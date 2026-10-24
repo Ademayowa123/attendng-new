@@ -25,7 +25,11 @@
             <header class="top-header">
                 <div>
                     <h1>Attendance</h1>
-                    <p><span id="className"></span> · <span id="term"></span></p>
+                    <div class="dashboard-meta-pill" style="margin-top:4px;">
+                        <span id="className"></span>
+                        <span class="meta-dot">·</span>
+                        <span id="term"></span>
+                    </div>
                 </div>
                 <span id="registerStatusBadge"></span>
             </header>
@@ -43,7 +47,7 @@
                 <div class="card" style="margin-bottom:1rem;">
 
                     <h3 style="margin-top:0;">Weekly Settings</h3>
-                    <p style="color:var(--text-secondary); font-size:13px; margin-top:-8px;">Select the attendance week.</p>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-top:-8px;">Select the attendance week and how many times school opened.</p>
 
                     <div class="attendance-top">
 
@@ -71,7 +75,7 @@
                             </div>
 
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>School Opened</label>
+                                <label>School Opened (times)</label>
                                 <input type="number" id="schoolOpened" min="0" max="10" value="10">
                             </div>
 
@@ -79,7 +83,7 @@
 
                     </div>
 
-                    <div class="attendance-summary-box">
+                    <div class="attendance-summary-box" style="margin-top:16px;">
 
                         <table class="summary-table">
                             <thead>
@@ -109,31 +113,42 @@
                 </div>
 
                 <div class="card">
-                    <div style="overflow-x:auto;">
+                    <div class="scores-toolbar" style="margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <span style="font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
+                            Tap any checkmark cell to toggle Morning (M) or Afternoon (A) attendance.
+                        </span>
+                        <div style="position:relative; min-width:240px;">
+                            <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:12px;"></i>
+                            <input type="text" id="searchAttendanceStudent" placeholder="Filter student name…" style="width:100%; padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                    </div>
 
-                    <table class="attendance-table" style="font-size:13px; white-space:nowrap;">
+                    <div class="table-responsive-hybrid" style="overflow-x:auto;">
+
+                    <table class="attendance-table" style="font-size:13px; white-space:nowrap; width:100%;">
                         <thead>
                             <tr>
-                                <th rowspan="2" class="sticky-sn" style="padding:8px 6px; text-align:left; border-bottom:1px solid var(--border);">S/N</th>
-                                <th rowspan="2" class="sticky-name" style="padding:8px 6px; text-align:left; border-bottom:1px solid var(--border);"><span>Student Name</span></th>
+                                <th rowspan="2" class="sticky-sn" style="padding:10px 8px; text-align:left; border-bottom:1px solid var(--border);">S/N</th>
+                                <th rowspan="2" class="sticky-name" style="padding:10px 8px; text-align:left; border-bottom:1px solid var(--border);"><span>Student Name</span></th>
                                 <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Monday</th>
                                 <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Tuesday</th>
                                 <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Wednesday</th>
                                 <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Thursday</th>
                                 <th colspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Friday</th>
-                                <th rowspan="2" style="padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);">Weekly Total</th>
+                                <th rowspan="2" style="padding:10px 8px; text-align:center; border-bottom:1px solid var(--border);">Weekly Total</th>
                             </tr>
                             <tr>
-                                <th style="padding:4px 6px; font-size:11px;">M</th>
-                                <th style="padding:4px 6px; font-size:11px;">A</th>
-                                <th style="padding:4px 6px; font-size:11px;">M</th>
-                                <th style="padding:4px 6px; font-size:11px;">A</th>
-                                <th style="padding:4px 6px; font-size:11px;">M</th>
-                                <th style="padding:4px 6px; font-size:11px;">A</th>
-                                <th style="padding:4px 6px; font-size:11px;">M</th>
-                                <th style="padding:4px 6px; font-size:11px;">A</th>
-                                <th style="padding:4px 6px; font-size:11px;">M</th>
-                                <th style="padding:4px 6px; font-size:11px;">A</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">M</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">A</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">M</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">A</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">M</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">A</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">M</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">A</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">M</th>
+                                <th style="padding:6px; font-size:11px; text-align:center;">A</th>
                             </tr>
                         </thead>
                         <tbody id="attendanceTableBody"></tbody>

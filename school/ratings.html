@@ -237,6 +237,16 @@
             .rt-btns { width: 100%; justify-content: space-between; }
             .rt-btn { width: 52px; height: 46px; border-radius: 12px; }
 
+        @media (max-width: 480px) {
+            .rt-trait {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            .rt-btns {
+                width: 100% !important;
+                justify-content: space-between !important;
+            }
         }
 
     </style>
@@ -255,7 +265,11 @@
             <header class="top-header">
                 <div>
                     <h1>Behaviour &amp; Skills</h1>
-                    <p><span id="className"></span> · <span id="term"></span></p>
+                    <div class="dashboard-meta-pill" style="margin-top:4px;">
+                        <span id="className"></span>
+                        <span class="meta-dot">·</span>
+                        <span id="term"></span>
+                    </div>
                 </div>
             </header>
 

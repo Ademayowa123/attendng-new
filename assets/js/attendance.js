@@ -231,6 +231,22 @@ function bindUI() {
         }
     );
 
+    const searchInput =
+        document.getElementById("searchAttendanceStudent");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            applyAttendanceFilter(e.target.value);
+        });
+
+        searchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                searchInput.value = "";
+                applyAttendanceFilter("");
+            }
+        });
+    }
+
 }
 
 
@@ -501,6 +517,11 @@ function renderTable() {
             const row =
                 document.createElement("tr");
 
+            const fullName =
+                `${student.surname || ""} ${student.first_name || ""} ${student.other_name || ""}`.toLowerCase();
+
+            row.setAttribute("data-student-name", fullName);
+
             const cellsHtml =
                 DAYS.map(
                     day => `
@@ -537,6 +558,55 @@ function renderTable() {
 
 
     updateSummary();
+
+    applyAttendanceFilter();
+
+}
+
+
+function applyAttendanceFilter(query) {
+
+    const searchInput =
+        document.getElementById("searchAttendanceStudent");
+
+    const raw =
+        query !== undefined ? query : (searchInput ? searchInput.value : "");
+
+    const terms =
+        raw.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+    const rows =
+        document.querySelectorAll("#attendanceTableBody tr");
+
+    let visibleCount =
+        0;
+
+    rows.forEach(
+        row => {
+
+            const name =
+                row.getAttribute("data-student-name") || "";
+
+            const matches =
+                terms.length === 0 || terms.every(t => name.includes(t));
+
+            row.style.display =
+                matches ? "" : "none";
+
+            if (matches) {
+                visibleCount += 1;
+            }
+
+        }
+    );
+
+    const noMatchesEl =
+        document.getElementById("noSearchAttendanceMatches");
+
+    if (noMatchesEl) {
+        noMatchesEl.style.display =
+            (terms.length > 0 && visibleCount === 0) ? "block" : "none";
+    }
 
 }
 

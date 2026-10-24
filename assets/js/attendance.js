@@ -13,6 +13,14 @@ let schoolOpened = 10;
 // attendanceMap[studentId] = { mondayMorning: bool, mondayAfternoon: bool, ... }
 let attendanceMap = {};
 
+function getInitialActiveDay() {
+    const todayIndex = new Date().getDay(); // 0 = Sun, 1 = Mon ... 5 = Fri, 6 = Sat
+    const dayMap = ["monday", "monday", "tuesday", "wednesday", "thursday", "friday", "monday"];
+    return dayMap[todayIndex];
+}
+
+let activeDay = getInitialActiveDay();
+
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -231,21 +239,94 @@ function bindUI() {
         }
     );
 
-    const searchInput =
+    // Desktop search
+    const desktopSearch =
         document.getElementById("searchAttendanceStudent");
 
-    if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
+    // Mobile search
+    const mobileSearch =
+        document.getElementById("mobileSearchAttendance");
+
+    if (desktopSearch) {
+        desktopSearch.addEventListener("input", (e) => {
+            if (mobileSearch) mobileSearch.value = e.target.value;
             applyAttendanceFilter(e.target.value);
         });
 
-        searchInput.addEventListener("keydown", (e) => {
+        desktopSearch.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
-                searchInput.value = "";
+                desktopSearch.value = "";
+                if (mobileSearch) mobileSearch.value = "";
                 applyAttendanceFilter("");
             }
         });
     }
+
+    if (mobileSearch) {
+        mobileSearch.addEventListener("input", (e) => {
+            if (desktopSearch) desktopSearch.value = e.target.value;
+            applyAttendanceFilter(e.target.value);
+        });
+
+        mobileSearch.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                mobileSearch.value = "";
+                if (desktopSearch) desktopSearch.value = "";
+                applyAttendanceFilter("");
+            }
+        });
+    }
+
+    // Day tabs switcher
+    document.querySelectorAll("#attendanceDayTabs .day-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            activeDay = tab.dataset.day;
+            renderMobileAttendance();
+        });
+    });
+
+    // Mark All Modal wiring
+    const btnMarkAll = document.getElementById("btnMarkAllMobile");
+    const markModal = document.getElementById("markAllModal");
+    const markDayLabel = document.getElementById("markModalDayName");
+    const btnCloseX = document.getElementById("btnCloseMarkAllX");
+    const btnCancel = document.getElementById("btnCancelMarkAll");
+
+    const closeModal = () => {
+        if (markModal) markModal.style.display = "none";
+    };
+
+    if (btnMarkAll && markModal) {
+        btnMarkAll.addEventListener("click", () => {
+            if (markDayLabel) {
+                markDayLabel.textContent = activeDay.charAt(0).toUpperCase() + activeDay.slice(1);
+            }
+            markModal.style.display = "flex";
+        });
+    }
+
+    if (btnCloseX) btnCloseX.addEventListener("click", closeModal);
+    if (btnCancel) btnCancel.addEventListener("click", closeModal);
+    if (markModal) {
+        markModal.addEventListener("click", (e) => {
+            if (e.target === markModal) closeModal();
+        });
+    }
+
+    document.getElementById("btnConfirmMarkAllMorning")?.addEventListener("click", async () => {
+        closeModal();
+        await markAllStudentsForSession(activeDay, "Morning");
+    });
+
+    document.getElementById("btnConfirmMarkAllAfternoon")?.addEventListener("click", async () => {
+        closeModal();
+        await markAllStudentsForSession(activeDay, "Afternoon");
+    });
+
+    document.getElementById("btnConfirmMarkAllBoth")?.addEventListener("click", async () => {
+        closeModal();
+        await markAllStudentsForSession(activeDay, "Both");
+    });
 
 }
 
@@ -264,6 +345,8 @@ async function loadWeek() {
     await loadAttendanceForWeek();
 
     renderTable();
+
+    renderMobileAttendance();
 
 }
 
@@ -566,19 +649,25 @@ function renderTable() {
 
 function applyAttendanceFilter(query) {
 
-    const searchInput =
+    const desktopInput =
         document.getElementById("searchAttendanceStudent");
 
-    const raw =
-        query !== undefined ? query : (searchInput ? searchInput.value : "");
+    const mobileInput =
+        document.getElementById("mobileSearchAttendance");
+
+    let raw = query;
+    if (raw === undefined) {
+        raw = (mobileInput && mobileInput.value) || (desktopInput && desktopInput.value) || "";
+    }
 
     const terms =
         raw.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
+    // Desktop table filtering
     const rows =
         document.querySelectorAll("#attendanceTableBody tr");
 
-    let visibleCount =
+    let visibleDesktopCount =
         0;
 
     rows.forEach(
@@ -594,7 +683,7 @@ function applyAttendanceFilter(query) {
                 matches ? "" : "none";
 
             if (matches) {
-                visibleCount += 1;
+                visibleDesktopCount += 1;
             }
 
         }
@@ -605,10 +694,233 @@ function applyAttendanceFilter(query) {
 
     if (noMatchesEl) {
         noMatchesEl.style.display =
-            (terms.length > 0 && visibleCount === 0) ? "block" : "none";
+            (terms.length > 0 && visibleDesktopCount === 0) ? "block" : "none";
+    }
+
+    // Mobile rows filtering
+    const mobileRows =
+        document.querySelectorAll("#attendanceMobileList .attendance-mobile-row");
+
+    let visibleMobileCount =
+        0;
+
+    mobileRows.forEach(
+        row => {
+
+            const name =
+                row.getAttribute("data-student-name") || "";
+
+            const matches =
+                terms.length === 0 || terms.every(t => name.includes(t));
+
+            row.style.display =
+                matches ? "flex" : "none";
+
+            if (matches) {
+                visibleMobileCount += 1;
+            }
+
+        }
+    );
+
+    const noMobileMatchesEl =
+        document.getElementById("noMobileSearchMatches");
+
+    if (noMobileMatchesEl) {
+        noMobileMatchesEl.style.display =
+            (terms.length > 0 && visibleMobileCount === 0) ? "block" : "none";
     }
 
 }
+
+
+function renderMobileAttendance() {
+
+    const container =
+        document.getElementById("attendanceMobileList");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const dayCapitalized =
+        activeDay.charAt(0).toUpperCase() + activeDay.slice(1);
+
+    const labelEl =
+        document.getElementById("mobileActiveDayLabel");
+
+    if (labelEl) {
+        labelEl.textContent = dayCapitalized;
+    }
+
+    // Highlight active day tab
+    document.querySelectorAll("#attendanceDayTabs .day-tab").forEach(tab => {
+        if (tab.dataset.day === activeDay) {
+            tab.classList.add("active");
+        } else {
+            tab.classList.remove("active");
+        }
+    });
+
+    let dayPresentCount = 0;
+    const totalPossibleSessions = students.length * 2;
+
+    students.forEach((student, index) => {
+        const record = attendanceMap[student.id] || blankStudentAttendance();
+        const isMorning = !!record[`${activeDay}Morning`];
+        const isAfternoon = !!record[`${activeDay}Afternoon`];
+
+        if (isMorning) dayPresentCount++;
+        if (isAfternoon) dayPresentCount++;
+
+        const fullName = `${student.surname || ""} ${student.first_name || ""} ${student.other_name || ""}`.trim();
+        const row = document.createElement("div");
+        row.className = "attendance-mobile-row";
+        row.setAttribute("data-student-id", student.id);
+        row.setAttribute("data-student-name", fullName.toLowerCase());
+
+        row.innerHTML = `
+            <div class="student-info-col">
+                <span class="sn-badge">#${index + 1}</span>
+                <span class="student-name-text">${escapeHtml(student.surname || "")} ${escapeHtml(student.first_name || "")}</span>
+            </div>
+            <div class="session-toggles-col">
+                <button type="button" 
+                        class="session-pill ${isMorning ? 'active' : ''}" 
+                        data-student-id="${student.id}" 
+                        data-session="Morning" 
+                        aria-label="Morning attendance: ${isMorning ? 'Present' : 'Absent'}">
+                    <span class="session-label">M</span>
+                    <i class="fa-solid fa-check check-icon"></i>
+                </button>
+                <button type="button" 
+                        class="session-pill ${isAfternoon ? 'active' : ''}" 
+                        data-student-id="${student.id}" 
+                        data-session="Afternoon" 
+                        aria-label="Afternoon attendance: ${isAfternoon ? 'Present' : 'Absent'}">
+                    <span class="session-label">A</span>
+                    <i class="fa-solid fa-check check-icon"></i>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(row);
+    });
+
+    const statsEl = document.getElementById("mobileActiveDayCount");
+    if (statsEl) {
+        statsEl.textContent = `${dayPresentCount} / ${totalPossibleSessions} Present`;
+    }
+
+    // Attach click listeners to session pills
+    container.querySelectorAll(".session-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+            const studentId = pill.dataset.studentId;
+            const session = pill.dataset.session;
+            handleCellClick(studentId, `${activeDay}${session}`);
+        });
+    });
+
+    applyAttendanceFilter();
+
+}
+
+
+function escapeHtml(str) {
+    if (!str) return "";
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+
+async function markAllStudentsForSession(day, sessionMode) {
+    if (schoolOpened <= 0) {
+        showToast("Set how many times school opened this week first.");
+        return;
+    }
+
+    if (!students || students.length === 0) {
+        showToast("No students found in this class.");
+        return;
+    }
+
+    const dayIndex = DAYS.indexOf(day);
+    if (dayIndex === -1 || !weekDates[dayIndex]) {
+        showToast("Invalid day selected.");
+        return;
+    }
+    const dateISO = toISODate(weekDates[dayIndex]);
+
+    const recordsToUpsert = [];
+    const updatedMap = { ...attendanceMap };
+    let skippedLimitCount = 0;
+
+    for (const student of students) {
+        const record = updatedMap[student.id] ? { ...updatedMap[student.id] } : blankStudentAttendance();
+        let newMorning = record[`${day}Morning`];
+        let newAfternoon = record[`${day}Afternoon`];
+
+        if (sessionMode === "Morning" || sessionMode === "Both") {
+            newMorning = true;
+        }
+        if (sessionMode === "Afternoon" || sessionMode === "Both") {
+            newAfternoon = true;
+        }
+
+        const candidateRecord = {
+            ...record,
+            [`${day}Morning`]: newMorning,
+            [`${day}Afternoon`]: newAfternoon
+        };
+
+        const candidateTotal = Object.values(candidateRecord).filter(v => v === true).length;
+        if (candidateTotal > schoolOpened) {
+            skippedLimitCount++;
+            continue;
+        }
+
+        updatedMap[student.id] = candidateRecord;
+        recordsToUpsert.push({
+            student_id: student.id,
+            date: dateISO,
+            morning_present: newMorning,
+            afternoon_present: newAfternoon,
+            term: AttendNGContext.currentTerm
+        });
+    }
+
+    if (recordsToUpsert.length === 0) {
+        if (skippedLimitCount > 0) {
+            showToast(`All students have already reached the weekly limit (${schoolOpened}).`);
+        } else {
+            showToast("No attendance changes needed.");
+        }
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("attendance")
+        .upsert(recordsToUpsert, { onConflict: "student_id,date" });
+
+    if (error) {
+        console.error("Unable to mark all students:", error);
+        showToast("Unable to save attendance.");
+        return;
+    }
+
+    attendanceMap = updatedMap;
+    renderTable();
+    renderMobileAttendance();
+
+    const dayName = day.charAt(0).toUpperCase() + day.slice(1);
+    if (skippedLimitCount > 0) {
+        showToast(`Marked ${recordsToUpsert.length} students present (${skippedLimitCount} reached limit).`);
+    } else {
+        showToast(`Marked all students present for ${dayName} (${sessionMode})`);
+    }
+}
+
 
 
 function attendanceCellHtml(studentId, key) {
@@ -746,6 +1058,8 @@ async function handleCellClick(studentId, key) {
         updatedRecord;
 
     renderTable();
+
+    renderMobileAttendance();
 
 }
 

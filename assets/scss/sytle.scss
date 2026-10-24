@@ -2403,6 +2403,254 @@ thead .sticky-col2 {
     border: 2px solid #cbd5e1;
 }
 
+/* =========================================
+   ATTENDANCE — MOBILE COMPACT VIEW & DAY TABS
+========================================= */
+
+.attendance-desktop-view {
+    display: block;
+}
+
+.attendance-mobile-view {
+    display: none;
+}
+
+.attendance-day-tabs {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+    margin-bottom: 12px;
+
+    .day-tab {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 9px 4px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+        font-family: inherit;
+
+        &:hover {
+            color: #0f172a;
+        }
+
+        &.active {
+            background: $primary;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(15, 118, 110, 0.28);
+        }
+    }
+}
+
+.attendance-mobile-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+
+    .attendance-mobile-search {
+        position: relative;
+        flex: 1;
+
+        i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        input {
+            width: 100%;
+            padding: 9px 12px 9px 34px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 13px;
+            background: #ffffff;
+            box-sizing: border-box;
+            font-family: inherit;
+
+            &:focus {
+                outline: none;
+                border-color: $primary;
+                box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
+            }
+        }
+    }
+
+    .btn-mark-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 13px;
+        background: $primary;
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: inherit;
+        transition: background 0.15s ease, transform 0.1s ease;
+        flex-shrink: 0;
+
+        &:hover {
+            background: $primary-dark;
+        }
+
+        &:active {
+            transform: scale(0.97);
+        }
+    }
+}
+
+.attendance-mobile-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+
+    .active-day-label {
+        font-weight: 700;
+        color: $primary;
+        text-transform: capitalize;
+    }
+
+    .active-day-count {
+        font-weight: 600;
+        color: #334155;
+    }
+}
+
+.attendance-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.attendance-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    min-height: 48px;
+    box-sizing: border-box;
+    transition: background 0.1s ease;
+
+    &:hover {
+        background: #fafafa;
+    }
+
+    .student-info-col {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+
+        .sn-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .student-name-text {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .session-toggles-col {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+}
+
+.session-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 44px;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+    user-select: none;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+
+    .check-icon {
+        display: none;
+        font-size: 11px;
+    }
+
+    &.active {
+        background: #16a34a;
+        border-color: #16a34a;
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+
+        .check-icon {
+            display: inline-block;
+        }
+    }
+
+    &:active {
+        transform: scale(0.94);
+    }
+}
+
+/* Modal styling for Mark All */
+.attendance-mark-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 380px;
+    width: 100%;
+    padding: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    animation: modalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .mobile-topbar {
     display: none;
 }
@@ -2736,6 +2984,15 @@ thead .sticky-col2 {
 
     .has-mobile-cards .desktop-only-table {
         display: none !important;
+    }
+
+    /* Attendance Responsive Switch */
+    .attendance-desktop-view {
+        display: none !important;
+    }
+
+    .attendance-mobile-view {
+        display: block;
     }
 
     .scores-toolbar {

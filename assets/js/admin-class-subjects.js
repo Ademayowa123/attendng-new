@@ -10,6 +10,8 @@ let schoolMembers = [];        // non-genesis members, for the teacher dropdown
 let currentClassSubjects = []; // this class's assigned subjects (with subject name joined in)
 let pendingRemoveId = null;
 let pendingRemoveSubjectName = null;
+let csFilter = "all";
+let csQuery = "";
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -260,96 +262,185 @@ async function loadCurrentClassSubjects() {
    RENDER
 ========================================== */
 
-function renderTable() {
+function csEsc(value) {
 
-    const tbody =
-        document.getElementById("classSubjectsTableBody");
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 
-    const noClassSubjectsNotice =
-        document.getElementById("noClassSubjectsNotice");
+}
 
+const CS_TONES = ["teal", "indigo", "amber", "green", "rose", "sky"];
 
-    if (currentClassSubjects.length === 0) {
+function csTone(name) {
 
-        tbody.innerHTML =
-            "";
+    let hash = 0;
 
-        noClassSubjectsNotice.style.display =
-            "block";
+    for (const ch of String(name || "")) {
 
-        return;
+        hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
 
     }
 
-    noClassSubjectsNotice.style.display =
-        "none";
+    return CS_TONES[hash % CS_TONES.length];
+
+}
+
+function csInitials(name) {
+
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+
+    if (!parts.length) {
+
+        return "?";
+
+    }
+
+    if (parts.length === 1) {
+
+        return parts[0].slice(0, 2).toUpperCase();
+
+    }
+
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
+}
 
 
-    const teacherOptions =
-        schoolMembers.map(
-            m => `<option value="${m.id}">${m.full_name}</option>`
-        ).join("");
+function renderTable() {
+
+    const grid =
+        document.getElementById("subjectGridMount");
+
+    const empty =
+        document.getElementById("noClassSubjectsNotice");
 
 
-    tbody.innerHTML =
-        currentClassSubjects.map(
-            row => `
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td class="sticky-col1" style="padding:10px 8px; font-weight:500;">${row.subject_name}</td>
-                    <td style="padding:10px 8px;">
-                        <select class="class-subject-teacher-select" data-class-subject-id="${row.id}">
-                            <option value="">Not assigned</option>
-                            ${teacherOptions}
-                        </select>
-                    </td>
-                    <td style="padding:10px 8px; text-align:right;">
-                        <button type="button" class="btn-delete-class remove-class-subject-btn" data-class-subject-id="${row.id}" data-subject-name="${row.subject_name}">
-                            Remove
-                        </button>
-                    </td>
-                </tr>
-            `
-        ).join("");
+    // ---- summary tiles (whole class, ignoring filters)
+
+    const withTeacher =
+        currentClassSubjects.filter(r => r.teacher_id);
+
+    document.getElementById("sStatTotal").textContent =
+        currentClassSubjects.length;
+
+    document.getElementById("sStatAssigned").textContent =
+        withTeacher.length;
+
+    document.getElementById("sStatNeeds").textContent =
+        currentClassSubjects.length - withTeacher.length;
+
+    document.getElementById("sStatTeachers").textContent =
+        new Set(withTeacher.map(r => r.teacher_id)).size;
 
 
-    // Pre-select each row's currently-assigned teacher — has to
-    // happen after innerHTML is set, same as the teacher dropdown
-    // on the Classes page.
+    // ---- search + status filter
 
-    currentClassSubjects.forEach(
-        row => {
+    const visible =
+        currentClassSubjects.filter(
+            row => {
 
-            if (row.teacher_id) {
+                if (csFilter === "assigned" && !row.teacher_id) {
 
-                const select =
-                    tbody.querySelector(`.class-subject-teacher-select[data-class-subject-id="${row.id}"]`);
-
-                if (select) {
-
-                    select.value =
-                        row.teacher_id;
+                    return false;
 
                 }
 
+                if (csFilter === "needs" && row.teacher_id) {
+
+                    return false;
+
+                }
+
+                if (!csQuery) {
+
+                    return true;
+
+                }
+
+                const teacher =
+                    row.teacher_id ?
+                        schoolMembers.find(m => m.id === row.teacher_id) :
+                        null;
+
+                return (
+                    row.subject_name.toLowerCase().includes(csQuery) ||
+                    (teacher && teacher.full_name.toLowerCase().includes(csQuery))
+                );
+
             }
+        );
 
-        }
-    );
+    grid.innerHTML =
+        "";
+
+    empty.style.display =
+        visible.length ? "none" : "block";
+
+    document.getElementById("subjectEmptyText").textContent =
+        currentClassSubjects.length ?
+            "No subjects match your search." :
+            "No subjects assigned to this class yet. Tap “Add subject” to start.";
 
 
-    tbody.querySelectorAll(".class-subject-teacher-select").forEach(
-        select => {
+    visible.forEach(
+        row => {
 
-            select.addEventListener(
-                "change",
-                () => assignSubjectTeacher(select.dataset.classSubjectId, select.value || null)
+            const teacher =
+                row.teacher_id ?
+                    schoolMembers.find(m => m.id === row.teacher_id) :
+                    null;
+
+            const statusHtml =
+                row.teacher_id ?
+                    `<span class="tm-role tm-role-green"><i class="fa-solid fa-circle-check"></i> Teacher assigned</span>` :
+                    `<span class="tm-role tm-role-gold"><i class="fa-solid fa-triangle-exclamation"></i> Needs a teacher</span>`;
+
+            const card =
+                document.createElement("article");
+
+            card.className =
+                "tm-card cs-card";
+
+            card.innerHTML = `
+                <div class="tm-card-top">
+                    <div class="cm-tile cs-tile tm-tone-${csTone(row.subject_name)}" aria-hidden="true">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div class="tm-id">
+                        <div class="tm-name">${csEsc(row.subject_name)}</div>
+                        ${statusHtml}
+                    </div>
+                    <button type="button" class="cs-remove remove-class-subject-btn" data-class-subject-id="${csEsc(row.id)}" data-subject-name="${csEsc(row.subject_name)}" aria-label="Remove ${csEsc(row.subject_name)} from this class" title="Remove from class">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+
+                <div class="tm-meta">
+                    <span class="cs-label">Teacher</span>
+                    <div class="cs-dd-mount"></div>
+                </div>
+            `;
+
+            card.querySelector(".cs-dd-mount").replaceWith(
+                createTeacherDropdown({
+                    options: schoolMembers.map(m => ({ value: m.id, label: m.full_name })),
+                    value: row.teacher_id,
+                    ariaLabel: `Teacher for ${row.subject_name}`,
+                    onChange: (teacherId) => assignSubjectTeacher(row.id, teacherId || null)
+                })
             );
 
+            grid.appendChild(card);
+
         }
     );
 
 
-    tbody.querySelectorAll(".remove-class-subject-btn").forEach(
+    grid.querySelectorAll(".remove-class-subject-btn").forEach(
         btn => {
 
             btn.addEventListener(
@@ -368,6 +459,44 @@ function renderTable() {
 ========================================== */
 
 function bindUI() {
+
+    const search =
+        document.getElementById("subjectSearch");
+
+    search.addEventListener(
+        "input",
+        () => {
+
+            csQuery =
+                search.value.trim().toLowerCase();
+
+            renderTable();
+
+        }
+    );
+
+    document.querySelectorAll(".tm-chip").forEach(
+        chip => {
+
+            chip.addEventListener(
+                "click",
+                () => {
+
+                    csFilter =
+                        chip.dataset.filter;
+
+                    document.querySelectorAll(".tm-chip").forEach(
+                        c => c.classList.toggle("is-active", c === chip)
+                    );
+
+                    renderTable();
+
+                }
+            );
+
+        }
+    );
+
 
     document.getElementById("openAddClassSubject").addEventListener(
         "click",
@@ -452,7 +581,7 @@ function openAddClassSubjectModal() {
 
     document.getElementById("addClassSubjectTeacher").innerHTML =
         `<option value="">Not assigned yet</option>` +
-        schoolMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join("");
+        schoolMembers.map(m => `<option value="${csEsc(m.id)}">${csEsc(m.full_name)}</option>`).join("");
 
 
     if (availableSubjects.length === 0) {
@@ -482,7 +611,7 @@ function openAddClassSubjectModal() {
             "none";
 
         subjectSelect.innerHTML =
-            availableSubjects.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+            availableSubjects.map(s => `<option value="${csEsc(s.id)}">${csEsc(s.name)}</option>`).join("");
 
     }
 
@@ -605,6 +734,9 @@ async function assignSubjectTeacher(classSubjectId, teacherId) {
             "Unable to assign this teacher: " +
             error.message
         );
+
+        // The dropdown still shows the rejected choice — put it back.
+        renderTable();
 
         return;
 

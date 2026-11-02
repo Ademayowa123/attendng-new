@@ -35,21 +35,21 @@ const TERMS = ["1st Term", "2nd Term", "3rd Term"];
 const TEACHER_COMMENTS = {
     A: [
         "[First Name] has performed excellently. Keep up the outstanding work!",
-        "[First Name] has demonstrated an excellent understanding of the subject. Well done!",
+        "[First Name] has demonstrated an excellent understanding of the subjects. Well done!",
         "[First Name] has achieved an impressive result. Keep up the good work!",
         "[First Name] has shown excellent effort and understanding. Maintain this standard!",
         "[First Name] has done exceptionally well. Keep striving for greater heights!"
     ],
     B: [
         "[First Name] has performed very well. Keep working hard!",
-        "[First Name] has shown a good understanding of the subject. Keep it up!",
+        "[First Name] has shown a good understanding of the subjects. Keep it up!",
         "[First Name] has done well. More effort can lead to an even better result.",
         "[First Name] has demonstrated good academic progress. Keep working hard!",
         "[First Name] has produced a very good result. Aim even higher next time!"
     ],
     C: [
         "[First Name] has done well. Put in more effort for better results.",
-        "[First Name] has shown a fair understanding of the subject. Keep working hard!",
+        "[First Name] has shown a fair understanding of the subjects. Keep working hard!",
         "[First Name] has made good progress. More practice will improve the result.",
         "[First Name] has achieved a satisfactory result. Greater effort is encouraged.",
         "[First Name] has made a good attempt. Keep working towards better performance."
@@ -57,7 +57,7 @@ const TEACHER_COMMENTS = {
     P: [
         "[First Name] has made a fair attempt. More effort is needed.",
         "[First Name] has achieved a pass. More practice and attention are required.",
-        "[First Name] has shown some understanding of the subject. Keep working harder.",
+        "[First Name] has shown some understanding of the subjects. Keep working harder.",
         "[First Name] needs to put in more effort to improve this performance.",
         "[First Name] has made progress, but greater effort is needed for better results."
     ],
@@ -178,6 +178,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadSchoolInfo();
 
     await loadClasses();
+
+    if (window.SetupPanel) {
+
+        SetupPanel.sync();
+
+    }
 
     bindUI();
 

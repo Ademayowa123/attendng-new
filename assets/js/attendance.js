@@ -1072,6 +1072,7 @@ function updateSummary() {
 
     let morningTotal = 0;
     let afternoonTotal = 0;
+    let daysWithMarks = 0;
 
     DAYS.forEach(
         day => {
@@ -1115,8 +1116,27 @@ function updateSummary() {
             const afternoonEl =
                 document.getElementById(`${shortDay}Afternoon`);
 
-            if (morningEl) morningEl.textContent = morningCount;
-            if (afternoonEl) afternoonEl.textContent = afternoonCount;
+            if (morningEl) {
+
+                morningEl.textContent = morningCount;
+
+                morningEl.classList.toggle("is-zero", morningCount === 0);
+
+            }
+
+            if (afternoonEl) {
+
+                afternoonEl.textContent = afternoonCount;
+
+                afternoonEl.classList.toggle("is-zero", afternoonCount === 0);
+
+            }
+
+            if (morningCount > 0 || afternoonCount > 0) {
+
+                daysWithMarks++;
+
+            }
 
             morningTotal += morningCount;
             afternoonTotal += afternoonCount;
@@ -1146,6 +1166,49 @@ function updateSummary() {
     document.getElementById("weeklyPercentage").textContent =
         percentage.toFixed(1) + "%";
 
+
+    // Colour and wording follow the percentage:
+    // 75+ on track, 50 to 74 needs attention, under 50 low.
+
+    const tier =
+        maxPossible <= 0 ? "none" :
+        percentage >= 75 ? "good" :
+        percentage >= 50 ? "mid" :
+        "low";
+
+    const statusText = {
+        none: "Set times school opened",
+        good: "On track",
+        mid: "Needs attention",
+        low: "Low attendance"
+    };
+
+    document.getElementById("weeklySummary").dataset.tier =
+        tier;
+
+    document.getElementById("weeklyStatus").textContent =
+        statusText[tier];
+
+    document.getElementById("weeklyBar").style.width =
+        Math.min(100, percentage) + "%";
+
+    document.getElementById("factWeek").textContent =
+        document.getElementById("attendanceWeek").value;
+
+    document.getElementById("factOpened").textContent =
+        `${schoolOpened} ${schoolOpened === 1 ? "time" : "times"}`;
+
+    document.getElementById("factMarks").textContent =
+        `${totalPresent} of ${maxPossible}`;
+
+    document.getElementById("factDays").textContent =
+        `${daysWithMarks} of 5`;
+
+    document.getElementById("weeklyMath").textContent =
+        maxPossible > 0 ?
+            `${totalPresent} ÷ (${totalStudents} students × ${schoolOpened}) = ${percentage.toFixed(1)}%` :
+            "Enter how many times school opened to see the percentage.";
+
 }
 
 
@@ -1169,3 +1232,32 @@ function showToast(message) {
     );
 
 }
+
+
+/* ==========================================
+   WEEKLY SUMMARY: "HOW IS THIS CALCULATED?"
+========================================== */
+
+document.addEventListener(
+    "click",
+    (event) => {
+
+        const button =
+            event.target.closest("#weeklyHelpBtn");
+
+        if (!button) {
+
+            return;
+
+        }
+
+        const help =
+            document.getElementById("weeklyHelp");
+
+        help.hidden =
+            !help.hidden;
+
+        button.setAttribute("aria-expanded", String(!help.hidden));
+
+    }
+);

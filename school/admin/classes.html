@@ -44,7 +44,7 @@
     </style>
 
 </head>
-<body>
+<body class="page-teachers page-classes">
 
     <div id="toast" class="toast"></div>
 
@@ -68,22 +68,47 @@
                 <p style="margin:0;">No active session yet. Start one on the Sessions page before adding classes.</p>
             </div>
 
-            <div class="card" id="classesCard" style="display:none;">
+            <div id="classesCard" style="display:none;">
 
-                <div class="table-scroll">
-                    <table class="classes-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                        <thead>
-                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                                <th class="sticky-col1" style="padding:10px 8px; min-width:140px;">Class</th>
-                                <th style="padding:10px 8px; min-width:160px;">Teacher</th>
-                                <th style="padding:10px 8px; min-width:100px;">Register</th>
-                                <th style="padding:10px 8px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="classesTableBody">
-                            <!-- populated at runtime -->
-                        </tbody>
-                    </table>
+                <!-- SUMMARY TILES -->
+                <section class="tm-stats" aria-label="Class summary">
+                    <div class="tm-stat">
+                        <span class="tm-stat-icon tm-tone-teal"><i class="fa-solid fa-school"></i></span>
+                        <div><strong id="cStatClasses">0</strong><span>Classes</span></div>
+                    </div>
+                    <div class="tm-stat">
+                        <span class="tm-stat-icon tm-tone-indigo"><i class="fa-solid fa-user-graduate"></i></span>
+                        <div><strong id="cStatStudents">0</strong><span>Students</span></div>
+                    </div>
+                    <div class="tm-stat">
+                        <span class="tm-stat-icon tm-tone-amber"><i class="fa-solid fa-chalkboard-user"></i></span>
+                        <div><strong id="cStatTeachers">0</strong><span>With a teacher</span></div>
+                    </div>
+                    <div class="tm-stat">
+                        <span class="tm-stat-icon tm-tone-green"><i class="fa-solid fa-lock"></i></span>
+                        <div><strong id="cStatFinalized">0</strong><span>Registers finalized</span></div>
+                    </div>
+                </section>
+
+                <!-- SEARCH + FILTER -->
+                <div class="tm-toolbar">
+                    <label class="tm-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="search" id="classSearch" placeholder="Search by class or teacher" autocomplete="off">
+                    </label>
+                    <div class="tm-filters" role="group" aria-label="Filter by register status">
+                        <button type="button" class="tm-chip is-active" data-filter="all">All</button>
+                        <button type="button" class="tm-chip" data-filter="unlocked">Unlocked</button>
+                        <button type="button" class="tm-chip" data-filter="finalized">Finalized</button>
+                    </div>
+                </div>
+
+                <!-- CLASS CARDS (populated at runtime) -->
+                <div class="tm-grid" id="classGridMount"></div>
+
+                <div class="tm-empty" id="classEmpty" style="display:none;">
+                    <i class="fa-regular fa-face-frown-open"></i>
+                    <p id="classEmptyText">No classes match your search.</p>
                 </div>
 
             </div>
@@ -111,7 +136,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelAddClass">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelAddClass">Cancel</button>
                 <button type="button" class="btn-primary" id="submitAddClass">Add class</button>
             </div>
 
@@ -137,7 +162,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelEditClass">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelEditClass">Cancel</button>
                 <button type="button" class="btn-primary" id="submitEditClass">Save changes</button>
             </div>
 
@@ -161,7 +186,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelDeleteClass">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelDeleteClass">Cancel</button>
                 <button type="button" class="btn-danger" id="confirmDeleteClass">Delete</button>
             </div>
 
@@ -211,11 +236,56 @@
         </div>
     </div>
 
+    <!-- CLASS DETAIL SHEET -->
+    <div class="tm-sheet" id="classSheet" hidden>
+        <div class="tm-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="csName">
+
+            <button type="button" class="tm-sheet-close" id="csClose" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="tm-sheet-head">
+                <div class="cm-tile cm-tile-lg" id="csTile" aria-hidden="true"></div>
+                <div class="tm-id">
+                    <h2 class="tm-sheet-name" id="csName"></h2>
+                    <span class="tm-role" id="csRegister"></span>
+                </div>
+            </div>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-chalkboard-user"></i> Form teacher</h3>
+                <div id="csTeacherMount"></div>
+            </section>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-user-graduate"></i> Students</h3>
+                <div class="cm-line">
+                    <span id="csStudents"></span>
+                    <button type="button" class="btn-light" id="csManageStudents">Manage students</button>
+                </div>
+            </section>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-book-open"></i> Subjects</h3>
+                <div id="csSubjects"></div>
+                <button type="button" class="btn-light cm-wide" id="csManageSubjects">Manage subjects</button>
+            </section>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-sliders"></i> Manage</h3>
+                <div class="tm-sheet-actions" id="csActions"></div>
+                <p class="tm-sheet-note" id="csNote" style="display:none;"></p>
+            </section>
+
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
     <script src="/assets/js/supabase.js"></script>
     <script src="/assets/js/user-context.js"></script>
     <script src="/assets/js/auth.js"></script>
     <script src="/assets/js/activity-log.js"></script>
+    <script src="/assets/js/teacher-dropdown.js"></script>
     <script src="/assets/js/admin-classes.js"></script>
 
 </body>

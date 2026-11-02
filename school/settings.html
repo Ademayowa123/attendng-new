@@ -21,72 +21,107 @@
 
             <header class="top-header">
                 <div>
-                    <h1>Settings</h1>
+                    <h1>My Account</h1>
+                    <p>Your details and password</p>
                 </div>
             </header>
 
-            <div class="card" style="max-width:460px; margin-bottom:1.25rem;">
-
-                <h3 style="margin-top:0;">Register information</h3>
-
-                <table style="width:100%; font-size:14px; border-collapse:collapse;">
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">School</td><td style="text-align:right; padding:6px 0;" id="infoSchool"></td></tr>
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Name</td><td style="text-align:right; padding:6px 0;" id="infoName"></td></tr>
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Class</td><td style="text-align:right; padding:6px 0;" id="infoClass"></td></tr>
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Session</td><td style="text-align:right; padding:6px 0;" id="infoSession"></td></tr>
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Term</td><td style="text-align:right; padding:6px 0;" id="infoTerm"></td></tr>
-                    <tr><td style="color:var(--text-secondary); padding:6px 0;">Register status</td><td style="text-align:right; padding:6px 0;" id="infoStatus"></td></tr>
-                </table>
-
+            <div class="card set-profile">
+                <div class="set-avatar" id="settingsAvatar"></div>
+                <div class="set-profile-text">
+                    <p class="set-profile-name"><span id="profileName"></span><span class="set-role" id="profileRole"></span></p>
+                    <p class="set-profile-email" id="profileMeta"></p>
+                </div>
             </div>
 
-            <div class="card" style="max-width:460px;">
+            <div class="set-grid">
 
-                <h3 style="margin-top:0;">Change password</h3>
+                <div class="card">
 
-                <form id="passwordForm">
+                    <h3 class="set-title">Register information</h3>
+                    <p class="set-sub">What your school has on file for you.</p>
 
-                    <div class="form-group">
-                        <label>Current password</label>
-                        <div class="password-field">
-                            <input type="password" id="currentPassword" required>
-                            <button type="button" class="password-toggle" data-target="currentPassword" aria-label="Show password" tabindex="-1">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
-                        </div>
+                    <div class="set-info">
+                        <div class="set-info-row"><span>School: </span><b id="infoSchool"></b></div>
+                        <div class="set-info-row"><span>Name: </span><b id="infoName"></b></div>
+                        <div class="set-info-row"><span>Class: </span><b id="infoClass"></b></div>
+                        <div class="set-info-row"><span>Session: </span><b id="infoSession"></b></div>
+                        <div class="set-info-row"><span>Term: </span><b id="infoTerm"></b></div>
+                        <div class="set-info-row"><span>Register status: </span><b id="infoStatus"></b></div>
                     </div>
 
-                    <div class="form-group">
-                        <label>New password</label>
-                        <div class="password-field">
-                            <input type="password" id="newPassword" required minlength="6">
-                            <button type="button" class="password-toggle" data-target="newPassword" aria-label="Show password" tabindex="-1">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
+                </div>
+
+                <div class="card">
+
+                    <h3 class="set-title">Change password</h3>
+                    <p class="set-sub">Use at least 6 characters.</p>
+
+                    <form id="passwordForm">
+
+                        <div class="form-group">
+                            <label for="currentPassword">Current password</label>
+                            <div class="password-field">
+                                <input type="password" id="currentPassword" required>
+                                <button type="button" class="password-toggle" data-target="currentPassword" aria-label="Show password" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group">
-                        <label>Confirm new password</label>
-                        <div class="password-field">
-                            <input type="password" id="confirmPassword" required minlength="6">
-                            <button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password" tabindex="-1">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
+                        <div class="form-group">
+                            <label for="newPassword">New password</label>
+                            <div class="password-field">
+                                <input type="password" id="newPassword" required minlength="6">
+                                <button type="button" class="password-toggle" data-target="newPassword" aria-label="Show password" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                            </div>
+                            <div class="set-meter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                            <p class="set-hint" id="strengthLabel">Strength: enter a password</p>
                         </div>
-                    </div>
 
-                    <p class="login-error" id="passwordError" style="display:none;"></p>
-                    <p style="color:var(--success-text, #0f766e); font-size:13px; display:none;" id="passwordSuccess">Password updated.</p>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm new password</label>
+                            <div class="password-field">
+                                <input type="password" id="confirmPassword" required minlength="6">
+                                <button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                            </div>
+                        </div>
 
-                    <button type="submit" class="btn-primary" id="updatePasswordBtn">Update password</button>
+                        <div class="set-rules">
+                            <div id="ruleLength"><i class="fa-regular fa-circle"></i> At least 6 characters</div>
+                            <div id="ruleMatch"><i class="fa-regular fa-circle"></i> Passwords match</div>
+                        </div>
 
-                </form>
+                        <p class="login-error" id="passwordError" style="display:none;"></p>
+
+                        <button type="submit" class="btn-primary" id="updatePasswordBtn">Update password</button>
+
+                    </form>
+
+                </div>
 
             </div>
 
         </main>
 
+    </div>
+
+    <!-- CONFIRM PASSWORD CHANGE -->
+    <div class="confirm-modal" id="confirmPasswordModal">
+        <div class="confirm-card" style="width:380px;">
+
+            <div class="confirm-header">
+                <h2>Update your password?</h2>
+            </div>
+
+            <div class="confirm-body">
+                <p>You'll stay signed in on this device. Use your new password the next time you sign in.</p>
+            </div>
+
+            <div class="confirm-footer">
+                <button type="button" class="btn-secondary" id="cancelPasswordChange">Cancel</button>
+                <button type="button" class="btn-primary" id="confirmPasswordChange">Update password</button>
+            </div>
+
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>

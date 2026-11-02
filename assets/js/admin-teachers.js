@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await waitForContext();
 
+    bindTeacherToolbar();
+
     await loadMembers();
 
 
@@ -229,32 +231,244 @@ function waitForContext() {
 }
 
 
-async function loadMembers() {
+// =========================================
+// STATE + SMALL HELPERS (teachers grid)
+// =========================================
 
-    const {
-        data: members,
-        error
+let tmMembers = [];
+let tmClassByTeacher = {};
+let tmTeaching = {};
+let tmSheetReturnFocus = null;
+let tmFilter = "all";
+let tmQuery = "";
 
-    } =
-        await supabaseClient
-            .from("school_members")
-            .select(
-                "id, full_name, username, role, is_genesis"
-            )
-            .eq(
-                "school_id",
-                AttendNGContext.schoolId
+const TM_TONES = ["teal", "indigo", "amber", "green", "rose", "sky"];
+
+function tmEsc(value) {
+
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+function tmInitials(name) {
+
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+
+    if (!parts.length) {
+
+        return "?";
+
+    }
+
+    if (parts.length === 1) {
+
+        return parts[0].slice(0, 2).toUpperCase();
+
+    }
+
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
+}
+
+function tmTone(name) {
+
+    let hash = 0;
+
+    for (const ch of String(name || "")) {
+
+        hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+
+    }
+
+    return TM_TONES[hash % TM_TONES.length];
+
+}
+
+
+function bindTeacherToolbar() {
+
+    const search = document.getElementById("teacherSearch");
+
+    if (search) {
+
+        search.addEventListener("input", () => {
+
+            tmQuery = search.value.trim().toLowerCase();
+
+            renderMembers();
+
+        });
+
+    }
+
+    const sheet = document.getElementById("teacherSheet");
+
+    document.getElementById("sheetClose").addEventListener("click", closeTeacherSheet);
+
+    sheet.addEventListener("click", (e) => {
+
+        if (e.target === sheet) {
+
+            closeTeacherSheet();
+
+        }
+
+    });
+
+    document.addEventListener("keydown", (e) => {
+
+        if (e.key === "Escape" && !sheet.hidden) {
+
+            closeTeacherSheet();
+
+        }
+
+    });
+
+    document.getElementById("sheetCopy").addEventListener("click", async () => {
+
+        try {
+
+            await navigator.clipboard.writeText(document.getElementById("sheetUsername").textContent);
+
+            showToast("Username copied");
+
+        }
+        catch (err) {
+
+            console.error("Copy failed:", err);
+
+        }
+
+    });
+
+    document.querySelectorAll(".tm-chip").forEach(chip => {
+
+        chip.addEventListener("click", () => {
+
+            tmFilter = chip.dataset.filter;
+
+            document.querySelectorAll(".tm-chip").forEach(c =>
+                c.classList.toggle("is-active", c === chip)
             );
 
+            renderMembers();
 
-    if (error) {
+        });
 
-        console.error(
-            "Unable to load teachers:",
-            error
-        );
+    });
+
+}
+
+
+async function loadMembers() {
+
+    const [membersResult, sessionResult] = await Promise.all([
+
+        supabaseClient
+            .from("school_members")
+            .select("id, full_name, username, role, is_genesis")
+            .eq("school_id", AttendNGContext.schoolId),
+
+        supabaseClient
+            .from("sessions")
+            .select("id")
+            .eq("school_id", AttendNGContext.schoolId)
+            .eq("is_active", true)
+            .maybeSingle()
+
+    ]);
+
+
+    if (membersResult.error) {
+
+        console.error("Unable to load teachers:", membersResult.error);
 
         return;
+
+    }
+
+
+    // Active-session class assignments: which class each person
+    // heads (classes.teacher_id) and which subjects they teach in
+    // which class (class_subjects.teacher_id). If either lookup
+    // fails the cards simply show less detail.
+
+    tmClassByTeacher = {};
+    tmTeaching = {};
+
+    if (!sessionResult.error && sessionResult.data) {
+
+        const { data: classRows, error: classError } =
+            await supabaseClient
+                .from("classes")
+                .select("id, name, teacher_id")
+                .eq("session_id", sessionResult.data.id);
+
+        if (classError) {
+
+            console.error("Unable to load classes:", classError);
+
+        }
+        else if (classRows && classRows.length) {
+
+            const classNameById = {};
+
+            classRows.forEach(c => {
+
+                classNameById[c.id] = c.name;
+
+                if (c.teacher_id) {
+
+                    tmClassByTeacher[c.teacher_id] = c.name;
+
+                }
+
+            });
+
+            const { data: csRows, error: csError } =
+                await supabaseClient
+                    .from("class_subjects")
+                    .select("class_id, teacher_id, subjects ( name )")
+                    .in("class_id", classRows.map(c => c.id));
+
+            if (csError) {
+
+                console.error("Unable to load teaching assignments:", csError);
+
+            }
+            else {
+
+                (csRows || []).forEach(row => {
+
+                    if (!row.teacher_id || !row.subjects) {
+
+                        return;
+
+                    }
+
+                    const className = classNameById[row.class_id];
+
+                    if (!className) {
+
+                        return;
+
+                    }
+
+                    const byClass = (tmTeaching[row.teacher_id] = tmTeaching[row.teacher_id] || {});
+
+                    (byClass[className] = byClass[className] || []).push(row.subjects.name);
+
+                });
+
+            }
+
+        }
 
     }
 
@@ -262,8 +476,8 @@ async function loadMembers() {
     // Admins first (genesis first among admins), then teachers,
     // alphabetical within each group.
 
-    const sorted =
-        [...members].sort(
+    tmMembers =
+        [...membersResult.data].sort(
             (a, b) => {
 
                 if (a.role !== b.role) {
@@ -283,203 +497,333 @@ async function loadMembers() {
             }
         );
 
+    renderMembers();
 
-    const tbody =
-        document.getElementById("membersTableBody");
-
-    const cardsMount =
-        document.getElementById("teacherCardsMount");
-
-    tbody.innerHTML =
-        "";
-
-    cardsMount.innerHTML =
-        "";
+}
 
 
-    sorted.forEach(
-        member => {
+function renderMembers() {
 
-            const roleLabel =
-                member.is_genesis ?
-                    "Genesis admin" :
-                    (member.role === "admin" ? "Admin" : "Teacher");
+    const grid = document.getElementById("teacherGridMount");
+    const empty = document.getElementById("teacherEmpty");
 
+    // ---- summary tiles (always the full school, ignoring filters)
 
-            const isSelf =
-                member.id === AttendNGContext.memberId;
+    const admins = tmMembers.filter(m => m.role === "admin").length;
 
-            const deleteHtml =
-                (member.is_genesis || isSelf) ?
-                    "" :
-                    ` <button class="btn-danger delete-member-btn" data-id="${member.id}" data-name="${member.full_name}">Delete</button>`;
+    document.getElementById("statTotal").textContent = tmMembers.length;
+    document.getElementById("statAdmins").textContent = admins;
+    document.getElementById("statTeachers").textContent = tmMembers.length - admins;
+    document.getElementById("statAssigned").textContent =
+        tmMembers.filter(m => tmClassByTeacher[m.id]).length;
 
-            const actionHtml =
-                (member.is_genesis ?
-                    "" :
-                    (member.role === "admin" ?
-                        `<button class="btn-light demote-btn" data-id="${member.id}" data-name="${member.full_name}">Demote to teacher</button>` :
-                        `<button class="btn-light promote-btn" data-id="${member.id}" data-name="${member.full_name}">Make admin</button>`
-                    )
-                ) +
-                ` <button class="btn-light reset-password-btn" data-id="${member.id}" data-name="${member.full_name}">Reset password</button>` +
-                deleteHtml;
+    // ---- apply search + role filter
 
+    const visible = tmMembers.filter(m => {
 
-            // Desktop table row — unchanged, actions inline.
+        if (tmFilter !== "all" && m.role !== tmFilter) {
 
-            const row =
-                document.createElement("tr");
+            return false;
 
-            row.style.borderBottom =
-                "1px solid var(--border)";
+        }
 
-            row.innerHTML = `
-                <td class="sticky-col1" style="padding:10px 4px;">${member.full_name}</td>
-                <td class="sticky-col2" style="padding:10px 4px;"><code>${member.username}</code></td>
-                <td style="padding:10px 4px;">${roleLabel}</td>
-                <td class="desktop-actions-cell" style="padding:10px 4px; text-align:right;">
-                    <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">${actionHtml}</div>
-                </td>
-            `;
+        if (!tmQuery) {
 
-            tbody.appendChild(row);
+            return true;
+
+        }
+
+        return (
+            m.full_name.toLowerCase().includes(tmQuery) ||
+            (m.username || "").toLowerCase().includes(tmQuery)
+        );
+
+    });
+
+    grid.innerHTML = "";
+
+    empty.style.display = visible.length ? "none" : "block";
 
 
-            // Mobile-only card — same buttons, revealed by the
-            // ^ chevron toggle instead of squeezed into a row.
-            // Desktop never shows .teacher-cards at all (CSS),
-            // so there's no functional difference there.
+    visible.forEach(member => {
 
-            const card =
-                document.createElement("div");
+        const isAdmin = member.role === "admin";
 
-            card.className =
-                "teacher-card";
+        const isSelf = member.id === AttendNGContext.memberId;
 
-            card.innerHTML = `
-                <div class="teacher-card-header">
-                    <div>
-                        <div class="teacher-card-name">${member.full_name}</div>
-                        <div class="teacher-card-role">${roleLabel}</div>
+        const meta = tmRoleMeta(member);
+
+        const className = tmClassByTeacher[member.id];
+
+        const subjectCount = tmSubjectCount(member.id);
+
+        const headsHtml =
+            className ?
+                `<span class="tm-class"><i class="fa-solid fa-school"></i> ${tmEsc(className)}</span>` :
+                `<span class="tm-class is-empty"><i class="fa-regular fa-circle"></i> No class headed</span>`;
+
+        const teachHtml =
+            subjectCount ?
+                `<span class="tm-class tm-teach"><i class="fa-solid fa-book-open"></i> ${subjectCount} subject${subjectCount === 1 ? "" : "s"}</span>` :
+                `<span class="tm-class is-empty"><i class="fa-regular fa-circle"></i> No subjects yet</span>`;
+
+        const card = document.createElement("article");
+
+        card.className = "tm-card";
+
+        card.tabIndex = 0;
+
+        card.setAttribute("role", "button");
+
+        card.setAttribute("aria-haspopup", "dialog");
+
+        card.setAttribute("aria-label", `Open details for ${member.full_name}`);
+
+        card.innerHTML = `
+            <div class="tm-card-top">
+                <div class="tm-avatar tm-tone-${tmTone(member.full_name)}" aria-hidden="true">${tmEsc(tmInitials(member.full_name))}</div>
+                <div class="tm-id">
+                    <div class="tm-name">${tmEsc(member.full_name)}${isSelf ? ' <span class="tm-you">You</span>' : ""}</div>
+                    <span class="tm-role tm-role-${meta.tone}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
+                </div>
+                <i class="fa-solid fa-chevron-right tm-go" aria-hidden="true"></i>
+            </div>
+
+            <div class="tm-meta">
+                <div class="tm-user">
+                    <i class="fa-regular fa-user"></i>
+                    <code>${tmEsc(member.username)}</code>
+                </div>
+                ${member.is_genesis
+                    ? `<span class="tm-class"><i class="fa-solid fa-crown"></i> Manages the whole school</span>`
+                    : headsHtml + teachHtml}
+            </div>
+        `;
+
+        const open = () => openTeacherSheet(member.id, card);
+
+        card.addEventListener("click", open);
+
+        card.addEventListener("keydown", (e) => {
+
+            if (e.key === "Enter" || e.key === " ") {
+
+                e.preventDefault();
+
+                open();
+
+            }
+
+        });
+
+        grid.appendChild(card);
+
+    });
+
+}
+
+
+function tmRoleMeta(member) {
+
+    if (member.is_genesis) {
+
+        return { label: "Genesis admin", icon: "fa-crown", tone: "gold" };
+
+    }
+
+    if (member.role === "admin") {
+
+        return { label: "Admin", icon: "fa-user-shield", tone: "indigo" };
+
+    }
+
+    return { label: "Teacher", icon: "fa-chalkboard-user", tone: "teal" };
+
+}
+
+function tmSubjectCount(memberId) {
+
+    const byClass = tmTeaching[memberId] || {};
+
+    return Object.values(byClass).reduce((n, list) => n + list.length, 0);
+
+}
+
+
+function openTeacherSheet(memberId, returnFocusEl) {
+
+    const member = tmMembers.find(m => m.id === memberId);
+
+    if (!member) {
+
+        return;
+
+    }
+
+    tmSheetReturnFocus = returnFocusEl || null;
+
+    const isAdmin = member.role === "admin";
+
+    const isSelf = member.id === AttendNGContext.memberId;
+
+    const meta = tmRoleMeta(member);
+
+    // ---- header
+
+    const avatar = document.getElementById("sheetAvatar");
+
+    avatar.className = `tm-avatar tm-avatar-lg tm-tone-${tmTone(member.full_name)}`;
+
+    avatar.textContent = tmInitials(member.full_name);
+
+    document.getElementById("sheetName").innerHTML =
+        tmEsc(member.full_name) + (isSelf ? ' <span class="tm-you">You</span>' : "");
+
+    const role = document.getElementById("sheetRole");
+
+    role.className = `tm-role tm-role-${meta.tone}`;
+
+    role.innerHTML = `<i class="fa-solid ${meta.icon}"></i> ${meta.label}`;
+
+    document.getElementById("sheetUsername").textContent = member.username;
+
+    // ---- class heading
+
+    const className = tmClassByTeacher[member.id];
+
+    document.getElementById("sheetHeading").innerHTML =
+        className ?
+            `<div class="tm-pill tm-pill-class"><i class="fa-solid fa-school"></i> ${tmEsc(className)}<span>Form teacher</span></div>` :
+            `<p class="tm-sheet-empty">Not heading any class this session.</p>`;
+
+    // ---- subjects, grouped by class
+
+    const byClass = tmTeaching[member.id] || {};
+
+    const classNames = Object.keys(byClass).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    document.getElementById("sheetTeaching").innerHTML =
+        classNames.length ?
+            classNames.map(cn => `
+                <div class="tm-teach-row">
+                    <div class="tm-teach-class"><i class="fa-solid fa-door-open"></i> ${tmEsc(cn)}</div>
+                    <div class="tm-teach-subjects">
+                        ${byClass[cn].slice().sort((a, b) => a.localeCompare(b)).map(sub => `<span class="tm-pill">${tmEsc(sub)}</span>`).join("")}
                     </div>
-                    <button type="button" class="row-toggle-btn" data-target="teacher-card-actions-${member.id}" aria-label="Show actions">
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </button>
                 </div>
-                <div class="teacher-card-body">
-                    <div><span class="teacher-card-label">Username:</span><code>${member.username}</code></div>
-                </div>
-                <div class="teacher-card-actions" id="teacher-card-actions-${member.id}" style="display:none;">
-                    ${actionHtml}
-                </div>
-            `;
+            `).join("") :
+            `<p class="tm-sheet-empty">No subjects assigned yet.</p>`;
 
-            cardsMount.appendChild(card);
+    // The genesis admin runs the school and never heads a class or
+    // teaches subjects, so replace those two sections with a role line.
 
-        }
-    );
+    const headingSection = document.getElementById("sheetHeading").closest(".tm-sheet-section");
+
+    const teachingSection = document.getElementById("sheetTeaching").closest(".tm-sheet-section");
+
+    teachingSection.style.display = member.is_genesis ? "none" : "";
+
+    if (member.is_genesis) {
+
+        headingSection.querySelector("h3").innerHTML = '<i class="fa-solid fa-crown"></i> Role';
+
+        document.getElementById("sheetHeading").innerHTML =
+            `<div class="tm-pill tm-pill-class"><i class="fa-solid fa-crown"></i> Manages the whole school</div>`;
+
+    }
+    else {
+
+        headingSection.querySelector("h3").innerHTML = '<i class="fa-solid fa-school"></i> Class heading';
+
+    }
+
+    // ---- actions (same operations as before)
+
+    const safeId = tmEsc(member.id);
+    const safeName = tmEsc(member.full_name);
+
+    const roleBtn =
+        member.is_genesis ? "" :
+            (isAdmin ?
+                `<button type="button" class="btn-light" data-act="demote" data-id="${safeId}" data-name="${safeName}"><i class="fa-solid fa-arrow-down"></i> Demote to teacher</button>` :
+                `<button type="button" class="btn-light" data-act="promote" data-id="${safeId}" data-name="${safeName}"><i class="fa-solid fa-user-shield"></i> Make admin</button>`);
+
+    const resetBtn =
+        `<button type="button" class="btn-light" data-act="reset" data-id="${safeId}" data-name="${safeName}"><i class="fa-solid fa-key"></i> Reset password</button>`;
+
+    const deleteBtn =
+        (member.is_genesis || isSelf) ? "" :
+            `<button type="button" class="btn-danger" data-act="delete" data-id="${safeId}" data-name="${safeName}"><i class="fa-solid fa-trash-can"></i> Delete teacher</button>`;
+
+    const actions = document.getElementById("sheetActions");
+
+    actions.innerHTML = roleBtn + resetBtn + deleteBtn;
+
+    actions.querySelectorAll("button").forEach(btn => {
+
+        btn.addEventListener("click", () => {
+
+            const { act, id, name } = btn.dataset;
+
+            // Close first so the confirm / result modals that these
+            // actions open aren't stacked on top of the sheet.
+            closeTeacherSheet(false);
+
+            if (act === "promote") { changeRole(id, name, "admin"); }
+            else if (act === "demote") { changeRole(id, name, "teacher"); }
+            else if (act === "reset") { resetPassword(id, name); }
+            else if (act === "delete") { deleteMember(id, name); }
+
+        });
+
+    });
+
+    const note = document.getElementById("sheetNote");
+
+    if (member.is_genesis) {
+
+        note.textContent = "The genesis admin can't be demoted or deleted.";
+
+        note.style.display = "block";
+
+    }
+    else if (isSelf) {
+
+        note.textContent = "You can't delete your own account.";
+
+        note.style.display = "block";
+
+    }
+    else {
+
+        note.style.display = "none";
+
+    }
+
+    const sheet = document.getElementById("teacherSheet");
+
+    sheet.hidden = false;
+
+    document.body.classList.add("tm-sheet-open");
+
+    document.getElementById("sheetClose").focus();
+
+}
 
 
-    // =====================================
-    // BIND PROMOTE / DEMOTE
-    // =====================================
+function closeTeacherSheet(restoreFocus = true) {
 
-    cardsMount.querySelectorAll(".row-toggle-btn").forEach(
-        btn => {
+    document.getElementById("teacherSheet").hidden = true;
 
-            btn.addEventListener(
-                "click",
-                () => {
+    document.body.classList.remove("tm-sheet-open");
 
-                    const target =
-                        document.getElementById(btn.dataset.target);
+    if (restoreFocus && tmSheetReturnFocus && document.contains(tmSheetReturnFocus)) {
 
-                    if (!target) {
+        tmSheetReturnFocus.focus();
 
-                        return;
+    }
 
-                    }
-
-                    const isOpen =
-                        target.style.display !== "none";
-
-                    target.style.display =
-                        isOpen ? "none" : "flex";
-
-                    btn.classList.toggle(
-                        "is-open",
-                        !isOpen
-                    );
-
-                    btn.setAttribute(
-                        "aria-label",
-                        isOpen ? "Show actions" : "Hide actions"
-                    );
-
-                }
-            );
-
-        }
-    );
-
-
-    // Action buttons render twice — once inline in the desktop
-    // table, once inside the mobile card — so bind across both
-    // containers together.
-
-    const allRows =
-        [tbody, cardsMount];
-
-    allRows.forEach(
-        container => {
-
-            container.querySelectorAll(".promote-btn").forEach(
-                btn => {
-
-                    btn.addEventListener(
-                        "click",
-                        () => changeRole(btn.dataset.id, btn.dataset.name, "admin")
-                    );
-
-                }
-            );
-
-            container.querySelectorAll(".demote-btn").forEach(
-                btn => {
-
-                    btn.addEventListener(
-                        "click",
-                        () => changeRole(btn.dataset.id, btn.dataset.name, "teacher")
-                    );
-
-                }
-            );
-
-            container.querySelectorAll(".reset-password-btn").forEach(
-                btn => {
-
-                    btn.addEventListener(
-                        "click",
-                        () => resetPassword(btn.dataset.id, btn.dataset.name)
-                    );
-
-                }
-            );
-
-            container.querySelectorAll(".delete-member-btn").forEach(
-                btn => {
-
-                    btn.addEventListener(
-                        "click",
-                        () => deleteMember(btn.dataset.id, btn.dataset.name)
-                    );
-
-                }
-            );
-
-        }
-    );
+    tmSheetReturnFocus = null;
 
 }
 

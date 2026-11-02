@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
 </head>
-<body>
+<body class="page-teachers page-class-subjects">
 
     <div id="toast" class="toast"></div>
 
@@ -26,41 +26,58 @@
                     <h1 id="pageTitle">Subjects</h1>
                     <p id="sessionLabel"></p>
                 </div>
-                <a href="/school/admin/classes.html"
-                   class="btn btn-back btn-sm"
-                   style="text-decoration:none; border-radius: 10px;">
-                    <i class="fa-solid fa-arrow-left"></i> Back to Classes
-                </a>
-            </header>
-
-            <section class="card">
-
-                <div class="table-toolbar">
+                <div class="cs-header-actions">
+                    <a href="/school/admin/classes.html"
+                       class="btn btn-back btn-sm"
+                       style="text-decoration:none; border-radius: 10px;">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Classes
+                    </a>
                     <button type="button" class="btn-primary" id="openAddClassSubject">
-                        <i class="fa-solid fa-plus"></i> Add subject to this class
+                        <i class="fa-solid fa-plus"></i> Add subject
                     </button>
                 </div>
+            </header>
 
-                <div class="table-scroll">
-                    <table class="class-subjects-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                        <thead>
-                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                                <th class="sticky-col1" style="padding:10px 8px; min-width:160px;">Subject</th>
-                                <th style="padding:10px 8px; min-width:200px;">Teacher</th>
-                                <th style="padding:10px 8px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="classSubjectsTableBody">
-                            <!-- populated at runtime -->
-                        </tbody>
-                    </table>
+            <!-- SUMMARY TILES -->
+            <section class="tm-stats" aria-label="Subject summary">
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-teal"><i class="fa-solid fa-book-open"></i></span>
+                    <div><strong id="sStatTotal">0</strong><span>Subjects</span></div>
                 </div>
-
-                <p id="noClassSubjectsNotice" style="display:none; color:var(--text-muted); margin:12px 0 4px;">
-                    No subjects assigned to this class yet.
-                </p>
-
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-indigo"><i class="fa-solid fa-chalkboard-user"></i></span>
+                    <div><strong id="sStatAssigned">0</strong><span>With a teacher</span></div>
+                </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-amber"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div><strong id="sStatNeeds">0</strong><span>Need a teacher</span></div>
+                </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-green"><i class="fa-solid fa-users"></i></span>
+                    <div><strong id="sStatTeachers">0</strong><span>Teachers involved</span></div>
+                </div>
             </section>
+
+            <!-- SEARCH + FILTER -->
+            <div class="tm-toolbar">
+                <label class="tm-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="subjectSearch" placeholder="Search by subject or teacher" autocomplete="off">
+                </label>
+                <div class="tm-filters" role="group" aria-label="Filter by teacher status">
+                    <button type="button" class="tm-chip is-active" data-filter="all">All</button>
+                    <button type="button" class="tm-chip" data-filter="assigned">Assigned</button>
+                    <button type="button" class="tm-chip" data-filter="needs">Needs teacher</button>
+                </div>
+            </div>
+
+            <!-- SUBJECT CARDS (populated at runtime) -->
+            <div class="tm-grid" id="subjectGridMount"></div>
+
+            <div class="tm-empty" id="noClassSubjectsNotice" style="display:none;">
+                <i class="fa-regular fa-face-frown-open"></i>
+                <p id="subjectEmptyText">No subjects assigned to this class yet.</p>
+            </div>
 
         </main>
 
@@ -97,7 +114,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelAddClassSubject">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelAddClassSubject">Cancel</button>
                 <button type="button" class="btn-primary" id="submitAddClassSubject">Add subject</button>
             </div>
 
@@ -121,7 +138,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelRemoveClassSubject">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelRemoveClassSubject">Cancel</button>
                 <button type="button" class="btn-danger" id="confirmRemoveClassSubject">Remove</button>
             </div>
 
@@ -152,6 +169,7 @@
     <script src="/assets/js/user-context.js"></script>
     <script src="/assets/js/auth.js"></script>
     <script src="/assets/js/activity-log.js"></script>
+    <script src="/assets/js/teacher-dropdown.js"></script>
     <script src="/assets/js/admin-class-subjects.js"></script>
 
 </body>

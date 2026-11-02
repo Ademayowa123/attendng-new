@@ -156,6 +156,218 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 /* ==========================================
+   SIDEBAR GROUP STATE
+   Remembers which groups the user left open.
+========================================== */
+
+const SIDEBAR_STATE_KEY = "attendng.sidebar.open";
+
+function readOpenGroups() {
+
+    try {
+
+        const saved =
+            JSON.parse(
+                localStorage.getItem(SIDEBAR_STATE_KEY) || "[]"
+            );
+
+        return Array.isArray(saved) ? saved : [];
+
+    }
+    catch (error) {
+
+        return [];
+
+    }
+
+}
+
+function saveOpenGroups() {
+
+    try {
+
+        const open =
+            [...document.querySelectorAll(".nav-group.open")]
+                .map(li => li.dataset.group);
+
+        localStorage.setItem(
+            SIDEBAR_STATE_KEY,
+            JSON.stringify(open)
+        );
+
+    }
+    catch (error) {
+
+        // Storage can be blocked; the menu still works.
+
+    }
+
+}
+
+
+/* ==========================================
+   PLATFORM SIDEBAR: SCHOOL SEARCH + COUNT
+========================================== */
+
+async function setupPlatformSidebar() {
+
+    const input =
+        document.getElementById("sidebarSchoolSearch");
+
+    const results =
+        document.getElementById("sidebarSchoolResults");
+
+    const badge =
+        document.getElementById("schoolsBadge");
+
+    if (!input || !results) {
+
+        return;
+
+    }
+
+
+    let schools = [];
+
+    let matches = [];
+
+
+    function openSchoolFromSidebar(school) {
+
+        // Same hand-off the Schools page uses.
+
+        sessionStorage.setItem(
+            "attendng_selected_school_id",
+            school.id
+        );
+
+        sessionStorage.setItem(
+            "attendng_selected_school_name",
+            school.name
+        );
+
+        window.location.href =
+            "/platform/school-detail.html";
+
+    }
+
+
+    function renderResults() {
+
+        const term =
+            input.value.trim().toLowerCase();
+
+        results.innerHTML = "";
+
+        matches = [];
+
+        if (!term) {
+
+            return;
+
+        }
+
+        matches =
+            schools
+                .filter(school => school.name.toLowerCase().includes(term))
+                .slice(0, 6);
+
+        if (matches.length === 0) {
+
+            const none =
+                document.createElement("div");
+
+            none.className = "sidebar-search-empty";
+
+            none.textContent = "No school found";
+
+            results.appendChild(none);
+
+            return;
+
+        }
+
+        matches.forEach(
+            (school) => {
+
+                const button =
+                    document.createElement("button");
+
+                button.type = "button";
+
+                button.textContent = school.name;
+
+                button.addEventListener(
+                    "click",
+                    () => openSchoolFromSidebar(school)
+                );
+
+                results.appendChild(button);
+
+            }
+        );
+
+    }
+
+
+    input.addEventListener("input", renderResults);
+
+    input.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (event.key === "Enter" && matches.length > 0) {
+
+                event.preventDefault();
+
+                openSchoolFromSidebar(matches[0]);
+
+            }
+            else if (event.key === "Escape") {
+
+                input.value = "";
+
+                renderResults();
+
+            }
+
+        }
+    );
+
+
+    const { data, error } =
+        await supabaseClient
+            .from("schools")
+            .select("id, name")
+            .order("name");
+
+    if (error || !data) {
+
+        console.error(
+            "Unable to load schools for the sidebar:",
+            error
+        );
+
+        return;
+
+    }
+
+    schools = data;
+
+    if (badge) {
+
+        badge.textContent = data.length;
+
+        badge.hidden = false;
+
+    }
+
+    renderResults();
+
+}
+
+
+/* ==========================================
    SIDEBAR INJECTION
 ========================================== */
 
@@ -196,7 +408,15 @@ function injectSidebar() {
         brandHtml = `
             <div class="sidebar-brand">
                 <img src="/assets/images/logo.png" alt="AttendNG" />
-                <h2>AttendNG</h2>
+                <div class="sidebar-brand-text">
+                    <h2>AttendNG</h2>
+                    <span class="platform-badge">Platform</span>
+                </div>
+            </div>
+            <div class="sidebar-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="sidebarSchoolSearch" placeholder="Find a school..." autocomplete="off" aria-label="Find a school">
+                <div class="sidebar-search-results" id="sidebarSchoolResults"></div>
             </div>
         `;
 
@@ -222,17 +442,31 @@ function injectSidebar() {
 
     if (AttendNGContext.tier === "platform") {
 
+        // The school detail page belongs to Schools.
+
+        const schoolsActive =
+            currentPath.endsWith("/platform/schools.html") ||
+            currentPath.endsWith("/platform/school-detail.html") ?
+                "active" :
+                "";
+
         navHtml = `
-            <li class="${isActive('dashboard.html')}">
-                <a href="/platform/dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <li class="${isActive('/platform/dashboard.html')}">
+                <a href="/platform/dashboard.html"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
             </li>
-            <li class="${isActive('schools.html')}">
-                <a href="/platform/schools.html"><i class="fa-solid fa-building-columns"></i> Schools</a>
+
+            <li class="sidebar-section-label">Manage</li>
+            <li class="${schoolsActive}">
+                <a href="/platform/schools.html"><i class="fa-solid fa-building-columns"></i> Schools <span class="nav-badge" id="schoolsBadge" hidden></span></a>
             </li>
-            <li class="${isActive('superadmins.html')}">
+
+            <li class="sidebar-section-label">Team</li>
+            <li class="${isActive('/platform/superadmins.html')}">
                 <a href="/platform/superadmins.html"><i class="fa-solid fa-user-shield"></i> Superadmins</a>
             </li>
-            <li class="${isActive('settings.html')}">
+
+            <li class="sidebar-section-label">System</li>
+            <li class="${isActive('/platform/settings.html')}">
                 <a href="/platform/settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
             </li>
         `;
@@ -240,98 +474,186 @@ function injectSidebar() {
     }
     else {
 
-        // Shared teacher-facing items — shown to any member
-        // (admin or teacher) who has an assigned class.
-        // Genesis admins and unassigned admins never see these.
+        // Grouped navigation for school accounts.
+        //
+        //   Dashboard                (always)
+        //   People / Academics / School   (admins and genesis)
+        //   My Class / Reports       (anyone with an assigned class)
+        //   My Account + Logout      (always, at the bottom)
+        //
+        // Genesis accounts are never assigned a class, so they
+        // only get the admin groups.
+
+        const isAdmin =
+            AttendNGContext.tier === "admin";
 
         const hasClass =
             Boolean(AttendNGContext.classId);
 
+        const SCHOOL = "/school/";
+        const ADMIN = "/school/admin/";
 
-        const teacherItems = hasClass ? `
-            <li class="${isActive('/school/dashboard.html')}">
-                <a href="/school/dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
-            </li>
-            <li class="${isActive('attendance.html')}">
-                <a href="/school/attendance.html"><i class="fa-solid fa-calendar-check"></i> Attendance</a>
-            </li>
-            <li class="${isActive('students.html')}">
-                <a href="/school/students.html"><i class="fa-solid fa-user-graduate"></i> Students</a>
-            </li>
-            <li class="${isActive('ratings.html')}">
-                <a href="/school/ratings.html"><i class="fa-solid fa-star-half-stroke"></i> Behaviour &amp; Skills</a>
-            </li>
-            <li class="${isActive('/school/results.html')}">
-                <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
-            </li>
-            ${AttendNGContext.tier === "teacher" ? `<li class="${isActive('broadsheet.html')}">
-                <a href="/school/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
-            </li>
-            <li class="${isActive('report-card.html')}">
-                <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>
-            </li>` : ""}
-            <li class="has-submenu ${isActive('report')}">
-                <a href="#" class="submenu-toggle"><i class="fa-solid fa-file-lines"></i> Reports <i class="fa-solid fa-chevron-down submenu-caret"></i></a>
+
+        // "also" lists child pages that should keep this item
+        // (and its group) highlighted.
+
+        function navItem(href, icon, label, also) {
+
+            return { href, icon, label, also: also || [] };
+
+        }
+
+        function itemIsActive(item) {
+
+            return [item.href, ...item.also].some(
+                href => currentPath.endsWith(href)
+            );
+
+        }
+
+        function renderItem(item) {
+
+            return `
+            <li class="${itemIsActive(item) ? "active" : ""}">
+                <a href="${item.href}"><i class="fa-solid ${item.icon}"></i> ${item.label}</a>
+            </li>`;
+
+        }
+
+
+        const groups = [];
+
+        if (isAdmin) {
+
+            groups.push({
+                key: "people",
+                label: "People",
+                icon: "fa-users",
+                items: [
+                    navItem(ADMIN + "teachers.html", "fa-user-tie", "Teachers"),
+                    navItem(ADMIN + "classes.html", "fa-school", "Classes", [ADMIN + "roster.html", ADMIN + "class-subjects.html"])
+                ]
+            });
+
+            groups.push({
+                key: "academics",
+                label: "Academics",
+                icon: "fa-graduation-cap",
+                items: [
+                    navItem(ADMIN + "subjects.html", "fa-book", "Subjects"),
+                    navItem(ADMIN + "sessions.html", "fa-calendar-days", "Sessions"),
+                    navItem(SCHOOL + "results.html", "fa-pen-to-square", "Results"),
+                    navItem(SCHOOL + "broadsheet.html", "fa-table-list", "Broadsheet"),
+                    navItem(SCHOOL + "report-card.html", "fa-id-card", "Report Card")
+                ]
+            });
+
+            groups.push({
+                key: "school",
+                label: "School",
+                icon: "fa-building",
+                items: [
+                    navItem(ADMIN + "settings.html", "fa-building", "School Settings"),
+                    navItem(ADMIN + "activity.html", "fa-clock-rotate-left", "Activity Log")
+                ]
+            });
+
+        }
+
+        if (hasClass) {
+
+            const classItems = [
+                navItem(SCHOOL + "attendance.html", "fa-calendar-check", "Attendance"),
+                navItem(SCHOOL + "students.html", "fa-user-graduate", "Students"),
+                navItem(SCHOOL + "ratings.html", "fa-star-half-stroke", "Behaviour &amp; Skills")
+            ];
+
+            // Admins already have Results under Academics.
+            if (!isAdmin) {
+
+                classItems.push(
+                    navItem(SCHOOL + "results.html", "fa-pen-to-square", "Results")
+                );
+
+            }
+
+            groups.push({
+                key: "myclass",
+                label: "My Class",
+                icon: "fa-chalkboard-user",
+                items: classItems
+            });
+
+
+            const reportItems = [];
+
+            // Admins already have these under Academics.
+            if (!isAdmin) {
+
+                reportItems.push(
+                    navItem(SCHOOL + "broadsheet.html", "fa-table-list", "Broadsheet"),
+                    navItem(SCHOOL + "report-card.html", "fa-id-card", "Report Card")
+                );
+
+            }
+
+            reportItems.push(
+                navItem(SCHOOL + "report-weekly.html", "fa-calendar-week", "Weekly Report"),
+                navItem(SCHOOL + "report-term.html", "fa-file-lines", "Term Report"),
+                navItem(SCHOOL + "analytics.html", "fa-chart-line", "Analytics")
+            );
+
+            groups.push({
+                key: "reports",
+                label: "Reports",
+                icon: "fa-file-lines",
+                items: reportItems
+            });
+
+        }
+
+
+        // A teacher without a class has nothing but Results.
+
+        const loneItems =
+            (!isAdmin && !hasClass) ?
+                renderItem(navItem(SCHOOL + "results.html", "fa-pen-to-square", "Results")) :
+                "";
+
+
+        const storedOpen =
+            readOpenGroups();
+
+        const groupsHtml =
+            groups.map(
+                (group) => {
+
+                    const hasActive =
+                        group.items.some(itemIsActive);
+
+                    const isOpen =
+                        hasActive ||
+                        storedOpen.includes(group.key);
+
+                    return `
+            <li class="has-submenu nav-group ${isOpen ? "open" : ""} ${hasActive ? "has-active" : ""}" data-group="${group.key}">
+                <a href="#" class="submenu-toggle"><i class="fa-solid ${group.icon}"></i> ${group.label} <i class="fa-solid fa-chevron-down submenu-caret"></i></a>
                 <ul class="submenu">
-                    <li class="${isActive('report-weekly.html')}"><a href="/school/report-weekly.html">Weekly report</a></li>
-                    <li class="${isActive('report-term.html')}"><a href="/school/report-term.html">Term report</a></li>
+                    ${group.items.map(renderItem).join("")}
                 </ul>
-            </li>
-            <li class="${isActive('analytics.html')}">
-                <a href="/school/analytics.html"><i class="fa-solid fa-chart-line"></i> Analytics</a>
-            </li>
-            <li class="${isActive('/school/settings.html')}">
-                <a href="/school/settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
-            </li>
-        ` : `
-            <li class="${isActive('/school/dashboard.html')}">
-                <a href="/school/dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
-            </li>
-            <li class="${isActive('/school/results.html')}">
-                <a href="/school/results.html"><i class="fa-solid fa-pen-to-square"></i> Results</a>
-            </li>
-            <li class="${isActive('/school/settings.html')}">
-                <a href="/school/settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
-            </li>
+            </li>`;
+
+                }
+            ).join("");
+
+
+        navHtml = `
+            ${renderItem(navItem(SCHOOL + "dashboard.html", "fa-house", "Dashboard"))}
+            ${loneItems}
+            ${groupsHtml}
+            <li class="sidebar-divider" aria-hidden="true"></li>
+            ${renderItem(navItem(SCHOOL + "settings.html", "fa-user-gear", "My Account"))}
         `;
-
-
-        // Admin-only section — shown regardless of whether
-        // this admin also has a class of their own.
-
-        const adminItems =
-            AttendNGContext.tier === "admin" ? `
-            <li class="sidebar-section-label">Admin</li>
-            <li class="${isActive('/school/admin/classes.html')}">
-                <a href="/school/admin/classes.html"><i class="fa-solid fa-school"></i> Classes</a>
-            </li>
-            <li class="${isActive('/school/admin/subjects.html')}">
-                <a href="/school/admin/subjects.html"><i class="fa-solid fa-book"></i> Subjects</a>
-            </li>
-            <li class="${isActive('broadsheet.html')}">
-                <a href="/school/broadsheet.html"><i class="fa-solid fa-table-list"></i> Broadsheet</a>
-            </li>
-            <li class="${isActive('report-card.html')}">
-                <a href="/school/report-card.html"><i class="fa-solid fa-id-card"></i> Report Card</a>
-            </li>
-            <li class="${isActive('teachers.html')}">
-                <a href="/school/admin/teachers.html"><i class="fa-solid fa-users"></i> Teachers</a>
-            </li>
-            <li class="${isActive('sessions.html')}">
-                <a href="/school/admin/sessions.html"><i class="fa-solid fa-calendar-days"></i> Sessions</a>
-            </li>
-            <li class="${isActive('activity.html')}">
-                <a href="/school/admin/activity.html"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</a>
-            </li>
-            <li class="${isActive('/school/admin/settings.html')}">
-                <a href="/school/admin/settings.html"><i class="fa-solid fa-building"></i> Settings</a>
-            </li>
-        ` : "";
-
-
-        navHtml =
-            teacherItems +
-            adminItems;
 
     }
 
@@ -345,6 +667,18 @@ function injectSidebar() {
             </li>
         </ul>
     `;
+
+
+    // Platform accounts get their own darker sidebar, school
+    // search and school count.
+
+    if (AttendNGContext.tier === "platform") {
+
+        mount.classList.add("sidebar-platform");
+
+        setupPlatformSidebar();
+
+    }
 
 
     // Re-bind logout button since it was just injected fresh.
@@ -384,6 +718,8 @@ function injectSidebar() {
                     event.preventDefault();
 
                     toggle.closest("li").classList.toggle("open");
+
+                    saveOpenGroups();
 
                 }
             );
@@ -508,8 +844,12 @@ function setupMobileNav() {
 
     // Re-bind on every injectSidebar() call too, since the
     // <a> tags inside get replaced.
+    //
+    // Group headers (.submenu-toggle) only expand or collapse
+    // their group, so they must not close the drawer. It closes
+    // when the person actually picks a page.
 
-    document.querySelectorAll(".sidebar a").forEach(
+    document.querySelectorAll(".sidebar a:not(.submenu-toggle)").forEach(
         link => {
 
             link.addEventListener(

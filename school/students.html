@@ -19,39 +19,76 @@
 
         <main class="main-content">
 
-            <header class="top-header">
-                <div>
-                    <h1>Students</h1>
-                    <p><span id="className"></span> · <span id="schoolName"></span></p>
+            <header class="top-header st-header">
+
+                <div class="st-title-row">
+                    <span class="rs-tile" id="classTile"></span>
+                    <div>
+                        <h1>Students</h1>
+                        <p><span id="className"></span> · <span id="schoolName"></span></p>
+                    </div>
                 </div>
+
+                <span class="st-pill st-pill-view"><i class="fa-solid fa-eye" aria-hidden="true"></i> View only</span>
+
             </header>
 
-            <section class="student-actions">
-                <input type="text" id="searchStudent" placeholder="Search student...">
+            <section class="st-metrics">
+
+                <div class="st-metric">
+                    <span class="st-metric-label">Students</span>
+                    <strong id="studentCount">0</strong>
+                </div>
+
+                <div class="st-metric">
+                    <span class="st-metric-label">Gender</span>
+                    <div class="st-split">
+                        <span><i class="st-dot st-dot-male"></i>Male <b id="maleCount">0</b></span>
+                        <span><i class="st-dot st-dot-female"></i>Female <b id="femaleCount">0</b></span>
+                    </div>
+                    <div class="st-bar" id="genderBar"></div>
+                </div>
+
+                <div class="st-metric">
+                    <span class="st-metric-label">Admission numbers</span>
+                    <strong id="admissionCount">0</strong>
+                    <span class="st-metric-note" id="admissionNote">recorded</span>
+                </div>
+
             </section>
 
-            <section class="card has-mobile-cards">
+            <section class="st-toolbar">
 
-                <div class="table-toolbar">
-                    <div>Total Students: <strong id="studentCount">0</strong></div>
+                <label class="rs-search">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="searchStudent" placeholder="Search students" autocomplete="off" aria-label="Search students">
+                </label>
+
+                <div class="rs-filters" role="group" aria-label="Filter by gender">
+                    <button type="button" class="rs-filter is-active" data-gender="all" aria-pressed="true">All <span id="countAll">0</span></button>
+                    <button type="button" class="rs-filter" data-gender="male" aria-pressed="false">Male <span id="countMale">0</span></button>
+                    <button type="button" class="rs-filter" data-gender="female" aria-pressed="false">Female <span id="countFemale">0</span></button>
                 </div>
 
-                <div class="table-scroll desktop-only-table">
-                <table style="width:100%; border-collapse:collapse; font-size:14px;">
-                    <thead>
-                        <tr style="text-align:left; font-size:12px; color:var(--text-secondary); border-bottom:2px solid var(--border);">
-                            <th style="padding:10px 8px; width:56px;">S/N</th>
-                            <th style="padding:10px 8px;">Surname</th>
-                            <th style="padding:10px 8px;">First Name</th>
-                            <th style="padding:10px 8px;">Other Name</th>
-                            <th style="padding:10px 8px; width:90px;">Gender</th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentTable"></tbody>
-                </table>
+            </section>
+
+            <section class="rs-list">
+
+                <div class="st-list-head st-cols st-cols-ro" aria-hidden="true">
+                    <span>#</span>
+                    <span>Student</span>
+                    <span>Admission no.</span>
+                    <span>Gender</span>
+                    <span></span>
                 </div>
 
-                <div class="mobile-card-list" id="studentCardList"></div>
+                <div id="studentList"></div>
+
+                <p class="rs-note" id="listNote" hidden></p>
+
+                <div class="rs-list-foot">
+                    <span id="showingCount"></span>
+                </div>
 
             </section>
 

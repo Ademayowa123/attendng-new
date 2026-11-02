@@ -20,7 +20,7 @@ const RATING_TRAIT_GROUPS = [
     },
     {
         key: "responsibility",
-        title: "Sense of Responsibility",
+        title: "Responsibility",
         traits: [
             { key: "punctuality", label: "PUNCTUALITY" },
             { key: "neatness", label: "NEATNESS" },
@@ -42,7 +42,7 @@ const RATING_TRAIT_GROUPS = [
     },
     {
         key: "psychomotor",
-        title: "Psychomotor (Skills) Development",
+        title: "Psychomotor Skills",
         traits: [
             { key: "reading_writing", label: "READING & WRITING SKILLS" },
             { key: "verbal_communication", label: "VERBAL COMMUNICATION" },

@@ -3,7 +3,10 @@
  *************************************************/
 
 let schoolSubjects = [];       // this school's subjects
-let classSubjectCounts = {};   // subject_id -> number of classes currently using it
+let classSubjectCounts = {};   // subject_id -> assignments in ANY session (past + current)
+let activeClassNames = {};     // subject_id -> [class names] in the ACTIVE session
+let sjFilter = "all";
+let sjQuery = "";
 let editingSubjectId = null;
 let pendingDeleteSubjectId = null;
 let pendingDeleteSubjectName = null;
@@ -12,6 +15,8 @@ let pendingDeleteSubjectName = null;
 document.addEventListener("DOMContentLoaded", async () => {
 
     await waitForContext();
+
+    bindSubjectToolbar();
 
     await loadEverything();
 
@@ -206,7 +211,216 @@ async function loadEverything() {
     }
 
 
+    // Which classes use each subject in the ACTIVE session — shown as
+    // chips on the cards. Display only: if any lookup fails the cards
+    // simply show no chips.
+
+    activeClassNames =
+        {};
+
+    const {
+        data: activeSession,
+        error: sessionError
+
+    } =
+        await supabaseClient
+            .from("sessions")
+            .select("id")
+            .eq("school_id", AttendNGContext.schoolId)
+            .eq("is_active", true)
+            .maybeSingle();
+
+    if (sessionError) {
+
+        console.error(
+            "Unable to load active session:",
+            sessionError
+        );
+
+    }
+    else if (activeSession) {
+
+        const {
+            data: classRows,
+            error: classesError
+
+        } =
+            await supabaseClient
+                .from("classes")
+                .select("id, name")
+                .eq("session_id", activeSession.id);
+
+        if (classesError) {
+
+            console.error(
+                "Unable to load classes:",
+                classesError
+            );
+
+        }
+        else if (classRows && classRows.length) {
+
+            const nameById =
+                {};
+
+            classRows.forEach(c => { nameById[c.id] = c.name; });
+
+            const {
+                data: csRows,
+                error: csError
+
+            } =
+                await supabaseClient
+                    .from("class_subjects")
+                    .select("subject_id, class_id")
+                    .in("class_id", classRows.map(c => c.id));
+
+            if (csError) {
+
+                console.error(
+                    "Unable to load class subjects:",
+                    csError
+                );
+
+            }
+            else {
+
+                (csRows || []).forEach(
+                    row => {
+
+                        const name =
+                            nameById[row.class_id];
+
+                        if (name) {
+
+                            (activeClassNames[row.subject_id] =
+                                activeClassNames[row.subject_id] || []).push(name);
+
+                        }
+
+                    }
+                );
+
+                Object.values(activeClassNames).forEach(
+                    list => list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+                );
+
+            }
+
+        }
+
+    }
+
+
     renderSubjectsTable();
+
+}
+
+
+function sjEsc(value) {
+
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+const SJ_TONES = ["teal", "indigo", "amber", "green", "rose", "sky"];
+
+function sjTone(name) {
+
+    let hash = 0;
+
+    for (const ch of String(name || "")) {
+
+        hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+
+    }
+
+    return SJ_TONES[hash % SJ_TONES.length];
+
+}
+
+// A picture for each subject, chosen from keywords in its name.
+// First match wins; anything unrecognised gets the open-book icon.
+
+const SJ_ICON_RULES = [
+    [/math|numeracy|arithmetic/, "fa-calculator"],
+    [/computer|\bict\b|digital|coding|data processing/, "fa-laptop-code"],
+    [/music/, "fa-music"],
+    [/\barts?\b|creative|drawing|craft/, "fa-palette"],
+    [/agric|farm/, "fa-seedling"],
+    [/home (economics|management)|food|nutrition/, "fa-utensils"],
+    [/business|commerce|account|book.?keeping|office/, "fa-briefcase"],
+    [/physical|health|sport|\bp\.?h\.?e\b/, "fa-person-running"],
+    [/religio|christian|islam|bible|\bcrs\b|\birs\b|\bcrk\b|\birk\b/, "fa-hands-praying"],
+    [/civic|government|security|peace/, "fa-landmark"],
+    [/social|geograph|history|culture/, "fa-earth-africa"],
+    [/english|yoruba|igbo|hausa|french|arabic|language|literature/, "fa-language"],
+    [/chem|biolog|physics|science/, "fa-flask"],
+    [/technolog|woodwork|metalwork|electric/, "fa-screwdriver-wrench"]
+];
+
+function sjIcon(name) {
+
+    const lower = String(name || "").toLowerCase();
+
+    for (const [pattern, icon] of SJ_ICON_RULES) {
+
+        if (pattern.test(lower)) {
+
+            return icon;
+
+        }
+
+    }
+
+    return "fa-book-open";
+
+}
+
+
+function bindSubjectToolbar() {
+
+    const search =
+        document.getElementById("subjectSearch");
+
+    search.addEventListener(
+        "input",
+        () => {
+
+            sjQuery =
+                search.value.trim().toLowerCase();
+
+            renderSubjectsTable();
+
+        }
+    );
+
+    document.querySelectorAll(".tm-chip").forEach(
+        chip => {
+
+            chip.addEventListener(
+                "click",
+                () => {
+
+                    sjFilter =
+                        chip.dataset.filter;
+
+                    document.querySelectorAll(".tm-chip").forEach(
+                        c => c.classList.toggle("is-active", c === chip)
+                    );
+
+                    renderSubjectsTable();
+
+                }
+            );
+
+        }
+    );
 
 }
 
@@ -217,56 +431,147 @@ function renderSubjectsTable() {
     document.getElementById("subjectCount").textContent =
         `${schoolSubjects.length} subject${schoolSubjects.length === 1 ? "" : "s"}`;
 
-    const tbody =
-        document.getElementById("subjectsTableBody");
 
-    const noSubjectsNotice =
-        document.getElementById("noSubjectsNotice");
+    // ---- summary tiles (whole list, ignoring search/filter)
+
+    const inUse =
+        schoolSubjects.filter(s => (activeClassNames[s.id] || []).length > 0);
+
+    document.getElementById("sjStatTotal").textContent =
+        schoolSubjects.length;
+
+    document.getElementById("sjStatUsed").textContent =
+        inUse.length;
+
+    document.getElementById("sjStatUnused").textContent =
+        schoolSubjects.length - inUse.length;
+
+    document.getElementById("sjStatAssignments").textContent =
+        schoolSubjects.reduce((n, s) => n + (activeClassNames[s.id] || []).length, 0);
 
 
-    if (schoolSubjects.length === 0) {
+    // ---- search + usage filter
 
-        tbody.innerHTML =
-            "";
-
-        noSubjectsNotice.style.display =
-            "block";
-
-        return;
-
-    }
-
-
-    noSubjectsNotice.style.display =
-        "none";
-
-    tbody.innerHTML =
-        schoolSubjects.map(
+    const visible =
+        schoolSubjects.filter(
             subject => {
 
-                const classCount =
-                    classSubjectCounts[subject.id] || 0;
+                const used =
+                    (activeClassNames[subject.id] || []).length > 0;
 
-                return `
-                    <tr style="border-bottom:1px solid var(--border);">
-                        <td class="sticky-col1" style="padding:10px 8px;">${subject.name}</td>
-                        <td style="padding:10px 8px;">${classCount}</td>
-                        <td style="padding:10px 8px; text-align:right; white-space:nowrap;">
-                            <button type="button" class="icon-btn icon-btn-edit edit-subject-btn" data-subject-id="${subject.id}" aria-label="Edit subject" title="Edit">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button type="button" class="icon-btn icon-btn-delete delete-subject-btn" data-subject-id="${subject.id}" aria-label="Delete subject" title="Delete">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                if (sjFilter === "used" && !used) {
+
+                    return false;
+
+                }
+
+                if (sjFilter === "unused" && used) {
+
+                    return false;
+
+                }
+
+                return !sjQuery || subject.name.toLowerCase().includes(sjQuery);
 
             }
-        ).join("");
+        );
+
+    const grid =
+        document.getElementById("subjectGridMount");
+
+    const empty =
+        document.getElementById("noSubjectsNotice");
+
+    grid.innerHTML =
+        "";
+
+    empty.style.display =
+        visible.length ? "none" : "block";
+
+    document.getElementById("subjectEmptyText").textContent =
+        schoolSubjects.length ?
+            "No subjects match your search." :
+            "No subjects yet. Tap “Add subject” to create the first one.";
 
 
-    tbody.querySelectorAll(".edit-subject-btn").forEach(
+    visible.forEach(
+        subject => {
+
+            const classes =
+                activeClassNames[subject.id] || [];
+
+            const n =
+                classes.length;
+
+            let badge;
+
+            if (n > 0) {
+
+                badge = `<span class="tm-role tm-role-green"><i class="fa-solid fa-circle-check"></i> In ${n} class${n === 1 ? "" : "es"}</span>`;
+
+            }
+            else if ((classSubjectCounts[subject.id] || 0) > 0) {
+
+                // Assigned in an earlier session only.
+                badge = `<span class="tm-role tm-role-grey">Past sessions only</span>`;
+
+            }
+            else {
+
+                badge = `<span class="tm-role tm-role-grey">Not used yet</span>`;
+
+            }
+
+            const chips =
+                n > 0 ?
+                    `<div class="sj-chips">` +
+                    classes.slice(0, 3).map(c => `<span class="sj-chip">${sjEsc(c)}</span>`).join("") +
+                    (n > 3 ? `<span class="sj-chip sj-more" title="${sjEsc(classes.slice(3).join(", "))}">+${n - 3}</span>` : "") +
+                    `</div>` :
+                    `<p class="sj-none">No class this session</p>`;
+
+            const safeId =
+                sjEsc(subject.id);
+
+            const safeName =
+                sjEsc(subject.name);
+
+            const card =
+                document.createElement("article");
+
+            card.className =
+                "tm-card sj-card";
+
+            card.innerHTML = `
+                <div class="tm-card-top">
+                    <div class="cm-tile sj-tile tm-tone-${sjTone(subject.name)}" aria-hidden="true">
+                        <i class="fa-solid ${sjIcon(subject.name)}"></i>
+                    </div>
+                    <div class="tm-id">
+                        <div class="tm-name">${safeName}</div>
+                        ${badge}
+                    </div>
+                </div>
+
+                ${chips}
+
+                <div class="sj-actions">
+                    <button type="button" class="btn-light edit-subject-btn" data-subject-id="${safeId}" aria-label="Edit ${safeName}">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
+                    <button type="button" class="btn-light sj-del delete-subject-btn" data-subject-id="${safeId}" aria-label="Delete ${safeName}">
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                </div>
+            `;
+
+            grid.appendChild(card);
+
+        }
+    );
+
+
+    grid.querySelectorAll(".edit-subject-btn").forEach(
         btn => {
 
             btn.addEventListener(
@@ -289,7 +594,7 @@ function renderSubjectsTable() {
     );
 
 
-    tbody.querySelectorAll(".delete-subject-btn").forEach(
+    grid.querySelectorAll(".delete-subject-btn").forEach(
         btn => {
 
             btn.addEventListener(

@@ -27,7 +27,6 @@
                     <h1>Attendance</h1>
                     <div class="dashboard-meta-pill" style="margin-top:4px;">
                         <span id="className"></span>
-                        <span class="meta-dot">·</span>
                         <span id="term"></span>
                     </div>
                 </div>
@@ -44,17 +43,19 @@
 
             <div id="attendanceWrapper" style="display:none;">
 
-                <div class="card" style="margin-bottom:1rem;">
+                <div class="card weekly-card" style="margin-bottom:1rem;">
 
-                    <h3 style="margin-top:0;">Weekly Settings</h3>
-                    <p style="color:var(--text-secondary); font-size:13px; margin-top:-8px;">Select the attendance week and how many times school opened.</p>
+                    <div class="weekly-head">
 
-                    <div class="attendance-top">
+                        <div>
+                            <h3 class="weekly-title">Weekly settings</h3>
+                            <p class="weekly-sub">Pick the attendance week and how often school opened.</p>
+                        </div>
 
-                        <div class="form-grid">
+                        <div class="weekly-controls">
 
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>Week</label>
+                                <label for="attendanceWeek">Week</label>
                                 <select id="attendanceWeek">
                                     <option value="1">Week 1</option>
                                     <option value="2">Week 2</option>
@@ -75,7 +76,7 @@
                             </div>
 
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>School Opened (times)</label>
+                                <label for="schoolOpened">Times school opened</label>
                                 <input type="number" id="schoolOpened" min="0" max="10" value="10">
                             </div>
 
@@ -83,29 +84,56 @@
 
                     </div>
 
-                    <div class="attendance-summary-box" style="margin-top:16px;">
+                    <div class="weekly-body">
 
-                        <table class="summary-table">
-                            <thead>
-                                <tr>
-                                    <th>Day</th>
-                                    <th>Morning</th>
-                                    <th>Afternoon</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>Mon</td><td id="monMorning">0</td><td id="monAfternoon">0</td></tr>
-                                <tr><td>Tue</td><td id="tueMorning">0</td><td id="tueAfternoon">0</td></tr>
-                                <tr><td>Wed</td><td id="wedMorning">0</td><td id="wedAfternoon">0</td></tr>
-                                <tr><td>Thu</td><td id="thuMorning">0</td><td id="thuAfternoon">0</td></tr>
-                                <tr><td>Fri</td><td id="friMorning">0</td><td id="friAfternoon">0</td></tr>
-                                <tr class="total-row"><td>Total</td><td id="morningTotal">0</td><td id="afternoonTotal">0</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="weekly-table-wrap">
+                            <table class="weekly-table">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Morning</th>
+                                        <th>Afternoon</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>Mon</td><td id="monMorning">0</td><td id="monAfternoon">0</td></tr>
+                                    <tr><td>Tue</td><td id="tueMorning">0</td><td id="tueAfternoon">0</td></tr>
+                                    <tr><td>Wed</td><td id="wedMorning">0</td><td id="wedAfternoon">0</td></tr>
+                                    <tr><td>Thu</td><td id="thuMorning">0</td><td id="thuAfternoon">0</td></tr>
+                                    <tr><td>Fri</td><td id="friMorning">0</td><td id="friAfternoon">0</td></tr>
+                                    <tr class="weekly-total"><td>Total</td><td id="morningTotal">0</td><td id="afternoonTotal">0</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <div class="weekly-percentage">
-                            Weekly Attendance
-                            <span id="weeklyPercentage">0%</span>
+                        <div class="weekly-summary" id="weeklySummary" data-tier="none">
+
+                            <p class="weekly-summary-label">Weekly attendance</p>
+
+                            <p class="weekly-big" id="weeklyPercentage">0%</p>
+
+                            <div class="weekly-track"><div class="weekly-fill" id="weeklyBar"></div></div>
+
+                            <div class="weekly-scale"><span>0</span><span>50</span><span>75</span><span>100</span></div>
+
+                            <span class="weekly-status" id="weeklyStatus">Set times school opened</span>
+
+                            <div class="weekly-facts">
+                                <div><span>Week</span><b id="factWeek">1</b></div>
+                                <div><span>School opened</span><b id="factOpened">0 times</b></div>
+                                <div><span>Marks present</span><b id="factMarks">0 of 0</b></div>
+                                <div><span>Days with marks</span><b id="factDays">0 of 5</b></div>
+                            </div>
+
+                            <button type="button" class="weekly-help-btn" id="weeklyHelpBtn" aria-expanded="false">
+                                <i class="fa-solid fa-circle-info"></i> How is this calculated?
+                            </button>
+
+                            <p class="weekly-help" id="weeklyHelp" hidden>
+                                Morning and afternoon marks added together, divided by the number of students times how many times school opened. Each morning or afternoon counts as one time, so a full week is 10.
+                                <span class="weekly-math" id="weeklyMath"></span>
+                            </p>
+
                         </div>
 
                     </div>

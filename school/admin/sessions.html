@@ -26,59 +26,121 @@
                 </div>
             </header>
 
-            <!-- CURRENT SESSION -->
-            <div class="card" style="max-width:480px; margin-bottom:1.25rem;" id="currentSessionCard">
+            <div class="se-grid">
 
-                <h3 style="margin-top:0;">Current session</h3>
+                <!-- CURRENT SESSION -->
+                <section class="se-card" id="currentSessionCard">
 
-                <div id="noActiveSession" style="display:none;">
-                    <p style="color:var(--text-secondary);">No active session yet.</p>
-                </div>
+                    <div id="noActiveSession" class="se-empty" style="display:none;">
+                        <span class="se-icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></span>
+                        <strong>No active session yet</strong>
+                        <span>Start your first session using the form.</span>
+                    </div>
 
-                <div id="activeSessionInfo" style="display:none;">
+                    <div id="activeSessionInfo" style="display:none;">
 
-                    <p style="margin:0 0 12px;">
-                        <strong id="activeSessionName"></strong>
-                    </p>
+                        <div class="se-head">
+                            <span class="se-icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></span>
+                            <div class="se-head-text">
+                                <span class="se-eyebrow">Current session</span>
+                                <strong id="activeSessionName"></strong>
+                            </div>
+                            <span class="st-pill st-pill-open"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Active</span>
+                        </div>
 
-                    <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Start date</label>
-                    <input type="date" id="startDateInput" style="padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:12px;">
-                    <p style="font-size:12px; color:var(--text-muted); margin:-6px 0 12px;">Needed to work out real calendar dates for "Week 1", "Week 2", etc. on Attendance.</p>
+                        <div class="se-steps" id="termSteps" aria-hidden="true"><span></span><span></span><span></span></div>
 
-                    <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Current term</label>
-                    <select id="termSelect" style="padding:8px 35px 8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;  ">
-                        <option value="1st Term">1st Term</option>
-                        <option value="2nd Term">2nd Term</option>
-                        <option value="3rd Term">3rd Term</option>
-                    </select>
+                        <div class="se-fields">
 
-                </div>
+                            <div>
+                                <span class="se-label" id="termLabel">Current term</span>
 
-            </div>
+                                <div class="se-dd" id="termDd">
 
-            <!-- START NEW SESSION -->
-            <div class="card" style="max-width:480px;">
+                                    <select id="termSelect" class="se-native" tabindex="-1" aria-hidden="true">
+                                        <option value="1st Term">1st Term</option>
+                                        <option value="2nd Term">2nd Term</option>
+                                        <option value="3rd Term">3rd Term</option>
+                                    </select>
 
-                <h3 style="margin-top:0;">Start a new session</h3>
-                <p style="color:var(--text-secondary); font-size:13px;">
-                    Closes the current session (if any) and starts a fresh one.
-                    Classes are defined fresh per session — nothing carries over automatically.
-                </p>
+                                    <button type="button" class="se-trigger" id="termBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="termLabel termValue">
+                                        <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+                                        <span class="se-value" id="termValue">1st Term</span>
+                                        <i class="fa-solid fa-chevron-down se-chevron" aria-hidden="true"></i>
+                                    </button>
 
-                <label for="newSessionName" style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Session name</label>
-                <input type="text" id="newSessionName" placeholder="2026/2027"
-                       style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; margin-bottom:10px;">
+                                    <div class="se-menu" id="termMenu" role="listbox" aria-labelledby="termLabel" hidden>
+                                        <button type="button" class="se-opt" role="option" data-value="1st Term">
+                                            <span><b>1st Term</b><small>First term of the session</small></span>
+                                            <i class="fa-solid fa-check se-check" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="se-opt" role="option" data-value="2nd Term">
+                                            <span><b>2nd Term</b><small>Second term of the session</small></span>
+                                            <i class="fa-solid fa-check se-check" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="se-opt" role="option" data-value="3rd Term">
+                                            <span><b>3rd Term</b><small>Final term of the session</small></span>
+                                            <i class="fa-solid fa-check se-check" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
 
-                <label for="newSessionStartDate" style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">First day of Week 1 (Start date)</label>
-                <input type="date" id="newSessionStartDate"
-                       style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; margin-bottom:6px;">
-                <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">
-                    This anchors "Week 1" on the Attendance page to a real date — pick the actual Monday classes resume.
-                </p>
+                                </div>
+                            </div>
 
-                <p class="login-error" id="sessionError" style="display:none;"></p>
+                            <div>
+                                <label class="se-label" for="startDateInput">Start date</label>
+                                <div class="se-input-wrap">
+                                    <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                    <input type="date" id="startDateInput">
+                                </div>
+                            </div>
 
-                <button type="button" class="btn-primary" id="startSessionBtn">Start session</button>
+                        </div>
+
+                        <p class="se-hint">Start date is needed to work out real calendar dates for "Week 1", "Week 2", etc. on Attendance.</p>
+
+                        <p class="se-autosave"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Changes save automatically</p>
+
+                    </div>
+
+                </section>
+
+                <!-- START NEW SESSION -->
+                <section class="se-card" id="newSessionCard">
+
+                    <h2 class="se-title">Start a new session</h2>
+
+                    <button type="button" class="se-fold" id="newSessionToggle" aria-expanded="false" aria-controls="newSessionBody">
+                        <span>Start a new session</span>
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+
+                    <div class="se-body" id="newSessionBody">
+
+                        <div class="se-note">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            <span id="newSessionNote">Classes are set up fresh for each session, so nothing carries over.</span>
+                        </div>
+
+                        <label for="newSessionName" class="se-label">Session name</label>
+                        <input type="text" id="newSessionName" class="se-input" placeholder="2026/2027" autocomplete="off">
+
+                        <label for="newSessionStartDate" class="se-label se-spaced">First day of Week 1 (Start date)</label>
+                        <div class="se-input-wrap">
+                            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            <input type="date" id="newSessionStartDate">
+                        </div>
+                        <p class="se-hint">This anchors "Week 1" on the Attendance page to a real date — pick the actual Monday classes resume.</p>
+
+                        <p class="login-error" id="sessionError" style="display:none;"></p>
+
+                        <button type="button" class="st-btn st-btn-primary se-go" id="startSessionBtn">
+                            <i class="fa-solid fa-play" aria-hidden="true"></i> <span id="startSessionLabel">Start session</span>
+                        </button>
+
+                    </div>
+
+                </section>
 
             </div>
 

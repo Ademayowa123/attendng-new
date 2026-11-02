@@ -4,33 +4,37 @@
 
 let allSchools = [];
 
+let schoolView = "grid";
+
+let onboardBusy = false;
+
+const SCHOOL_VIEW_KEY = "attendng.platform.schoolView";
+
 
 document.addEventListener("DOMContentLoaded", async () => {
+
+    schoolView = readSchoolView();
+
+    updateViewButtons();
+
+    bindSchoolToolbar();
+
+    bindOnboardModal();
 
     await waitForContext();
 
     await loadSchools();
 
-    document.getElementById("searchSchool").addEventListener(
-        "input",
-        (event) => {
-
-            const term =
-                event.target.value.trim().toLowerCase();
-
-            const filtered =
-                allSchools.filter(
-                    s =>
-                        s.name.toLowerCase().includes(term) ||
-                        s.genesis_username.toLowerCase().includes(term)
-                );
-
-            renderSchools(filtered);
-
-        }
-    );
+    openOnboardFromHash();
 
 });
+
+
+function byId(id) {
+
+    return document.getElementById(id);
+
+}
 
 
 function waitForContext() {
@@ -62,13 +66,17 @@ function waitForContext() {
 }
 
 
+/*************************************************
+ * LOAD
+ *************************************************/
+
 async function loadSchools() {
 
     const [schoolsResult, membersResult] =
         await Promise.all([
             supabaseClient
                 .from("schools")
-                .select("id, name, genesis_username, created_at")
+                .select("id, name, genesis_username, logo_url, created_at")
                 .order("created_at", { ascending: false }),
             supabaseClient
                 .from("school_members")
@@ -110,14 +118,151 @@ async function loadSchools() {
             })
         );
 
+    renderMetrics();
 
-    document.getElementById("schoolCountLabel").textContent =
-        `${allSchools.length} school${allSchools.length === 1 ? "" : "s"} onboarded`;
-
-    renderSchools(allSchools);
+    renderSchools();
 
 }
 
+
+function renderMetrics() {
+
+    const now =
+        new Date();
+
+    const addedThisMonth =
+        allSchools.filter(
+            school => {
+
+                const created =
+                    new Date(school.created_at);
+
+                return created.getFullYear() === now.getFullYear() &&
+                    created.getMonth() === now.getMonth();
+
+            }
+        ).length;
+
+    const totalMembers =
+        allSchools.reduce(
+            (sum, school) => sum + school.memberCount,
+            0
+        );
+
+    byId("metricSchools").textContent =
+        allSchools.length.toLocaleString();
+
+    byId("metricMembers").textContent =
+        totalMembers.toLocaleString();
+
+    byId("metricMonth").textContent =
+        addedThisMonth.toLocaleString();
+
+}
+
+
+/*************************************************
+ * TOOLBAR: SEARCH, SORT, VIEW
+ *************************************************/
+
+function readSchoolView() {
+
+    try {
+
+        return localStorage.getItem(SCHOOL_VIEW_KEY) === "list" ?
+            "list" :
+            "grid";
+
+    }
+    catch (error) {
+
+        return "grid";
+
+    }
+
+}
+
+
+function setSchoolView(view) {
+
+    schoolView = view;
+
+    try {
+
+        localStorage.setItem(SCHOOL_VIEW_KEY, view);
+
+    }
+    catch (error) {
+
+        // Storage can be blocked; the toggle still works.
+
+    }
+
+    updateViewButtons();
+
+    renderSchools();
+
+}
+
+
+function updateViewButtons() {
+
+    byId("viewGrid").classList.toggle("on", schoolView === "grid");
+
+    byId("viewList").classList.toggle("on", schoolView === "list");
+
+}
+
+
+function bindSchoolToolbar() {
+
+    byId("searchSchool").addEventListener("input", renderSchools);
+
+    byId("sortSchool").addEventListener("change", renderSchools);
+
+    byId("viewGrid").addEventListener("click", () => setSchoolView("grid"));
+
+    byId("viewList").addEventListener("click", () => setSchoolView("list"));
+
+}
+
+
+function getVisibleSchools() {
+
+    const term =
+        byId("searchSchool").value.trim().toLowerCase();
+
+    const sort =
+        byId("sortSchool").value;
+
+    const list =
+        allSchools.filter(
+            school =>
+                !term ||
+                school.name.toLowerCase().includes(term) ||
+                (school.genesis_username || "").toLowerCase().includes(term)
+        );
+
+    if (sort === "name") {
+
+        list.sort((a, b) => a.name.localeCompare(b.name));
+
+    }
+    else if (sort === "members") {
+
+        list.sort((a, b) => b.memberCount - a.memberCount);
+
+    }
+    // "newest" keeps the order the query returned.
+
+    return list;
+
+}
+
+
+/*************************************************
+ * RENDER
+ *************************************************/
 
 function escapeHtml(value) {
 
@@ -127,6 +272,68 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+
+}
+
+
+function schoolInitials(name) {
+
+    const words =
+        name.trim().split(/\s+/).filter(Boolean);
+
+    const first =
+        words[0] ? words[0][0] : "?";
+
+    const second =
+        words[1] ? words[1][0] : "";
+
+    return (first + second).toUpperCase();
+
+}
+
+
+function formatAdded(value) {
+
+    return new Date(value).toLocaleDateString(
+        "en-GB",
+        { month: "short", year: "numeric" }
+    );
+
+}
+
+
+// Shows initials straight away, then swaps in the school's
+// logo once it has loaded. A missing or broken logo simply
+// leaves the initials in place.
+
+function fillSchoolAvatar(el, school) {
+
+    el.textContent =
+        schoolInitials(school.name);
+
+    if (!school.logo_url) {
+
+        return;
+
+    }
+
+    const img =
+        new Image();
+
+    img.alt = "";
+
+    img.onload = () => {
+
+        el.textContent = "";
+
+        el.classList.add("has-logo");
+
+        el.appendChild(img);
+
+    };
+
+    img.src =
+        school.logo_url;
 
 }
 
@@ -149,19 +356,55 @@ function openSchool(school) {
 }
 
 
-function renderSchools(list) {
+function renderSchools() {
 
-    const tbody =
-        document.getElementById("schoolsTableBody");
+    const grid =
+        byId("schoolGrid");
 
-    const cardsMount =
-        document.getElementById("schoolCardsMount");
+    const empty =
+        byId("schoolEmpty");
 
-    tbody.innerHTML =
+    const list =
+        getVisibleSchools();
+
+    grid.className =
+        "school-grid" + (schoolView === "list" ? " list" : "");
+
+    grid.innerHTML =
         "";
 
-    cardsMount.innerHTML =
-        "";
+
+    if (list.length === 0) {
+
+        const noSchoolsAtAll =
+            allSchools.length === 0;
+
+        grid.style.display = "none";
+
+        empty.style.display = "block";
+
+        byId("schoolEmptyTitle").textContent =
+            noSchoolsAtAll ?
+                "Onboard your first school" :
+                "No school matches that search";
+
+        byId("schoolEmptyText").textContent =
+            noSchoolsAtAll ?
+                "Schools you onboard show up here." :
+                "Try another name or username.";
+
+        byId("emptyOnboard").style.display =
+            noSchoolsAtAll ? "inline-block" : "none";
+
+        return;
+
+    }
+
+
+    grid.style.display = "";
+
+    empty.style.display = "none";
+
 
     list.forEach(
         school => {
@@ -169,40 +412,11 @@ function renderSchools(list) {
             const memberLabel =
                 `${school.memberCount} member${school.memberCount === 1 ? "" : "s"}`;
 
-
-            // Table row (desktop / tablet)
-
-            const row =
-                document.createElement("tr");
-
-            row.style.borderBottom =
-                "1px solid var(--border)";
-
-            row.style.cursor =
-                "pointer";
-
-            row.innerHTML = `
-                <td style="padding:10px 4px; font-weight:500;">${escapeHtml(school.name)}</td>
-                <td style="padding:10px 4px;"><code>${escapeHtml(school.genesis_username)}</code></td>
-                <td style="padding:10px 4px;">${school.memberCount}</td>
-                <td style="padding:10px 4px; text-align:right;"><i class="fa-solid fa-chevron-right" style="color:var(--text-muted);"></i></td>
-            `;
-
-            row.addEventListener("click", () => openSchool(school));
-
-            tbody.appendChild(row);
-
-
-            // Card (phones)
-
             const card =
                 document.createElement("div");
 
             card.className =
-                "teacher-card";
-
-            card.style.cursor =
-                "pointer";
+                "school-card";
 
             card.tabIndex =
                 0;
@@ -210,17 +424,19 @@ function renderSchools(list) {
             card.setAttribute("role", "link");
 
             card.innerHTML = `
-                <div class="teacher-card-header">
-                    <div>
-                        <div class="teacher-card-name">${escapeHtml(school.name)}</div>
-                        <div class="teacher-card-role">${memberLabel}</div>
+                <div class="school-avatar" data-avatar></div>
+                <div class="school-main">
+                    <p class="school-name">${escapeHtml(school.name)}</p>
+                    <div class="school-meta">
+                        <code class="school-user">${escapeHtml(school.genesis_username)}</code>
+                        <span><i class="fa-solid fa-users"></i> ${memberLabel}</span>
+                        <span class="school-added"><i class="fa-regular fa-calendar"></i> ${escapeHtml(formatAdded(school.created_at))}</span>
                     </div>
-                    <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); margin-top:4px;"></i>
                 </div>
-                <div class="teacher-card-body">
-                    <div><span class="teacher-card-label">Genesis username:</span><code>${escapeHtml(school.genesis_username)}</code></div>
-                </div>
+                <i class="fa-solid fa-chevron-right school-chevron"></i>
             `;
+
+            fillSchoolAvatar(card.querySelector("[data-avatar]"), school);
 
             card.addEventListener("click", () => openSchool(school));
 
@@ -239,9 +455,292 @@ function renderSchools(list) {
                 }
             );
 
-            cardsMount.appendChild(card);
+            grid.appendChild(card);
 
         }
     );
+
+}
+
+
+/*************************************************
+ * ONBOARD MODAL
+ *************************************************/
+
+function openOnboardModal() {
+
+    resetOnboard();
+
+    byId("onboardModal").classList.add("show");
+
+    setTimeout(() => byId("schoolName").focus(), 50);
+
+}
+
+
+function closeOnboardModal() {
+
+    if (onboardBusy) {
+
+        return;
+
+    }
+
+    byId("onboardModal").classList.remove("show");
+
+    resetOnboard();
+
+    if (location.hash === "#onboard") {
+
+        history.replaceState(
+            null,
+            "",
+            location.pathname + location.search
+        );
+
+    }
+
+}
+
+
+function openOnboardFromHash() {
+
+    if (location.hash === "#onboard") {
+
+        openOnboardModal();
+
+    }
+
+}
+
+
+function resetOnboard() {
+
+    byId("onboardForm").reset();
+
+    byId("onboardForm").style.display = "block";
+
+    byId("onboardResult").style.display = "none";
+
+    byId("onboardError").style.display = "none";
+
+    document.querySelectorAll("[data-copy]").forEach(
+        button => { button.textContent = "Copy"; }
+    );
+
+}
+
+
+function bindOnboardModal() {
+
+    const modal =
+        byId("onboardModal");
+
+    byId("openOnboard").addEventListener("click", openOnboardModal);
+
+    byId("emptyOnboard").addEventListener("click", openOnboardModal);
+
+    byId("closeOnboard").addEventListener("click", closeOnboardModal);
+
+    byId("cancelOnboard").addEventListener("click", closeOnboardModal);
+
+    byId("onboardDone").addEventListener("click", closeOnboardModal);
+
+    byId("onboardAnother").addEventListener("click", openOnboardModal);
+
+    modal.addEventListener(
+        "click",
+        (event) => {
+
+            if (event.target === modal) {
+
+                closeOnboardModal();
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (event.key === "Escape" && modal.classList.contains("show")) {
+
+                closeOnboardModal();
+
+            }
+
+        }
+    );
+
+    window.addEventListener("hashchange", openOnboardFromHash);
+
+    byId("onboardForm").addEventListener("submit", submitOnboard);
+
+    document.querySelectorAll("[data-copy]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    const text =
+                        byId(button.dataset.copy).textContent;
+
+                    try {
+
+                        await navigator.clipboard.writeText(text);
+
+                        button.textContent = "Copied";
+
+                    }
+                    catch (error) {
+
+                        button.textContent = "Press Ctrl+C";
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+async function submitOnboard(event) {
+
+    event.preventDefault();
+
+    const errorEl =
+        byId("onboardError");
+
+    const submitBtn =
+        byId("onboardSubmit");
+
+    errorEl.style.display =
+        "none";
+
+    onboardBusy =
+        true;
+
+    submitBtn.disabled =
+        true;
+
+    submitBtn.textContent =
+        "Creating…";
+
+
+    try {
+
+        const schoolName =
+            byId("schoolName").value.trim();
+
+        const {
+            data,
+            error: invokeError
+        } =
+            await supabaseClient.functions.invoke(
+                "onboard-school",
+                { body: { schoolName } }
+            );
+
+        if (invokeError) {
+
+            throw new Error(await extractFunctionError(invokeError));
+
+        }
+
+        if (data && data.error) {
+
+            throw new Error(data.error);
+
+        }
+
+
+        byId("onboardResultText").textContent =
+            `"${data.school.name}" was created. Share these details with the school. This password won't be shown again.`;
+
+        byId("resultUsername").textContent =
+            data.credentials.username;
+
+        byId("resultPassword").textContent =
+            data.credentials.password;
+
+        byId("onboardForm").style.display =
+            "none";
+
+        byId("onboardResult").style.display =
+            "block";
+
+        // Show the new school in the list behind the dialog.
+
+        loadSchools();
+
+    }
+    catch (error) {
+
+        console.error("Onboarding failed:", error);
+
+        errorEl.textContent =
+            error.message ||
+            "Something went wrong onboarding this school.";
+
+        errorEl.style.display =
+            "block";
+
+    }
+    finally {
+
+        onboardBusy =
+            false;
+
+        submitBtn.disabled =
+            false;
+
+        submitBtn.textContent =
+            "Onboard school";
+
+    }
+
+}
+
+
+/* ==========================================
+   EXTRACT REAL ERROR FROM A NON-2XX RESPONSE
+   supabase-js's own error for a non-2xx Edge
+   Function call is a generic wrapper — the
+   actual JSON body (our own {error: "..."})
+   is available on error.context, but only if
+   we go read it ourselves.
+========================================== */
+
+async function extractFunctionError(invokeError) {
+
+    try {
+
+        if (invokeError.context && typeof invokeError.context.json === "function") {
+
+            const body =
+                await invokeError.context.json();
+
+            if (body && body.error) {
+
+                return body.error;
+
+            }
+
+        }
+
+    }
+    catch (e) {
+
+        // Body was not JSON, or already consumed.
+
+    }
+
+    return invokeError.message || "Something went wrong.";
 
 }

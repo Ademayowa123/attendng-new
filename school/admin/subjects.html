@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
 </head>
-<body>
+<body class="page-teachers page-subjects">
 
     <div id="toast" class="toast"></div>
 
@@ -31,27 +31,45 @@
                 </button>
             </header>
 
-            <div class="card" id="subjectsCard">
-
-                <div class="table-scroll">
-                    <table class="subjects-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                        <thead>
-                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                                <th class="sticky-col1" style="padding:10px 8px; min-width:200px;">Subject</th>
-                                <th style="padding:10px 8px; min-width:120px;">Classes using it</th>
-                                <th style="padding:10px 8px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="subjectsTableBody">
-                            <!-- populated at runtime -->
-                        </tbody>
-                    </table>
+            <!-- SUMMARY TILES -->
+            <section class="tm-stats" aria-label="Subject summary">
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-teal"><i class="fa-solid fa-book-open"></i></span>
+                    <div><strong id="sjStatTotal">0</strong><span>Subjects</span></div>
                 </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-indigo"><i class="fa-solid fa-circle-check"></i></span>
+                    <div><strong id="sjStatUsed">0</strong><span>In use</span></div>
+                </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-amber"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div><strong id="sjStatUnused">0</strong><span>Not used yet</span></div>
+                </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-green"><i class="fa-solid fa-layer-group"></i></span>
+                    <div><strong id="sjStatAssignments">0</strong><span>Class assignments</span></div>
+                </div>
+            </section>
 
-                <p id="noSubjectsNotice" style="display:none; color:var(--text-muted); margin:12px 0 4px;">
-                    No subjects yet. Add the first one above.
-                </p>
+            <!-- SEARCH + FILTER -->
+            <div class="tm-toolbar">
+                <label class="tm-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="subjectSearch" placeholder="Search subjects" autocomplete="off">
+                </label>
+                <div class="tm-filters" role="group" aria-label="Filter by usage">
+                    <button type="button" class="tm-chip is-active" data-filter="all">All</button>
+                    <button type="button" class="tm-chip" data-filter="used">In use</button>
+                    <button type="button" class="tm-chip" data-filter="unused">Not used</button>
+                </div>
+            </div>
 
+            <!-- SUBJECT CARDS (populated at runtime) -->
+            <div class="tm-grid sj-grid" id="subjectGridMount"></div>
+
+            <div class="tm-empty" id="noSubjectsNotice" style="display:none;">
+                <i class="fa-regular fa-face-frown-open"></i>
+                <p id="subjectEmptyText">No subjects yet.</p>
             </div>
 
         </main>
@@ -77,7 +95,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelAddSubject">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelAddSubject">Cancel</button>
                 <button type="button" class="btn-primary" id="submitAddSubject">Add subject</button>
             </div>
 
@@ -103,7 +121,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelEditSubject">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelEditSubject">Cancel</button>
                 <button type="button" class="btn-primary" id="submitEditSubject">Save changes</button>
             </div>
 
@@ -127,7 +145,7 @@
             </div>
 
             <div class="confirm-footer">
-                <button type="button" class="btn-info" id="cancelDeleteSubject">Cancel</button>
+                <button type="button" class="btn-secondary" id="cancelDeleteSubject">Cancel</button>
                 <button type="button" class="btn-danger" id="confirmDeleteSubject">Delete</button>
             </div>
 

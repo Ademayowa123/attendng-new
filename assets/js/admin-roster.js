@@ -10,6 +10,9 @@ let allStudents = [];      // full roster, unfiltered
 let editingStudentId = null; // set when the Add Student modal is being used to edit
 let pendingDeleteStudentId = null;
 let pendingDeleteStudentName = null;
+let activeGender = "all";   // all | male | female
+let searchTerm = "";
+let rowMenuState = null;     // { studentId, anchor, from } while the row menu is open
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -145,13 +148,19 @@ async function loadClassAndSession() {
         data.sessions;
 
 
-    document.getElementById("pageTitle").textContent =
-        `${classInfo.name} — Roster`;
+    const tile =
+        document.getElementById("classTile");
+
+    tile.textContent =
+        classInfo.name;
+
+    tile.className =
+        "rs-tile " + stClassTone(classInfo.name);
 
     document.getElementById("registerStatusBadge").innerHTML =
         classInfo.is_finalized ?
-            `<span class="badge badge-warning">Register finalized</span>` :
-            `<span class="badge badge-success">Register unlocked</span>`;
+            `<span class="st-pill st-pill-locked"><i class="fa-solid fa-lock" aria-hidden="true"></i> Register finalized</span>` :
+            `<span class="st-pill st-pill-open"><i class="fa-solid fa-lock-open" aria-hidden="true"></i> Register unlocked</span>`;
 
 }
 
@@ -224,106 +233,362 @@ async function loadStudents() {
     allStudents =
         data;
 
-    renderStudents(allStudents);
+    refreshSummary();
+
+    applyRosterFilter();
 
 }
 
 
-function renderStudents(list) {
+/* ==========================================
+   SMALL HELPERS
+========================================== */
 
-    const tbody =
-        document.getElementById("studentTable");
+function stEscape(value) {
 
-    tbody.innerHTML =
+    const text =
+        (value === null || value === undefined) ? "" : String(value);
+
+    return text.replace(
+        /[&<>"']/g,
+        ch => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#39;"
+        }[ch])
+    );
+
+}
+
+
+function stHash(text) {
+
+    let sum = 0;
+
+    String(text || "").split("").forEach(
+        ch => { sum += ch.charCodeAt(0); }
+    );
+
+    return sum;
+
+}
+
+
+// Same colours the Results page uses for a class tile.
+function stClassTone(name) {
+
+    const tones =
+        ["rs-tone-teal", "rs-tone-indigo", "rs-tone-amber"];
+
+    const digits =
+        String(name || "").match(/\d+/);
+
+    if (digits) {
+
+        return tones[(((parseInt(digits[0], 10) - 1) % 3) + 3) % 3];
+
+    }
+
+    return tones[stHash(name) % 3];
+
+}
+
+
+function genderLabel(gender) {
+
+    return gender === "male" ? "Male" :
+        gender === "female" ? "Female" :
         "";
 
-
-    list.forEach(
-        (student, index) => {
-
-            const moveOptions =
-                otherClasses
-                    .map(c => `<option value="${c.id}">${c.name}</option>`)
-                    .join("");
-
-            const row =
-                document.createElement("tr");
-
-            row.style.borderBottom =
-                "1px solid var(--border)";
-
-            row.innerHTML = `
-                <td class="sticky-col1" style="padding:10px 8px;">${index + 1}</td>
-                <td style="padding:10px 8px;">${student.surname}</td>
-                <td style="padding:10px 8px;">${student.first_name}</td>
-                <td style="padding:10px 8px;">${student.other_name || ""}</td>
-                <td style="padding:10px 8px; text-transform:capitalize;">${student.gender || ""}</td>
-                <td style="padding:10px 8px; text-align:right; white-space:nowrap;">
-                    <select class="move-select" data-student-id="${student.id}" style="font-size:12px; margin-right:6px;">
-                        <option value="">Move to…</option>
-                        ${moveOptions}
-                    </select>
-                    <button class="icon-btn icon-btn-edit edit-btn" data-student-id="${student.id}" aria-label="Edit student" title="Edit">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="icon-btn icon-btn-delete delete-btn" data-student-id="${student.id}" data-name="${student.surname} ${student.first_name}" aria-label="Delete student" title="Delete">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </td>
-            `;
-
-            tbody.appendChild(row);
-
-        }
-    );
+}
 
 
-    document.getElementById("studentCount").textContent =
-        list.length;
+function genderChip(gender) {
+
+    const label =
+        genderLabel(gender);
+
+    return label ?
+        `<span class="st-gender st-${gender}">${label}</span>` :
+        `<span class="st-gender st-unspecified">Not set</span>`;
+
+}
 
 
-    tbody.querySelectorAll(".move-select").forEach(
-        select => {
+/* ==========================================
+   SUMMARY TILES + FILTERS
+========================================== */
 
-            select.addEventListener(
-                "change",
-                () => {
+function refreshSummary() {
 
-                    if (select.value) {
+    const total =
+        allStudents.length;
 
-                        moveStudent(select.dataset.studentId, select.value);
+    const male =
+        allStudents.filter(s => s.gender === "male").length;
 
-                    }
+    const female =
+        allStudents.filter(s => s.gender === "female").length;
+
+    const missing =
+        allStudents.filter(s => !(s.admission_no || "").trim()).length;
+
+    document.getElementById("studentCount").textContent = total;
+    document.getElementById("maleCount").textContent = male;
+    document.getElementById("femaleCount").textContent = female;
+    document.getElementById("missingCount").textContent = missing;
+
+    document.getElementById("countAll").textContent = total;
+    document.getElementById("countMale").textContent = male;
+    document.getElementById("countFemale").textContent = female;
+
+    document.getElementById("genderBar").innerHTML =
+        (male + female) === 0 ?
+            "" :
+            `<span class="st-bar-male" style="flex:${male} 1 0"></span><span class="st-bar-female" style="flex:${female} 1 0"></span>`;
+
+}
+
+
+function applyRosterFilter() {
+
+    const tokens =
+        searchTerm.split(/\s+/).filter(Boolean);
+
+    const list =
+        allStudents.filter(
+            student => {
+
+                if (activeGender !== "all" && student.gender !== activeGender) {
+
+                    return false;
 
                 }
+
+                const name =
+                    `${student.surname} ${student.first_name} ${student.other_name || ""}`.toLowerCase();
+
+                return tokens.every(token => name.includes(token));
+
+            }
+        );
+
+    renderStudents(list);
+
+}
+
+
+/* ==========================================
+   RENDER
+========================================== */
+
+function renderStudents(list) {
+
+    const listEl =
+        document.getElementById("studentList");
+
+    listEl.innerHTML =
+        list.map(
+            student => {
+
+                const serial =
+                    allStudents.indexOf(student) + 1;
+
+                const initials =
+                    (
+                        (student.surname || "").charAt(0) +
+                        (student.first_name || "").charAt(0)
+                    ).toUpperCase() || "?";
+
+                const fullName =
+                    `${student.surname} ${student.first_name}`;
+
+                const admission =
+                    (student.admission_no || "").trim();
+
+                const metaParts =
+                    [
+                        admission || "No admission number",
+                        genderLabel(student.gender)
+                    ].filter(Boolean);
+
+                return `
+                    <div class="st-item" data-student-id="${stEscape(student.id)}" data-name="${stEscape(fullName)}">
+                        <div class="st-row st-cols">
+
+                            <span class="st-num">${serial}</span>
+
+                            <div class="st-student">
+                                <span class="rs-avatar rs-av-${stHash(fullName) % 5}" aria-hidden="true">${stEscape(initials)}</span>
+                                <div class="st-id">
+                                    <span class="st-name"><b>${stEscape(student.surname)}</b> ${stEscape(student.first_name)} ${stEscape(student.other_name || "")}</span>
+                                    <span class="st-meta">${stEscape(metaParts.join(" · "))}</span>
+                                </div>
+                            </div>
+
+                            <span class="st-adm">${
+                                admission ?
+                                    stEscape(admission) :
+                                    `<button type="button" class="st-link-warn" data-act="add-adm">Add number</button>`
+                            }</span>
+
+                            <span class="st-gender-cell">${genderChip(student.gender)}</span>
+
+                            <div class="st-actions">
+                                <button type="button" class="st-icon" data-act="edit" aria-label="Edit ${stEscape(fullName)}" title="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
+                                ${otherClasses.length ? `<button type="button" class="st-icon" data-act="move" aria-label="Move ${stEscape(fullName)} to another class" title="Move to another class"><i class="fa-solid fa-right-left" aria-hidden="true"></i></button>` : ""}
+                                <button type="button" class="st-icon is-danger" data-act="delete" aria-label="Delete ${stEscape(fullName)}" title="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                            </div>
+
+                            <button type="button" class="st-icon st-more" data-act="more" aria-label="Actions for ${stEscape(fullName)}" aria-haspopup="true"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
+
+                        </div>
+                    </div>
+                `;
+
+            }
+        ).join("");
+
+
+    const note =
+        document.getElementById("listNote");
+
+    if (allStudents.length === 0) {
+
+        note.textContent =
+            "No students in this class yet. Add a student or import a class list.";
+
+        note.hidden =
+            false;
+
+    }
+    else if (list.length === 0) {
+
+        note.textContent =
+            "No students match your search.";
+
+        note.hidden =
+            false;
+
+    }
+    else {
+
+        note.hidden =
+            true;
+
+    }
+
+    document.getElementById("showingCount").textContent =
+        `Showing ${list.length} of ${allStudents.length} student${allStudents.length === 1 ? "" : "s"}`;
+
+}
+
+
+/* ==========================================
+   ROW MENU (move / edit / delete)
+========================================== */
+
+function openRowMenu(anchor, studentId, mode) {
+
+    rowMenuState =
+        { studentId, anchor, from: mode };
+
+    renderRowMenu(mode);
+
+    const menu =
+        document.getElementById("rowMenu");
+
+    menu.hidden =
+        false;
+
+    positionRowMenu();
+
+}
+
+
+function renderRowMenu(mode) {
+
+    const menu =
+        document.getElementById("rowMenu");
+
+    if (mode === "move") {
+
+        const back =
+            rowMenuState.from === "more" ?
+                `<button type="button" data-menu="back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back</button>` :
+                "";
+
+        menu.innerHTML =
+            `${back}<div class="st-menu-title">Move to</div>` +
+            (
+                otherClasses.length ?
+                    otherClasses.map(
+                        c => `<button type="button" data-menu="move-to" data-class-id="${stEscape(c.id)}">${stEscape(c.name)}</button>`
+                    ).join("") :
+                    `<p class="st-menu-empty">No other classes in this session.</p>`
             );
 
-        }
-    );
+        return;
+
+    }
+
+    menu.innerHTML = `
+        <button type="button" data-menu="edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit student</button>
+        ${otherClasses.length ? `<button type="button" data-menu="move"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Move to…</button>` : ""}
+        <button type="button" data-menu="delete" class="is-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
+    `;
+
+}
 
 
-    tbody.querySelectorAll(".edit-btn").forEach(
-        btn => {
+function positionRowMenu() {
 
-            btn.addEventListener(
-                "click",
-                () => openEditModal(btn.dataset.studentId)
-            );
+    const menu =
+        document.getElementById("rowMenu");
 
-        }
-    );
+    const rect =
+        rowMenuState.anchor.getBoundingClientRect();
+
+    const width =
+        menu.offsetWidth;
+
+    const height =
+        menu.offsetHeight;
+
+    const left =
+        Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+
+    const below =
+        rect.bottom + height + 12 <= window.innerHeight;
+
+    menu.style.left =
+        (left + window.scrollX) + "px";
+
+    menu.style.top =
+        ((below ? rect.bottom + 6 : rect.top - height - 6) + window.scrollY) + "px";
+
+}
 
 
-    tbody.querySelectorAll(".delete-btn").forEach(
-        btn => {
+function closeRowMenu() {
 
-            btn.addEventListener(
-                "click",
-                () => deleteStudent(btn.dataset.studentId, btn.dataset.name)
-            );
+    rowMenuState =
+        null;
 
-        }
-    );
+    document.getElementById("rowMenu").hidden =
+        true;
+
+}
+
+
+function closeImportMenu() {
+
+    document.getElementById("importMenu").hidden =
+        true;
+
+    document.getElementById("importMenuBtn").setAttribute("aria-expanded", "false");
 
 }
 
@@ -334,27 +599,253 @@ function renderStudents(list) {
 
 function bindUI() {
 
-    // SEARCH
+    // SEARCH + GENDER FILTER
 
     document.getElementById("searchStudent").addEventListener(
         "input",
         (event) => {
 
-            const term =
+            searchTerm =
                 event.target.value.trim().toLowerCase();
 
-            const filtered =
-                allStudents.filter(
-                    s =>
-                        s.surname.toLowerCase().includes(term) ||
-                        s.first_name.toLowerCase().includes(term) ||
-                        (s.other_name || "").toLowerCase().includes(term)
-                );
-
-            renderStudents(filtered);
+            applyRosterFilter();
 
         }
     );
+
+    document.querySelectorAll(".rs-filter").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    activeGender =
+                        button.dataset.gender;
+
+                    document.querySelectorAll(".rs-filter").forEach(
+                        other => {
+
+                            const active =
+                                other === button;
+
+                            other.classList.toggle("is-active", active);
+
+                            other.setAttribute("aria-pressed", String(active));
+
+                        }
+                    );
+
+                    applyRosterFilter();
+
+                }
+            );
+
+        }
+    );
+
+
+    // IMPORT DROPDOWN
+
+    const importMenu =
+        document.getElementById("importMenu");
+
+    const importMenuBtn =
+        document.getElementById("importMenuBtn");
+
+    importMenuBtn.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            closeRowMenu();
+
+            importMenu.hidden =
+                !importMenu.hidden;
+
+            importMenuBtn.setAttribute("aria-expanded", String(!importMenu.hidden));
+
+        }
+    );
+
+    importMenu.addEventListener("click", closeImportMenu);
+
+
+    // STUDENT ROWS (edit / move / delete / add number)
+
+    const rowList =
+        document.getElementById("studentList");
+
+    rowList.addEventListener(
+        "click",
+        (event) => {
+
+            const button =
+                event.target.closest("[data-act]");
+
+            const item =
+                event.target.closest(".st-item");
+
+            if (!button || !item) {
+
+                return;
+
+            }
+
+            event.stopPropagation();
+
+            const studentId =
+                item.dataset.studentId;
+
+            const action =
+                button.dataset.act;
+
+            if (action === "edit") {
+
+                closeRowMenu();
+
+                openEditModal(studentId);
+
+            }
+            else if (action === "add-adm") {
+
+                closeRowMenu();
+
+                openEditModal(studentId);
+
+                document.getElementById("admissionno").focus();
+
+            }
+            else if (action === "delete") {
+
+                closeRowMenu();
+
+                deleteStudent(studentId, item.dataset.name);
+
+            }
+            else if (action === "move" || action === "more") {
+
+                closeImportMenu();
+
+                const sameButton =
+                    rowMenuState &&
+                    rowMenuState.anchor === button &&
+                    !document.getElementById("rowMenu").hidden;
+
+                if (sameButton) {
+
+                    closeRowMenu();
+
+                }
+                else {
+
+                    openRowMenu(button, studentId, action);
+
+                }
+
+            }
+
+        }
+    );
+
+
+    document.getElementById("rowMenu").addEventListener(
+        "click",
+        (event) => {
+
+            const button =
+                event.target.closest("[data-menu]");
+
+            if (!button || !rowMenuState) {
+
+                return;
+
+            }
+
+            event.stopPropagation();
+
+            const studentId =
+                rowMenuState.studentId;
+
+            const choice =
+                button.dataset.menu;
+
+            if (choice === "move") {
+
+                renderRowMenu("move");
+
+                positionRowMenu();
+
+            }
+            else if (choice === "back") {
+
+                renderRowMenu("more");
+
+                positionRowMenu();
+
+            }
+            else if (choice === "edit") {
+
+                closeRowMenu();
+
+                openEditModal(studentId);
+
+            }
+            else if (choice === "delete") {
+
+                const student =
+                    allStudents.find(s => s.id === studentId);
+
+                closeRowMenu();
+
+                if (student) {
+
+                    deleteStudent(studentId, `${student.surname} ${student.first_name}`);
+
+                }
+
+            }
+            else if (choice === "move-to") {
+
+                closeRowMenu();
+
+                moveStudent(studentId, button.dataset.classId);
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "click",
+        () => {
+
+            closeRowMenu();
+
+            closeImportMenu();
+
+        }
+    );
+
+    document.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (event.key === "Escape") {
+
+                closeRowMenu();
+
+                closeImportMenu();
+
+            }
+
+        }
+    );
+
+    window.addEventListener("scroll", closeRowMenu, { passive: true });
+
+    window.addEventListener("resize", closeRowMenu);
 
 
     // ADD STUDENT MODAL

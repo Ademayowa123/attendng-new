@@ -2,31 +2,48 @@
  * ADMIN-SETTINGS.JS
  *************************************************/
 
+// Last saved values. The bar at the bottom shows only
+// while the form differs from these.
+
+let savedSettings = { name: "", address: "", phone: "" };
+
+let logoUrl = "";
+
+let settingsBusy = false;
+
+
 document.addEventListener("DOMContentLoaded", async () => {
 
     await waitForContext();
 
-    document.getElementById("schoolNameInput").value =
+    savedSettings.name =
         AttendNGContext.schoolName || "";
 
-    if (AttendNGContext.schoolLogoUrl) {
+    document.getElementById("schoolNameInput").value =
+        savedSettings.name;
 
-        document.getElementById("logoPreview").src =
-            AttendNGContext.schoolLogoUrl;
+    logoUrl =
+        AttendNGContext.schoolLogoUrl || "";
 
-    }
+    renderPreview();
 
+    await loadContactDetails();
 
-    document.getElementById("nameForm").addEventListener(
+    document.getElementById("settingsForm").addEventListener(
         "submit",
-        handleNameSave
+        handleSettingsSave
     );
 
-    loadContactDetails();
+    ["schoolNameInput", "schoolAddressInput", "schoolPhoneInput"].forEach(
+        id => document.getElementById(id).addEventListener(
+            "input",
+            renderPreview
+        )
+    );
 
-    document.getElementById("contactForm").addEventListener(
-        "submit",
-        handleContactSave
+    document.getElementById("discardBtn").addEventListener(
+        "click",
+        discardChanges
     );
 
     document.getElementById("chooseLogoBtn").addEventListener(
@@ -37,6 +54,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("logoFile").addEventListener(
         "change",
         handleLogoUpload
+    );
+
+    // Warn before leaving with edits that haven't been saved.
+
+    window.addEventListener(
+        "beforeunload",
+        (event) => {
+
+            if (isDirty()) {
+
+                event.preventDefault();
+
+                event.returnValue = "";
+
+            }
+
+        }
     );
 
 });
@@ -71,6 +105,148 @@ function waitForContext() {
 }
 
 
+/*************************************************
+ * FORM STATE
+ *************************************************/
+
+function currentValues() {
+
+    return {
+        name: document.getElementById("schoolNameInput").value.trim(),
+        address: document.getElementById("schoolAddressInput").value.trim(),
+        phone: document.getElementById("schoolPhoneInput").value.trim()
+    };
+
+}
+
+
+function isDirty() {
+
+    const now =
+        currentValues();
+
+    return now.name !== savedSettings.name ||
+        now.address !== savedSettings.address ||
+        now.phone !== savedSettings.phone;
+
+}
+
+
+function initialsOf(name) {
+
+    const words =
+        name.trim().split(/\s+/).filter(Boolean);
+
+    return (
+        (words[0] ? words[0][0] : "?") +
+        (words[1] ? words[1][0] : "")
+    ).toUpperCase();
+
+}
+
+
+// Keeps the logo tile, the report card preview and the
+// unsaved-changes bar in step with what is typed.
+
+function renderPreview() {
+
+    const values =
+        currentValues();
+
+    const initials =
+        initialsOf(values.name || "School");
+
+    document.getElementById("logoInitials").textContent =
+        initials;
+
+    // Logo tile: the uploaded logo if there is one, else initials.
+
+    const img =
+        document.getElementById("logoPreview");
+
+    if (logoUrl) {
+
+        img.src = logoUrl;
+
+        img.hidden = false;
+
+        document.getElementById("logoInitials").hidden = true;
+
+    }
+    else {
+
+        img.hidden = true;
+
+        document.getElementById("logoInitials").hidden = false;
+
+    }
+
+    const previewLogo =
+        document.getElementById("previewLogo");
+
+    previewLogo.innerHTML =
+        "";
+
+    if (logoUrl) {
+
+        const small =
+            document.createElement("img");
+
+        small.src = logoUrl;
+
+        small.alt = "";
+
+        previewLogo.appendChild(small);
+
+        previewLogo.classList.add("has-logo");
+
+    }
+    else {
+
+        previewLogo.textContent = initials;
+
+        previewLogo.classList.remove("has-logo");
+
+    }
+
+    document.getElementById("previewName").textContent =
+        values.name || "School name";
+
+    document.getElementById("previewAddress").textContent =
+        values.address || "Address";
+
+    document.getElementById("previewPhone").textContent =
+        "Tel: " + (values.phone || "phone number");
+
+    document.getElementById("saveBar").hidden =
+        !isDirty();
+
+}
+
+
+function discardChanges() {
+
+    document.getElementById("schoolNameInput").value =
+        savedSettings.name;
+
+    document.getElementById("schoolAddressInput").value =
+        savedSettings.address;
+
+    document.getElementById("schoolPhoneInput").value =
+        savedSettings.phone;
+
+    document.getElementById("saveError").style.display =
+        "none";
+
+    renderPreview();
+
+}
+
+
+/*************************************************
+ * LOAD + SAVE
+ *************************************************/
+
 async function loadContactDetails() {
 
     const {
@@ -96,76 +272,47 @@ async function loadContactDetails() {
 
     if (data) {
 
+        savedSettings.address =
+            (data.address || "").trim();
+
+        savedSettings.phone =
+            (data.phone || "").trim();
+
         document.getElementById("schoolAddressInput").value =
-            data.address || "";
+            savedSettings.address;
 
         document.getElementById("schoolPhoneInput").value =
-            data.phone || "";
+            savedSettings.phone;
 
     }
+
+    renderPreview();
 
 }
 
 
-async function handleContactSave(event) {
+// One save for the name, address and phone together.
+
+async function handleSettingsSave(event) {
 
     event.preventDefault();
 
-    const errorEl =
-        document.getElementById("contactError");
-
-    errorEl.style.display =
-        "none";
-
-    const address =
-        document.getElementById("schoolAddressInput").value.trim();
-
-    const phone =
-        document.getElementById("schoolPhoneInput").value.trim();
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from("schools")
-            .update({
-                address: address || null,
-                phone: phone || null
-            })
-            .eq("id", AttendNGContext.schoolId);
-
-    if (error) {
-
-        errorEl.textContent =
-            error.message ||
-            "Unable to save the address and phone number.";
-
-        errorEl.style.display =
-            "block";
+    if (settingsBusy) {
 
         return;
 
     }
 
-    showToast("Address and phone saved.");
-
-}
-
-
-async function handleNameSave(event) {
-
-    event.preventDefault();
-
     const errorEl =
-        document.getElementById("nameError");
+        document.getElementById("saveError");
 
     errorEl.style.display =
         "none";
 
-    const newName =
-        document.getElementById("schoolNameInput").value.trim();
+    const values =
+        currentValues();
 
-    if (!newName) {
+    if (!values.name) {
 
         errorEl.textContent =
             "School name can't be empty.";
@@ -177,22 +324,47 @@ async function handleNameSave(event) {
 
     }
 
+    const saveBtn =
+        document.getElementById("saveBtn");
+
+    settingsBusy =
+        true;
+
+    saveBtn.disabled =
+        true;
+
+    saveBtn.textContent =
+        "Saving…";
+
 
     const {
         error
-
     } =
         await supabaseClient
             .from("schools")
-            .update({ name: newName })
+            .update({
+                name: values.name,
+                address: values.address || null,
+                phone: values.phone || null
+            })
             .eq("id", AttendNGContext.schoolId);
+
+
+    settingsBusy =
+        false;
+
+    saveBtn.disabled =
+        false;
+
+    saveBtn.textContent =
+        "Save changes";
 
 
     if (error) {
 
         errorEl.textContent =
             error.message ||
-            "Unable to update the school name.";
+            "Unable to save your changes.";
 
         errorEl.style.display =
             "block";
@@ -201,10 +373,22 @@ async function handleNameSave(event) {
 
     }
 
-    showToast("School name updated.");
+    savedSettings =
+        { ...values };
+
+    AttendNGContext.schoolName =
+        values.name;
+
+    renderPreview();
+
+    showToast("Settings saved.");
 
 }
 
+
+/*************************************************
+ * LOGO
+ *************************************************/
 
 async function handleLogoUpload(event) {
 
@@ -282,8 +466,13 @@ async function handleLogoUpload(event) {
         }
 
 
-        document.getElementById("logoPreview").src =
+        logoUrl =
             cacheBustedUrl;
+
+        AttendNGContext.schoolLogoUrl =
+            cacheBustedUrl;
+
+        renderPreview();
 
         showToast("Logo updated.");
 

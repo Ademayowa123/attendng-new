@@ -38,6 +38,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await loadClasses();
 
+    if (window.SetupPanel) {
+
+        SetupPanel.sync();
+
+    }
+
     bindUI();
 
 });

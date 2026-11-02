@@ -22,74 +22,112 @@
 
         <main class="main-content">
 
-            <header class="top-header">
-                <div>
-                    <h1 id="pageTitle">Roster</h1>
-                    <p><span id="registerStatusBadge"></span></p>
+            <a href="/school/admin/classes.html" class="st-back">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Classes
+            </a>
+
+            <header class="top-header st-header">
+
+                <div class="st-title-row">
+                    <span class="rs-tile" id="classTile"></span>
+                    <div>
+                        <h1 id="pageTitle">Roster</h1>
+                        <p><span id="registerStatusBadge"></span></p>
+                    </div>
                 </div>
-                <div class="header-actions">
-                    <a href="/school/admin/classes.html"
-                    class="btn btn-back btn-sm"
-                    style="text-decoration:none; border-radius: 10px;">
-                        <i class="fa-solid fa-arrow-left"></i> Back to Classes
-                    </a>
 
-                    <button type="button"
-                            class="btn btn-reports btn-sm"
-                            id="viewReportsBtn">
-                        <i class="fa-solid fa-file-lines"></i> View Reports
+                <div class="st-head-actions">
+                    <button type="button" class="st-btn" id="viewReportsBtn">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Reports
                     </button>
-
-                    <button type="button"
-                            class="btn btn-analytics btn-sm"
-                            id="viewAnalyticsBtn">
-                        <i class="fa-solid fa-chart-line"></i> View Analytics
+                    <button type="button" class="st-btn" id="viewAnalyticsBtn">
+                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Analytics
                     </button>
                 </div>
+
             </header>
 
-            <section class="student-actions">
+            <section class="st-metrics">
 
-                <input type="text" id="searchStudent" placeholder="Search student...">
+                <div class="st-metric">
+                    <span class="st-metric-label">Students</span>
+                    <strong id="studentCount">0</strong>
+                </div>
 
-                <div class="student-buttons">
-                    <button id="addStudentBtn" class="btn btn-add-student btn-sm">
-                        <i class="fa-solid fa-user-plus"></i> <span>Add Student</span>
+                <div class="st-metric">
+                    <span class="st-metric-label">Gender</span>
+                    <div class="st-split">
+                        <span><i class="st-dot st-dot-male"></i>Male <b id="maleCount">0</b></span>
+                        <span><i class="st-dot st-dot-female"></i>Female <b id="femaleCount">0</b></span>
+                    </div>
+                    <div class="st-bar" id="genderBar"></div>
+                </div>
+
+                <div class="st-metric">
+                    <span class="st-metric-label">Missing details</span>
+                    <strong id="missingCount">0</strong>
+                    <span class="st-metric-note">no admission number</span>
+                </div>
+
+            </section>
+
+            <section class="st-toolbar">
+
+                <label class="rs-search">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="searchStudent" placeholder="Search students" autocomplete="off" aria-label="Search students">
+                </label>
+
+                <div class="rs-filters" role="group" aria-label="Filter by gender">
+                    <button type="button" class="rs-filter is-active" data-gender="all" aria-pressed="true">All <span id="countAll">0</span></button>
+                    <button type="button" class="rs-filter" data-gender="male" aria-pressed="false">Male <span id="countMale">0</span></button>
+                    <button type="button" class="rs-filter" data-gender="female" aria-pressed="false">Female <span id="countFemale">0</span></button>
+                </div>
+
+                <span class="st-toolbar-spacer"></span>
+
+                <div class="st-toolbar-buttons">
+
+                    <div class="st-dropdown">
+                        <button type="button" class="st-btn" id="importMenuBtn" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa-solid fa-file-import" aria-hidden="true"></i> Import <i class="fa-solid fa-chevron-down" aria-hidden="true" style="font-size:11px;"></i>
+                        </button>
+                        <div class="st-menu" id="importMenu" role="menu" hidden>
+                            <button type="button" id="downloadTemplateBtn" role="menuitem">
+                                <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Download template
+                            </button>
+                            <button type="button" id="importStudentsBtn" role="menuitem">
+                                <i class="fa-solid fa-file-import" aria-hidden="true"></i> Import from Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="st-btn st-btn-primary" id="addStudentBtn">
+                        <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Add student
                     </button>
 
-                    <button id="downloadTemplateBtn" class="btn btn-template btn-sm">
-                        <i class="fa-solid fa-file-arrow-down"></i> <span>Template</span>
-                    </button>
-
-                    <button id="importStudentsBtn" class="btn btn-import btn-sm">
-                        <i class="fa-solid fa-file-import"></i> <span>Import</span>
-                    </button>
                 </div>
 
                 <input type="file" id="studentImportFile" accept=".xlsx" hidden>
 
             </section>
 
-            <section class="card">
+            <section class="rs-list">
 
-                <div class="table-toolbar">
-                    <div>Total Students: <strong id="studentCount">0</strong></div>
+                <div class="st-list-head st-cols" aria-hidden="true">
+                    <span>#</span>
+                    <span>Student</span>
+                    <span>Admission no.</span>
+                    <span>Gender</span>
+                    <span></span>
                 </div>
 
-                <div class="table-scroll">
-                <table class="roster-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                    <thead>
-                        <tr>
-                            <th class="sticky-col1" style="padding:10px 8px; width:56px;">S/N</th>
-                            <th style="padding:10px 8px;">Surname</th>
-                            <th style="padding:10px 8px;">First Name</th>
-                            <th style="padding:10px 8px;">Other Name</th>
-                            <th style="padding:10px 8px; width:90px;">Gender</th>
-                            <th style="padding:10px 8px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentTable"></tbody>
-                </table>
+                <div id="studentList"></div>
+
+                <p class="rs-note" id="listNote" hidden></p>
+
+                <div class="rs-list-foot">
+                    <span id="showingCount"></span>
                 </div>
 
             </section>
@@ -218,6 +256,8 @@
 
         </div>
     </div>
+
+    <div class="st-menu" id="rowMenu" role="menu" hidden></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
     <script src="/assets/js/supabase.js"></script>

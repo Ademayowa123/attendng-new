@@ -504,32 +504,92 @@
                 </div>
             </header>
 
-            <section class="card rc-controls" style="margin-bottom:16px;">
+            <section class="sp" id="setupPanel" data-result="resultWrapper">
 
-                <div id="classField">
-                    <label for="classSelect">Class</label>
-                    <select id="classSelect"></select>
-                </div>
+                <div class="sp-open">
 
-                <div>
-                    <label for="termSelect">Term</label>
-                    <select id="termSelect">
+                    <div class="sp-steps">
+
+                        <div class="sp-step-class" id="classField">
+                            <span class="sp-label"><span class="sp-num">1</span> Class</span>
+                            <div class="sp-classes" id="classCards" role="group" aria-label="Class"></div>
+                        </div>
+
+                        <div class="sp-step-term">
+                            <span class="sp-label"><span class="sp-num">2</span> Term</span>
+                            <div class="sp-seg" id="termSeg" role="group" aria-label="Term"></div>
+                        </div>
+
+                    </div>
+
+                    <select id="classSelect" class="se-native" tabindex="-1" aria-hidden="true"></select>
+
+                    <select id="termSelect" class="se-native" tabindex="-1" aria-hidden="true">
                         <option value="1st Term">1st Term</option>
                         <option value="2nd Term">2nd Term</option>
                         <option value="3rd Term">3rd Term</option>
                     </select>
+
+                    <div class="sp-bar">
+                        <span class="sp-summary"><i class="fa-solid fa-users" aria-hidden="true"></i> <span id="spSummary"></span></span>
+                        <button type="button" class="st-btn st-btn-primary sp-go" id="generateBtn">
+                            <i class="fa-solid fa-id-card" aria-hidden="true"></i> Generate report cards
+                        </button>
+                    </div>
+
                 </div>
 
-                <button type="button" class="btn-primary" id="generateBtn">
-                    <i class="fa-solid fa-id-card"></i> Generate report cards
-                </button>
+                <div class="sp-folded">
 
-                <div id="studentField" style="display:none;">
-                    <label for="studentSelect">Show</label>
-                    <select id="studentSelect"></select>
+                    <span class="rs-tile" id="spTile"></span>
+
+                    <div class="sp-folded-text">
+                        <strong id="spFoldedTitle"></strong>
+                        <span id="spFoldedMeta"></span>
+                    </div>
+
+                    <div class="sp-show" id="studentField" style="display:none;">
+                        <span class="sp-show-label" id="studentLabel">Show</span>
+
+                        <div class="se-dd sp-student-dd" id="studentDd">
+
+                            <select id="studentSelect" class="se-native" tabindex="-1" aria-hidden="true"></select>
+
+                            <button type="button" class="se-trigger sp-student-trigger" id="studentBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="studentLabel studentValue">
+                                <i class="fa-solid fa-user-graduate" aria-hidden="true"></i>
+                                <span class="se-value" id="studentValue">All students</span>
+                                <i class="fa-solid fa-chevron-down se-chevron" aria-hidden="true"></i>
+                            </button>
+
+                            <div class="se-menu sp-student-menu" id="studentMenu" hidden>
+                                <div class="sp-search">
+                                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                    <input type="search" id="studentFilter" placeholder="Search students" autocomplete="off" aria-label="Search students">
+                                </div>
+                                <div class="sp-options" id="studentOptions" role="listbox" aria-labelledby="studentLabel"></div>
+                                <p class="se-menu-empty" id="studentEmpty" hidden>No students match.</p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <button type="button" class="st-btn" id="spChange">
+                        <i class="fa-solid fa-sliders" aria-hidden="true"></i> Change
+                    </button>
+
                 </div>
 
             </section>
+
+            <div class="sp-placeholder" id="spPlaceholder">
+                <strong>Your report cards will appear here</strong>
+                <span>Pick a class and term, then generate.</span>
+                <div class="sp-skeleton" aria-hidden="true">
+                    <div class="sp-sk-row"><i style="width:40%"></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="sp-sk-row"><i style="width:70%"></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="sp-sk-row"><i style="width:55%"></i><i></i><i></i><i></i><i></i><i></i></div>
+                </div>
+            </div>
 
             <div id="noClassesNotice" class="card" style="display:none;">
                 <p style="margin:0;">There are no classes in this session yet.</p>
@@ -594,6 +654,7 @@
     <script src="/assets/js/auth.js"></script>
     <script src="/assets/js/grading.js"></script>
     <script src="/assets/js/ratings-traits.js"></script>
+    <script src="/assets/js/setup-panel.js"></script>
     <script src="/assets/js/report-card.js"></script>
 
 </body>

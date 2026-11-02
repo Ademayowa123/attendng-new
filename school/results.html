@@ -21,56 +21,138 @@
 
         <main class="main-content">
 
-            <header class="top-header">
+            <header class="top-header rs-header">
                 <div>
                     <h1>Results</h1>
                     <p id="termLabel"></p>
                 </div>
+                <div class="rs-autosave">
+                    <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+                    <span>Changes save automatically</span>
+                </div>
             </header>
 
-            <section class="card" style="margin-bottom:16px;">
-
-                <label for="assignmentSelect" style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">
-                    Class &amp; subject
-                </label>
-                <select id="assignmentSelect"
-                        style="width:100%; max-width:420px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
-                </select>
-
+            <section class="rs-picker-section" id="assignmentSection">
+                <h2 class="rs-label" id="pickerLabel">Class &amp; subject</h2>
+                <div class="rs-picker" id="assignmentPicker" role="group" aria-labelledby="pickerLabel"></div>
             </section>
 
             <div id="noAssignmentsNotice" class="card" style="display:none;">
                 <p style="margin:0;">You haven't been assigned to teach any subject yet. Ask your admin to assign you under Classes → Subjects.</p>
             </div>
 
-            <section class="card" id="scoresCard" style="display:none;">
+            <div class="rs-body" id="scoresCard" style="display:none;">
 
-                <div class="table-toolbar">
-                    <div>CA out of 40, Exam out of 60 — total is calculated for you.</div>
+                <div id="scoresContent">
+
+                    <section class="rs-overview" id="overviewCard">
+
+                        <div class="rs-ov-head">
+                            <span class="rs-tile" id="ovTile"></span>
+
+                            <div class="rs-ov-title">
+                                <h2 id="ovSubject"></h2>
+                                <p class="rs-ov-meta">
+                                    <span id="ovClass"></span> · <span id="ovCount"></span><span class="rs-meta-term"> · <span id="ovTerm"></span></span>
+                                </p>
+                                <span class="rs-final" id="ovFinal" hidden>
+                                    <i class="fa-solid fa-lock" aria-hidden="true"></i> Register finalized
+                                </span>
+                            </div>
+
+                            <div class="rs-progress">
+                                <div class="rs-ring-wrap">
+                                    <svg class="rs-ring" viewBox="0 0 48 48" aria-hidden="true">
+                                        <circle class="rs-ring-track" cx="24" cy="24" r="20"></circle>
+                                        <circle class="rs-ring-fill" id="ringFill" cx="24" cy="24" r="20" pathLength="100" stroke-dasharray="0 100"></circle>
+                                    </svg>
+                                    <span class="rs-ring-pct" id="ringPct">0%</span>
+                                </div>
+                                <div class="rs-progress-text">
+                                    <strong id="progressCount">0 / 0</strong>
+                                    <span>scores entered</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="rs-stats-toggle" id="statsToggle" aria-expanded="false" aria-controls="overviewBody">
+                            Class stats <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+
+                        <div class="rs-ov-body" id="overviewBody">
+
+                            <div class="rs-stats">
+                                <div class="rs-stat">
+                                    <span class="rs-stat-icon rs-i-indigo"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span>
+                                    <div><strong id="statAverage">—</strong><span class="rs-stat-label">Class average</span></div>
+                                </div>
+                                <div class="rs-stat">
+                                    <span class="rs-stat-icon rs-i-green"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></span>
+                                    <div><strong id="statHighest">—</strong><span class="rs-stat-label">Highest</span></div>
+                                </div>
+                                <div class="rs-stat">
+                                    <span class="rs-stat-icon rs-i-red"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></span>
+                                    <div><strong id="statLowest">—</strong><span class="rs-stat-label">Lowest</span></div>
+                                </div>
+                                <div class="rs-stat">
+                                    <span class="rs-stat-icon rs-i-amber"><i class="fa-solid fa-bullseye" aria-hidden="true"></i></span>
+                                    <div><strong id="statPassRate">—</strong><span class="rs-stat-label">Pass rate</span></div>
+                                </div>
+                            </div>
+
+                            <div class="rs-spread">
+                                <div class="rs-spread-head">
+                                    <span class="rs-spread-title">Grade spread</span>
+                                    <ul class="rs-legend" id="spreadLegend"></ul>
+                                </div>
+                                <div class="rs-spread-bar" id="spreadBar" role="img" aria-label="Grade spread"></div>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    <div class="rs-toolbar">
+                        <label class="rs-search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="studentSearch" placeholder="Search students" autocomplete="off" aria-label="Search students">
+                        </label>
+
+                        <div class="rs-filters" role="group" aria-label="Show students">
+                            <button type="button" class="rs-filter is-active" data-filter="all" aria-pressed="true">All <span id="countAll">0</span></button>
+                            <button type="button" class="rs-filter" data-filter="missing" aria-pressed="false">Missing <span id="countMissing">0</span></button>
+                            <button type="button" class="rs-filter" data-filter="done" aria-pressed="false">Done <span id="countDone">0</span></button>
+                        </div>
+                    </div>
+
+                    <section class="rs-list">
+
+                        <div class="rs-list-head rs-cols" aria-hidden="true">
+                            <span>Student</span>
+                            <span>CA (/40)</span>
+                            <span>Exam (/60)</span>
+                            <span>Total</span>
+                            <span>Grade</span>
+                        </div>
+
+                        <div id="scoresList"></div>
+
+                        <p class="rs-note" id="noMatchNotice" hidden>No students match your search.</p>
+
+                        <div class="rs-list-foot">
+                            <span id="showingCount"></span>
+                            <span>CA out of 40 · Exam out of 60 · total is calculated for you</span>
+                        </div>
+
+                    </section>
+
                 </div>
 
-                <div class="table-scroll">
-                    <table class="scores-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                        <thead>
-                            <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                                <th class="sticky-col1" style="padding:10px 8px; min-width:180px;">Student</th>
-                                <th style="padding:10px 8px; width:100px;">CA (/40)</th>
-                                <th style="padding:10px 8px; width:100px;">Exam (/60)</th>
-                                <th style="padding:10px 8px; width:90px;">Total</th>
-                                <th style="padding:10px 8px; width:80px;">Grade</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scoresTableBody">
-                            <!-- populated at runtime -->
-                        </tbody>
-                    </table>
-                </div>
+                <section class="card" id="noStudentsNotice" style="display:none;">
+                    <p style="margin:0; color:var(--text-muted);">No students in this class yet.</p>
+                </section>
 
-                <p id="noStudentsNotice" style="display:none; color:var(--text-muted); margin:12px 0 4px;">
-                    No students in this class yet.
-                </p>
-
-            </section>
+            </div>
 
         </main>
 

@@ -10,6 +10,36 @@
     <link rel="stylesheet" href="/assets/scss/sytle.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
+    <style>
+        .overview-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+            gap: 16px;
+            margin-bottom: 1.75rem;
+        }
+        .overview-grid .card h3 {
+            margin: 0 0 1rem;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .chart-box {
+            position: relative;
+            height: 300px;
+        }
+        .chart-empty {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        @media (max-width: 900px) {
+            .overview-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+
 </head>
 <body>
 
@@ -27,6 +57,68 @@
                     <p><span id="schoolName"></span></p>
                 </div>
             </header>
+
+            <div id="schoolOverview" style="display:none;">
+
+                <div class="dashboard-meta-pill">
+                    <i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i>
+                    <span id="overviewSession"></span>
+                    <span style="color:var(--border);">•</span>
+                    <span id="overviewTerm"></span>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Students</h3>
+                            <p id="ovStudents">—</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Staff</h3>
+                            <p id="ovStaff">—</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-icon">
+                            <i class="fa-solid fa-school"></i>
+                        </div>
+                        <div class="summary-card-body">
+                            <h3>Classes</h3>
+                            <p id="ovClasses">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="card">
+                        <h3>Students by Gender</h3>
+                        <div class="chart-box">
+                            <canvas id="genderDoughnut"></canvas>
+                            <div class="chart-empty" id="genderEmpty">No students yet</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Students per Class</h3>
+                        <div class="chart-box">
+                            <canvas id="classBarChart"></canvas>
+                            <div class="chart-empty" id="classEmpty">No classes yet</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="noSessionNotice" class="card" style="display:none;">
+                <p style="margin:0;">There is no active session yet. Create one under Sessions to see your school overview.</p>
+            </div>
 
             <div id="noClassNotice" class="card" style="display:none;">
                 <p style="margin:0;">You haven't been assigned a class yet. Once your admin assigns one, Attendance, Students, Reports, and Analytics will appear here.</p>
@@ -83,6 +175,7 @@
     <script src="/assets/js/supabase.js"></script>
     <script src="/assets/js/user-context.js"></script>
     <script src="/assets/js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/assets/js/school-dashboard.js"></script>
 
 </body>

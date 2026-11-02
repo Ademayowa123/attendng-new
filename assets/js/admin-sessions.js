@@ -9,6 +9,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await waitForContext();
 
+    bindTermDropdown();
+
+    bindNewSessionFold();
+
     await loadActiveSession();
 
 
@@ -163,6 +167,8 @@ async function loadActiveSession() {
         document.getElementById("activeSessionInfo").style.display =
             "none";
 
+        updateNewSessionNote();
+
         return;
 
     }
@@ -180,6 +186,10 @@ async function loadActiveSession() {
     document.getElementById("termSelect").value =
         session.current_term;
 
+    syncTermUI();
+
+    updateNewSessionNote();
+
     document.getElementById("startDateInput").value =
         session.start_date || "";
 
@@ -196,6 +206,9 @@ async function startNewSession() {
 
     const startBtn =
         document.getElementById("startSessionBtn");
+
+    const startLabel =
+        document.getElementById("startSessionLabel");
 
     const name =
         nameInput.value.trim();
@@ -253,7 +266,7 @@ async function startNewSession() {
     startBtn.disabled =
         true;
 
-    startBtn.textContent =
+    startLabel.textContent =
         "Starting…";
 
 
@@ -331,9 +344,274 @@ async function startNewSession() {
         startBtn.disabled =
             false;
 
-        startBtn.textContent =
+        startLabel.textContent =
             "Start session";
 
     }
+
+}
+
+
+/* ==========================================
+   STYLED TERM DROPDOWN
+   The real <select id="termSelect"> stays in the page (hidden)
+   and keeps doing the saving; this is just a nicer face for it.
+========================================== */
+
+function syncTermUI() {
+
+    const select =
+        document.getElementById("termSelect");
+
+    const value =
+        select.value;
+
+    document.getElementById("termValue").textContent =
+        value || "Choose a term";
+
+    document.querySelectorAll("#termMenu .se-opt").forEach(
+        option => {
+
+            const selected =
+                option.dataset.value === value;
+
+            option.classList.toggle("is-selected", selected);
+
+            option.setAttribute("aria-selected", String(selected));
+
+        }
+    );
+
+    const step =
+        select.selectedIndex + 1;
+
+    document.querySelectorAll("#termSteps span").forEach(
+        (segment, index) => {
+
+            segment.classList.toggle("is-on", value !== "" && index < step);
+
+        }
+    );
+
+}
+
+
+function bindTermDropdown() {
+
+    const select =
+        document.getElementById("termSelect");
+
+    const button =
+        document.getElementById("termBtn");
+
+    const menu =
+        document.getElementById("termMenu");
+
+    const options =
+        Array.from(menu.querySelectorAll(".se-opt"));
+
+
+    const close = (returnFocus) => {
+
+        menu.hidden =
+            true;
+
+        button.setAttribute("aria-expanded", "false");
+
+        if (returnFocus) {
+
+            button.focus();
+
+        }
+
+    };
+
+    const open = () => {
+
+        menu.hidden =
+            false;
+
+        button.setAttribute("aria-expanded", "true");
+
+        const selected =
+            options.find(o => o.classList.contains("is-selected")) || options[0];
+
+        selected.focus();
+
+    };
+
+
+    button.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            if (menu.hidden) {
+
+                open();
+
+            }
+            else {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    button.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+
+                event.preventDefault();
+
+                if (menu.hidden) {
+
+                    open();
+
+                }
+
+            }
+
+        }
+    );
+
+
+    options.forEach(
+        option => {
+
+            option.addEventListener(
+                "click",
+                (event) => {
+
+                    event.stopPropagation();
+
+                    const changed =
+                        select.value !== option.dataset.value;
+
+                    select.value =
+                        option.dataset.value;
+
+                    syncTermUI();
+
+                    close(true);
+
+                    // The existing handler on the select saves the new term.
+                    if (changed) {
+
+                        select.dispatchEvent(new Event("change", { bubbles: true }));
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+    menu.addEventListener(
+        "keydown",
+        (event) => {
+
+            const index =
+                options.indexOf(document.activeElement);
+
+            if (event.key === "ArrowDown") {
+
+                event.preventDefault();
+
+                options[Math.min(index + 1, options.length - 1)].focus();
+
+            }
+            else if (event.key === "ArrowUp") {
+
+                event.preventDefault();
+
+                options[Math.max(index - 1, 0)].focus();
+
+            }
+            else if (event.key === "Home") {
+
+                event.preventDefault();
+
+                options[0].focus();
+
+            }
+            else if (event.key === "End") {
+
+                event.preventDefault();
+
+                options[options.length - 1].focus();
+
+            }
+            else if (event.key === "Escape") {
+
+                event.preventDefault();
+
+                close(true);
+
+            }
+            else if (event.key === "Tab") {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "click",
+        () => {
+
+            if (!menu.hidden) {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ==========================================
+   NEW-SESSION CARD (folds away on phones)
+========================================== */
+
+function bindNewSessionFold() {
+
+    const toggle =
+        document.getElementById("newSessionToggle");
+
+    toggle.addEventListener(
+        "click",
+        () => {
+
+            const open =
+                document.getElementById("newSessionCard").classList.toggle("is-open");
+
+            toggle.setAttribute("aria-expanded", String(open));
+
+        }
+    );
+
+}
+
+
+function updateNewSessionNote() {
+
+    const fresh =
+        "Classes are set up fresh for each session, so nothing carries over.";
+
+    document.getElementById("newSessionNote").textContent =
+        currentActiveSession ?
+            `This closes ${currentActiveSession.name}. ${fresh}` :
+            fresh;
 
 }

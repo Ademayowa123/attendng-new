@@ -34,28 +34,45 @@
                 </button>
             </header>
 
-            <div class="card">
-
-                <div class="table-scroll teacher-table-scroll">
-                <table class="teacher-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                    <thead>
-                        <tr style="text-align:left; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">
-                            <th class="sticky-col1" style="padding:8px 4px;">Name</th>
-                            <th class="sticky-col2" style="padding:8px 4px;">Username</th>
-                            <th style="padding:8px 4px;">Role</th>
-                            <th class="desktop-actions-cell" style="padding:8px 4px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="membersTableBody">
-                        <!-- populated at runtime -->
-                    </tbody>
-                </table>
+            <!-- SUMMARY TILES -->
+            <section class="tm-stats" id="teacherStats" aria-label="Staff summary">
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-teal"><i class="fa-solid fa-users"></i></span>
+                    <div><strong id="statTotal">0</strong><span>Total staff</span></div>
                 </div>
-
-                <div class="teacher-cards" id="teacherCardsMount">
-                    <!-- mobile-only card layout, populated at runtime -->
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-indigo"><i class="fa-solid fa-user-shield"></i></span>
+                    <div><strong id="statAdmins">0</strong><span>Admins</span></div>
                 </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-amber"><i class="fa-solid fa-chalkboard-user"></i></span>
+                    <div><strong id="statTeachers">0</strong><span>Teachers</span></div>
+                </div>
+                <div class="tm-stat">
+                    <span class="tm-stat-icon tm-tone-green"><i class="fa-solid fa-school"></i></span>
+                    <div><strong id="statAssigned">0</strong><span>With a class</span></div>
+                </div>
+            </section>
 
+            <!-- SEARCH + FILTER -->
+            <div class="tm-toolbar">
+                <label class="tm-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="teacherSearch" placeholder="Search by name or username" autocomplete="off">
+                </label>
+                <div class="tm-filters" role="group" aria-label="Filter by role">
+                    <button type="button" class="tm-chip is-active" data-filter="all">All</button>
+                    <button type="button" class="tm-chip" data-filter="admin">Admins</button>
+                    <button type="button" class="tm-chip" data-filter="teacher">Teachers</button>
+                </div>
+            </div>
+
+            <!-- TEACHER CARDS (populated at runtime) -->
+            <div class="tm-grid" id="teacherGridMount"></div>
+
+            <div class="tm-empty" id="teacherEmpty" style="display:none;">
+                <i class="fa-regular fa-face-frown-open"></i>
+                <p>No staff match your search.</p>
             </div>
 
         </main>
@@ -145,6 +162,49 @@
             <div class="confirm-footer">
                 <button type="button" class="btn-primary" id="closeResetPasswordModal">Done</button>
             </div>
+
+        </div>
+    </div>
+
+    <!-- TEACHER DETAIL SHEET -->
+    <div class="tm-sheet" id="teacherSheet" hidden>
+        <div class="tm-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetName">
+
+            <button type="button" class="tm-sheet-close" id="sheetClose" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="tm-sheet-head">
+                <div class="tm-avatar tm-avatar-lg" id="sheetAvatar" aria-hidden="true"></div>
+                <div class="tm-id">
+                    <h2 class="tm-sheet-name" id="sheetName"></h2>
+                    <span class="tm-role" id="sheetRole"></span>
+                </div>
+            </div>
+
+            <div class="tm-sheet-user">
+                <i class="fa-regular fa-user"></i>
+                <code id="sheetUsername"></code>
+                <button type="button" class="tm-copy" id="sheetCopy" aria-label="Copy username" title="Copy username">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+            </div>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-school"></i> Class heading</h3>
+                <div id="sheetHeading"></div>
+            </section>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-book-open"></i> Subjects teaching</h3>
+                <div id="sheetTeaching"></div>
+            </section>
+
+            <section class="tm-sheet-section">
+                <h3><i class="fa-solid fa-sliders"></i> Manage</h3>
+                <div class="tm-sheet-actions" id="sheetActions"></div>
+                <p class="tm-sheet-note" id="sheetNote" style="display:none;"></p>
+            </section>
 
         </div>
     </div>

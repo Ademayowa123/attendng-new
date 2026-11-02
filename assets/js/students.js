@@ -3,6 +3,8 @@
  *************************************************/
 
 let allStudents = [];
+let activeGender = "all";   // all | male | female
+let searchTerm = "";
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -22,29 +24,129 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     }
 
+    const tile =
+        document.getElementById("classTile");
+
+    tile.textContent =
+        AttendNGContext.className;
+
+    tile.className =
+        "rs-tile " + classTone(AttendNGContext.className);
+
+    bindUI();
+
     await loadStudents();
+
+});
+
+
+function bindUI() {
 
     document.getElementById("searchStudent").addEventListener(
         "input",
         (event) => {
 
-            const term =
+            searchTerm =
                 event.target.value.trim().toLowerCase();
 
-            const filtered =
-                allStudents.filter(
-                    s =>
-                        s.surname.toLowerCase().includes(term) ||
-                        s.first_name.toLowerCase().includes(term) ||
-                        (s.other_name || "").toLowerCase().includes(term)
-                );
-
-            renderStudents(filtered);
+            applyFilter();
 
         }
     );
 
-});
+    document.querySelectorAll(".rs-filter").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    activeGender =
+                        button.dataset.gender;
+
+                    document.querySelectorAll(".rs-filter").forEach(
+                        other => {
+
+                            const active =
+                                other === button;
+
+                            other.classList.toggle("is-active", active);
+
+                            other.setAttribute("aria-pressed", String(active));
+
+                        }
+                    );
+
+                    applyFilter();
+
+                }
+            );
+
+        }
+    );
+
+
+    // Tap (or press Enter / Space on) a row to show or hide that student's details.
+
+    const list =
+        document.getElementById("studentList");
+
+    const toggleRow = (row) => {
+
+        const item =
+            row.closest(".st-item");
+
+        const open =
+            item.classList.toggle("is-open");
+
+        item.querySelector(".st-detail").hidden =
+            !open;
+
+        row.setAttribute("aria-expanded", String(open));
+
+    };
+
+    list.addEventListener(
+        "click",
+        (event) => {
+
+            const row =
+                event.target.closest(".st-row");
+
+            if (row) {
+
+                toggleRow(row);
+
+            }
+
+        }
+    );
+
+    list.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (event.key !== "Enter" && event.key !== " ") {
+
+                return;
+
+            }
+
+            const row =
+                event.target.closest(".st-row");
+
+            if (row && event.target === row) {
+
+                event.preventDefault();
+
+                toggleRow(row);
+
+            }
+
+        }
+    );
+
+}
 
 
 function waitForContext() {
@@ -81,7 +183,7 @@ async function loadStudents() {
     let query =
         supabaseClient
             .from("students")
-            .select("id, surname, first_name, other_name, gender, position")
+            .select("id, surname, first_name, other_name, gender, position, admission_no, date_of_birth")
             .eq("class_id", AttendNGContext.classId);
 
     query =
@@ -112,7 +214,9 @@ async function loadStudents() {
     allStudents =
         data;
 
-    renderStudents(allStudents);
+    refreshSummary();
+
+    applyFilter();
 
 }
 
@@ -128,91 +232,250 @@ function escapeHtml(str) {
 }
 
 
-function renderStudents(list) {
+// Same colours the Results page uses for a class tile.
+function classTone(name) {
 
-    const tbody =
-        document.getElementById("studentTable");
+    const tones =
+        ["rs-tone-teal", "rs-tone-indigo", "rs-tone-amber"];
 
-    const cardList =
-        document.getElementById("studentCardList");
+    const digits =
+        String(name || "").match(/\d+/);
 
-    if (tbody) {
-        tbody.innerHTML = "";
+    if (digits) {
+
+        return tones[(((parseInt(digits[0], 10) - 1) % 3) + 3) % 3];
+
     }
 
-    if (cardList) {
-        cardList.innerHTML = "";
-    }
+    let sum = 0;
 
-    list.forEach(
-        (student, index) => {
-
-            const initials =
-                `${(student.surname || "").charAt(0)}${(student.first_name || "").charAt(0)}`.toUpperCase() || "ST";
-
-            // 1. Desktop Table Row
-            if (tbody) {
-                const row =
-                    document.createElement("tr");
-
-                row.style.borderBottom =
-                    "1px solid var(--border)";
-
-                row.innerHTML = `
-                    <td style="padding:10px 8px;">${index + 1}</td>
-                    <td style="padding:10px 8px; font-weight:500;">${escapeHtml(student.surname)}</td>
-                    <td style="padding:10px 8px;">${escapeHtml(student.first_name)}</td>
-                    <td style="padding:10px 8px;">${escapeHtml(student.other_name || "")}</td>
-                    <td style="padding:10px 8px; text-transform:capitalize;">${escapeHtml(student.gender || "")}</td>
-                `;
-
-                tbody.appendChild(row);
-            }
-
-            // 2. Mobile Card List
-            if (cardList) {
-                const card =
-                    document.createElement("div");
-
-                card.className =
-                    "mobile-data-card";
-
-                card.innerHTML = `
-                    <div class="card-top-row">
-                        <div class="card-avatar-group">
-                            <div class="card-avatar">${initials}</div>
-                            <div class="card-primary-info">
-                                <h4>${escapeHtml(student.surname)} ${escapeHtml(student.first_name)}</h4>
-                                ${student.other_name ? `<span>${escapeHtml(student.other_name)}</span>` : ""}
-                            </div>
-                        </div>
-                        <span class="badge" style="background:var(--surface-alt); border:1px solid var(--border); font-size:11px; font-weight:600;">#${index + 1}</span>
-                    </div>
-
-                    <div class="card-meta-chips">
-                        <span class="card-chip">
-                            <i class="fa-solid fa-user" style="font-size:10px; color:var(--text-muted);"></i>
-                            <span style="text-transform:capitalize;">${escapeHtml(student.gender || "Not specified")}</span>
-                        </span>
-                        ${student.position ? `
-                        <span class="card-chip">
-                            <i class="fa-solid fa-list-ol" style="font-size:10px; color:var(--primary);"></i>
-                            Position: ${student.position}
-                        </span>` : ""}
-                    </div>
-                `;
-
-                cardList.appendChild(card);
-            }
-
-        }
+    String(name || "").split("").forEach(
+        ch => { sum += ch.charCodeAt(0); }
     );
 
-    const countEl =
-        document.getElementById("studentCount");
+    return tones[sum % 3];
 
-    if (countEl) {
-        countEl.textContent = list.length;
+}
+
+
+function hashText(text) {
+
+    let sum = 0;
+
+    String(text || "").split("").forEach(
+        ch => { sum += ch.charCodeAt(0); }
+    );
+
+    return sum;
+
+}
+
+
+function genderLabel(gender) {
+
+    return gender === "male" ? "Male" :
+        gender === "female" ? "Female" :
+        "";
+
+}
+
+
+function genderChip(gender) {
+
+    const label =
+        genderLabel(gender);
+
+    return label ?
+        `<span class="st-gender st-${gender}">${label}</span>` :
+        `<span class="st-gender st-unspecified">Not set</span>`;
+
+}
+
+
+// "2013-03-14" -> "14 March 2013" (no timezone surprises)
+function formatBirthDate(value) {
+
+    const match =
+        /^(\d{4})-(\d{2})-(\d{2})/.exec(value || "");
+
+    if (!match) {
+
+        return "";
+
     }
+
+    const months =
+        ["January", "February", "March", "April", "May", "June",
+         "July", "August", "September", "October", "November", "December"];
+
+    return `${parseInt(match[3], 10)} ${months[parseInt(match[2], 10) - 1]} ${match[1]}`;
+
+}
+
+
+function refreshSummary() {
+
+    const total =
+        allStudents.length;
+
+    const male =
+        allStudents.filter(s => s.gender === "male").length;
+
+    const female =
+        allStudents.filter(s => s.gender === "female").length;
+
+    const withAdmission =
+        allStudents.filter(s => (s.admission_no || "").trim()).length;
+
+    document.getElementById("studentCount").textContent = total;
+    document.getElementById("maleCount").textContent = male;
+    document.getElementById("femaleCount").textContent = female;
+
+    document.getElementById("admissionCount").textContent =
+        `${withAdmission} of ${total}`;
+
+    document.getElementById("countAll").textContent = total;
+    document.getElementById("countMale").textContent = male;
+    document.getElementById("countFemale").textContent = female;
+
+    document.getElementById("genderBar").innerHTML =
+        (male + female) === 0 ?
+            "" :
+            `<span class="st-bar-male" style="flex:${male} 1 0"></span><span class="st-bar-female" style="flex:${female} 1 0"></span>`;
+
+}
+
+
+function applyFilter() {
+
+    const tokens =
+        searchTerm.split(/\s+/).filter(Boolean);
+
+    const list =
+        allStudents.filter(
+            student => {
+
+                if (activeGender !== "all" && student.gender !== activeGender) {
+
+                    return false;
+
+                }
+
+                const name =
+                    `${student.surname} ${student.first_name} ${student.other_name || ""}`.toLowerCase();
+
+                return tokens.every(token => name.includes(token));
+
+            }
+        );
+
+    renderStudents(list);
+
+}
+
+
+function renderStudents(list) {
+
+    const listEl =
+        document.getElementById("studentList");
+
+    listEl.innerHTML =
+        list.map(
+            student => {
+
+                const serial =
+                    allStudents.indexOf(student) + 1;
+
+                const initials =
+                    (
+                        (student.surname || "").charAt(0) +
+                        (student.first_name || "").charAt(0)
+                    ).toUpperCase() || "?";
+
+                const fullName =
+                    [student.surname, student.first_name, student.other_name]
+                        .filter(Boolean)
+                        .join(" ");
+
+                const admission =
+                    (student.admission_no || "").trim();
+
+                const birthDate =
+                    formatBirthDate(student.date_of_birth);
+
+                const metaParts =
+                    [
+                        admission || "No admission number",
+                        genderLabel(student.gender)
+                    ].filter(Boolean);
+
+                return `
+                    <div class="st-item">
+
+                        <div class="st-row st-cols st-cols-ro" role="button" tabindex="0" aria-expanded="false">
+
+                            <span class="st-num">${serial}</span>
+
+                            <div class="st-student">
+                                <span class="rs-avatar rs-av-${hashText(`${student.surname} ${student.first_name}`) % 5}" aria-hidden="true">${escapeHtml(initials)}</span>
+                                <div class="st-id">
+                                    <span class="st-name"><b>${escapeHtml(student.surname)}</b> ${escapeHtml(student.first_name)} ${escapeHtml(student.other_name || "")}</span>
+                                    <span class="st-meta">${escapeHtml(metaParts.join(" · "))}</span>
+                                </div>
+                            </div>
+
+                            <span class="st-adm">${admission ? escapeHtml(admission) : `<span class="st-unset">Not set</span>`}</span>
+
+                            <span class="st-gender-cell">${genderChip(student.gender)}</span>
+
+                            <i class="fa-solid fa-chevron-down st-chevron" aria-hidden="true"></i>
+
+                        </div>
+
+                        <div class="st-detail" hidden>
+                            <div><small>Full name</small>${escapeHtml(fullName)}</div>
+                            <div><small>Date of birth</small>${birthDate ? escapeHtml(birthDate) : "Not set"}</div>
+                            <div><small>Admission no.</small>${admission ? escapeHtml(admission) : "Not set"}</div>
+                            <div><small>Gender</small>${genderLabel(student.gender) || "Not set"}</div>
+                            ${student.position ? `<div><small>Position</small>${escapeHtml(student.position)}</div>` : ""}
+                        </div>
+
+                    </div>
+                `;
+
+            }
+        ).join("");
+
+
+    const note =
+        document.getElementById("listNote");
+
+    if (allStudents.length === 0) {
+
+        note.textContent =
+            "No students in this class yet.";
+
+        note.hidden =
+            false;
+
+    }
+    else if (list.length === 0) {
+
+        note.textContent =
+            "No students match your search.";
+
+        note.hidden =
+            false;
+
+    }
+    else {
+
+        note.hidden =
+            true;
+
+    }
+
+    document.getElementById("showingCount").textContent =
+        `Showing ${list.length} of ${allStudents.length} student${allStudents.length === 1 ? "" : "s"}`;
 
 }

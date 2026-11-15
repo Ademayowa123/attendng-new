@@ -285,23 +285,84 @@ function bindUI() {
         });
     });
 
-    // Mark All Modal wiring
-    const btnMarkAll = document.getElementById("btnMarkAllMobile");
+    // Mark All dialog — a fixed overlay in front of the whole page
+    // (bottom sheet on phones, centred dialog on larger screens).
+    // Opened from the phone button, or from the desktop button, which
+    // also lets the teacher pick which day to mark.
+    const btnMarkAllMobile = document.getElementById("btnMarkAllMobile");
+    const btnMarkAllDesktop = document.getElementById("btnMarkAllDesktop");
     const markModal = document.getElementById("markAllModal");
     const markDayLabel = document.getElementById("markModalDayName");
+    const markDayPicker = document.getElementById("markDayPicker");
     const btnCloseX = document.getElementById("btnCloseMarkAllX");
     const btnCancel = document.getElementById("btnCancelMarkAll");
 
-    const closeModal = () => {
-        if (markModal) markModal.style.display = "none";
+    let markDay = activeDay;
+    let markOpener = null;
+
+    const capitalise = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+
+    const renderMarkDay = () => {
+
+        if (markDayLabel) {
+            markDayLabel.textContent = capitalise(markDay);
+        }
+
+        if (markDayPicker) {
+            markDayPicker.innerHTML = DAYS.map((day, index) => {
+                const date = weekDates[index] ? ` ${weekDates[index].getDate()}` : "";
+                const on = day === markDay;
+                return `<button type="button" class="mark-day${on ? " is-on" : ""}" data-day="${day}" aria-pressed="${on}">${capitalise(day).slice(0, 3)}${date}</button>`;
+            }).join("");
+        }
+
     };
 
-    if (btnMarkAll && markModal) {
-        btnMarkAll.addEventListener("click", () => {
-            if (markDayLabel) {
-                markDayLabel.textContent = activeDay.charAt(0).toUpperCase() + activeDay.slice(1);
-            }
-            markModal.style.display = "flex";
+    const openModal = (opener, withDays) => {
+
+        if (!markModal) return;
+
+        markOpener = opener;
+        markDay = activeDay;
+        renderMarkDay();
+
+        const dialog = markModal.querySelector(".attendance-mark-modal");
+        if (dialog) dialog.classList.toggle("with-days", withDays);
+
+        markModal.style.display = "flex";
+        document.body.style.overflow = "hidden";
+
+        const first = document.getElementById("btnConfirmMarkAllMorning");
+        if (first) first.focus();
+
+    };
+
+    const closeModal = () => {
+
+        if (markModal) markModal.style.display = "none";
+        document.body.style.overflow = "";
+
+        if (markOpener) {
+            markOpener.focus();
+            markOpener = null;
+        }
+
+    };
+
+    if (btnMarkAllMobile) {
+        btnMarkAllMobile.addEventListener("click", () => openModal(btnMarkAllMobile, false));
+    }
+
+    if (btnMarkAllDesktop) {
+        btnMarkAllDesktop.addEventListener("click", () => openModal(btnMarkAllDesktop, true));
+    }
+
+    if (markDayPicker) {
+        markDayPicker.addEventListener("click", (e) => {
+            const chip = e.target.closest(".mark-day");
+            if (!chip) return;
+            markDay = chip.dataset.day;
+            renderMarkDay();
         });
     }
 
@@ -313,19 +374,28 @@ function bindUI() {
         });
     }
 
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && markModal && markModal.style.display !== "none") {
+            closeModal();
+        }
+    });
+
     document.getElementById("btnConfirmMarkAllMorning")?.addEventListener("click", async () => {
+        const day = markDay;
         closeModal();
-        await markAllStudentsForSession(activeDay, "Morning");
+        await markAllStudentsForSession(day, "Morning");
     });
 
     document.getElementById("btnConfirmMarkAllAfternoon")?.addEventListener("click", async () => {
+        const day = markDay;
         closeModal();
-        await markAllStudentsForSession(activeDay, "Afternoon");
+        await markAllStudentsForSession(day, "Afternoon");
     });
 
     document.getElementById("btnConfirmMarkAllBoth")?.addEventListener("click", async () => {
+        const day = markDay;
         closeModal();
-        await markAllStudentsForSession(activeDay, "Both");
+        await markAllStudentsForSession(day, "Both");
     });
 
 }

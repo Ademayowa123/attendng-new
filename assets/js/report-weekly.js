@@ -8,6 +8,13 @@ let students = [];
 let reportRows = [];
 let schoolOpened = 0;
 
+// Weekly attendance status thresholds (percent). One place, used by the
+// status labels, the legend and the "below 75%" strip.
+const WEEKLY_THRESHOLDS = { excellent: 90, good: 75, fair: 50 };
+
+let statusFilter = new Set();   // empty = every status
+let reportSearchTerm = "";
+
 
 /* ==========================================
    FILENAME HELPERS
@@ -55,6 +62,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     applyReportOverrideIfAny();
 
+    setReportHeader();
+
     await loadSessionStartDate();
 
     if (!sessionStartDate) {
@@ -71,6 +80,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
     setDefaultWeek();
+
+    initWeekPicker();
+
+    initReportScreen();
 
     document.getElementById("reportWeek").addEventListener(
         "change",
@@ -303,6 +316,19 @@ function setDefaultWeek() {
     guessed =
         Math.min(15, Math.max(1, guessed));
 
+    // Opened from a week in the Analytics "Week by week" strip.
+    const requestedWeek =
+        parseInt(sessionStorage.getItem("attendng_report_week"), 10);
+
+    sessionStorage.removeItem("attendng_report_week");
+
+    if (requestedWeek >= 1 && requestedWeek <= 15) {
+
+        guessed =
+            requestedWeek;
+
+    }
+
     currentWeek =
         guessed;
 
@@ -476,7 +502,7 @@ function statusFor(percentage, type) {
 
     const thresholds =
         type === "weekly" ?
-            { excellent: 90, good: 75, fair: 50 } :
+            WEEKLY_THRESHOLDS :
             { excellent: 95, good: 80, fair: 60 };
 
     if (percentage >= thresholds.excellent) return "Excellent";
@@ -564,6 +590,9 @@ function renderReport() {
 
         }
     );
+
+
+    renderScreenReport();
 
 
     document.getElementById("printTitle").textContent =
@@ -953,5 +982,759 @@ async function exportExcel() {
         alert("Unable to export the report to Excel.");
 
     }
+
+}
+
+
+/* ==========================================
+   ON-SCREEN REPORT
+   (Printing and the Excel export still use the
+   plain table and reportRows, exactly as before.)
+========================================== */
+
+function byId(id) {
+
+    return document.getElementById(id);
+
+}
+
+
+function wrEscape(value) {
+
+    const text =
+        (value === null || value === undefined) ? "" : String(value);
+
+    return text.replace(
+        /[&<>"']/g,
+        ch => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#39;"
+        }[ch])
+    );
+
+}
+
+
+function wrHash(text) {
+
+    let sum = 0;
+
+    String(text || "").split("").forEach(
+        ch => { sum += ch.charCodeAt(0); }
+    );
+
+    return sum;
+
+}
+
+
+function fmtPct(value) {
+
+    const rounded =
+        Math.round(value * 10) / 10;
+
+    return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + "%";
+
+}
+
+
+function statusClass(status) {
+
+    return status === "Excellent" ? "wr-ex" :
+        status === "Good" ? "wr-go" :
+        status === "Fair" ? "wr-fa" :
+        "wr-po";
+
+}
+
+
+function setReportHeader() {
+
+    const name =
+        AttendNGContext.className || "";
+
+    const tones =
+        ["wr-tone-teal", "wr-tone-indigo", "wr-tone-amber"];
+
+    const digits =
+        name.match(/\d+/);
+
+    const tone =
+        digits ?
+            tones[(((parseInt(digits[0], 10) - 1) % 3) + 3) % 3] :
+            tones[wrHash(name) % 3];
+
+    const tile =
+        byId("classTile");
+
+    tile.textContent =
+        name;
+
+    tile.className =
+        "wr-tile " + tone;
+
+    // An admin viewing another class: show that class, not their own.
+    byId("className").textContent =
+        name;
+
+    byId("term").textContent =
+        AttendNGContext.currentTerm || "";
+
+}
+
+
+/* ---------- week picker ---------- */
+
+function weekRangeText(weekNumber) {
+
+    const dates =
+        getWeekDates(weekNumber);
+
+    const months =
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const short = (date) =>
+        `${date.getDate()} ${months[date.getMonth()]}`;
+
+    return `${short(dates[0])} – ${short(dates[4])}`;
+
+}
+
+
+// Which week today falls in (0 if today is outside weeks 1–15).
+function thisWeekNumber() {
+
+    const start =
+        new Date(sessionStartDate + "T00:00:00");
+
+    const week =
+        Math.floor((new Date() - start) / (1000 * 60 * 60 * 24 * 7)) + 1;
+
+    return week >= 1 && week <= 15 ? week : 0;
+
+}
+
+
+function syncWeekUI() {
+
+    const select =
+        byId("reportWeek");
+
+    const week =
+        Number(select.value) || currentWeek;
+
+    byId("weekValue").textContent =
+        `Week ${week}`;
+
+    byId("weekRange").textContent =
+        weekRangeText(week);
+
+    byId("weekRangeText").textContent =
+        `Week ${week} · ${weekRangeText(week)}`;
+
+    byId("weekNowPill").hidden =
+        week !== thisWeekNumber();
+
+    byId("weekPrev").disabled =
+        week <= 1;
+
+    byId("weekNext").disabled =
+        week >= 15;
+
+    document.querySelectorAll("#weekMenu .wr-opt").forEach(
+        option => {
+
+            const selected =
+                Number(option.dataset.value) === week;
+
+            option.classList.toggle("is-selected", selected);
+
+            option.setAttribute("aria-selected", String(selected));
+
+        }
+    );
+
+}
+
+
+function initWeekPicker() {
+
+    const select =
+        byId("reportWeek");
+
+    const button =
+        byId("weekBtn");
+
+    const menu =
+        byId("weekMenu");
+
+    const now =
+        thisWeekNumber();
+
+    menu.innerHTML =
+        Array.from(select.options).map(
+            option => `
+                <button type="button" class="wr-opt" role="option" data-value="${option.value}">
+                    <b>${option.textContent.trim()}</b>
+                    <span class="wr-opt-range">${weekRangeText(Number(option.value))}</span>
+                    ${Number(option.value) === now ? `<span class="wr-now">This week</span>` : ""}
+                    <i class="fa-solid fa-check wr-check" aria-hidden="true"></i>
+                </button>
+            `
+        ).join("");
+
+    const options =
+        Array.from(menu.querySelectorAll(".wr-opt"));
+
+
+    const close = (returnFocus) => {
+
+        menu.hidden =
+            true;
+
+        button.setAttribute("aria-expanded", "false");
+
+        if (returnFocus) {
+
+            button.focus();
+
+        }
+
+    };
+
+    const open = () => {
+
+        menu.hidden =
+            false;
+
+        button.setAttribute("aria-expanded", "true");
+
+        const selected =
+            options.find(o => o.classList.contains("is-selected")) || options[0];
+
+        menu.scrollTop =
+            Math.max(0, selected.offsetTop - menu.clientHeight / 2 + selected.offsetHeight / 2);
+
+        selected.focus({ preventScroll: true });
+
+    };
+
+    const choose = (week) => {
+
+        if (week < 1 || week > 15 || String(week) === select.value) {
+
+            return;
+
+        }
+
+        select.value =
+            String(week);
+
+        syncWeekUI();
+
+        // The existing handler on the select loads that week's report.
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+
+    };
+
+
+    button.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            if (menu.hidden) {
+
+                open();
+
+            }
+            else {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    button.addEventListener(
+        "keydown",
+        (event) => {
+
+            if ((event.key === "ArrowDown" || event.key === "ArrowUp") && menu.hidden) {
+
+                event.preventDefault();
+
+                open();
+
+            }
+
+        }
+    );
+
+    options.forEach(
+        option => {
+
+            option.addEventListener(
+                "click",
+                (event) => {
+
+                    event.stopPropagation();
+
+                    close(true);
+
+                    choose(Number(option.dataset.value));
+
+                }
+            );
+
+        }
+    );
+
+    menu.addEventListener(
+        "keydown",
+        (event) => {
+
+            const index =
+                options.indexOf(document.activeElement);
+
+            if (event.key === "ArrowDown") {
+
+                event.preventDefault();
+
+                options[Math.min(index + 1, options.length - 1)].focus();
+
+            }
+            else if (event.key === "ArrowUp") {
+
+                event.preventDefault();
+
+                options[Math.max(index - 1, 0)].focus();
+
+            }
+            else if (event.key === "Home") {
+
+                event.preventDefault();
+
+                options[0].focus();
+
+            }
+            else if (event.key === "End") {
+
+                event.preventDefault();
+
+                options[options.length - 1].focus();
+
+            }
+            else if (event.key === "Escape") {
+
+                event.preventDefault();
+
+                close(true);
+
+            }
+            else if (event.key === "Tab") {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "click",
+        () => {
+
+            if (!menu.hidden) {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    byId("weekPrev").addEventListener("click", () => choose(Number(select.value) - 1));
+
+    byId("weekNext").addEventListener("click", () => choose(Number(select.value) + 1));
+
+    syncWeekUI();
+
+}
+
+
+/* ---------- search, status chips, "show them" ---------- */
+
+function updateStatusChips() {
+
+    document.querySelectorAll("#statusChips .wr-chip").forEach(
+        chip => {
+
+            const on =
+                chip.dataset.status === "all" ?
+                    statusFilter.size === 0 :
+                    statusFilter.has(chip.dataset.status);
+
+            chip.classList.toggle("is-on", on);
+
+            chip.setAttribute("aria-pressed", String(on));
+
+        }
+    );
+
+}
+
+
+function initReportScreen() {
+
+    byId("reportSearch").addEventListener(
+        "input",
+        (event) => {
+
+            reportSearchTerm =
+                event.target.value.trim().toLowerCase();
+
+            applyReportFilter();
+
+        }
+    );
+
+    byId("statusChips").addEventListener(
+        "click",
+        (event) => {
+
+            const chip =
+                event.target.closest(".wr-chip");
+
+            if (!chip) {
+
+                return;
+
+            }
+
+            const status =
+                chip.dataset.status;
+
+            if (status === "all") {
+
+                statusFilter.clear();
+
+            }
+            else if (statusFilter.has(status)) {
+
+                statusFilter.delete(status);
+
+            }
+            else {
+
+                statusFilter.add(status);
+
+            }
+
+            updateStatusChips();
+
+            applyReportFilter();
+
+        }
+    );
+
+    byId("attentionShow").addEventListener(
+        "click",
+        () => {
+
+            statusFilter =
+                new Set(["Fair", "Poor"]);
+
+            updateStatusChips();
+
+            applyReportFilter();
+
+            byId("reportList").scrollIntoView({ behavior: "smooth", block: "start" });
+
+        }
+    );
+
+}
+
+
+function applyReportFilter() {
+
+    const tokens =
+        reportSearchTerm.split(/\s+/).filter(Boolean);
+
+    let shown = 0;
+
+    byId("reportList").querySelectorAll(".wr-row").forEach(
+        rowEl => {
+
+            const row =
+                reportRows[Number(rowEl.dataset.index)];
+
+            const statusOk =
+                statusFilter.size === 0 || statusFilter.has(row.status);
+
+            const name =
+                row.name.toLowerCase();
+
+            const searchOk =
+                tokens.every(token => name.includes(token));
+
+            rowEl.hidden =
+                !(statusOk && searchOk);
+
+            if (!rowEl.hidden) {
+
+                shown++;
+
+            }
+
+        }
+    );
+
+    const note =
+        byId("reportNote");
+
+    if (reportRows.length === 0) {
+
+        note.textContent =
+            "No students in this class yet.";
+
+        note.hidden =
+            false;
+
+    }
+    else if (shown === 0) {
+
+        note.textContent =
+            "No students match.";
+
+        note.hidden =
+            false;
+
+    }
+    else {
+
+        note.hidden =
+            true;
+
+    }
+
+    byId("reportFoot").textContent =
+        `Showing ${shown} of ${reportRows.length} student${reportRows.length === 1 ? "" : "s"}`;
+
+}
+
+
+/* ---------- summary + list ---------- */
+
+function renderScreenReport() {
+
+    const total =
+        reportRows.length;
+
+    const present =
+        reportRows.reduce((sum, r) => sum + r.present, 0);
+
+    const possible =
+        total * schoolOpened;
+
+    const overall =
+        possible > 0 ? (present / possible) * 100 : 0;
+
+    const average =
+        total > 0 ?
+            reportRows.reduce((sum, r) => sum + r.percentage, 0) / total :
+            0;
+
+
+    // ring + stat tiles
+    const ring =
+        byId("ringFill");
+
+    const ringPercent =
+        Math.max(0, Math.min(100, overall));
+
+    ring.setAttribute("stroke-dasharray", `${ringPercent} 100`);
+
+    ring.style.opacity =
+        ringPercent > 0 ? "1" : "0";
+
+    byId("cardOverall").textContent =
+        fmtPct(overall);
+
+    byId("cardTotalPresent").textContent =
+        present;
+
+    byId("cardTotalOf").textContent =
+        possible > 0 ? `of ${possible}` : "";
+
+    byId("cardSchoolOpened").textContent =
+        schoolOpened;
+
+    byId("cardStudents").textContent =
+        total;
+
+    byId("cardAverage").textContent =
+        fmtPct(average);
+
+
+    // male vs female
+    [["male", "cardMale", "maleBar"], ["female", "cardFemale", "femaleBar"]].forEach(
+        ([gender, textId, barId]) => {
+
+            const group =
+                reportRows.filter(r => r.gender === gender);
+
+            const value =
+                group.length > 0 ?
+                    group.reduce((sum, r) => sum + r.percentage, 0) / group.length :
+                    null;
+
+            byId(textId).textContent =
+                value === null ? "–" : fmtPct(value);
+
+            byId(barId).style.width =
+                value === null ? "0%" : Math.min(100, value) + "%";
+
+        }
+    );
+
+
+    // status breakdown
+    const statuses =
+        ["Excellent", "Good", "Fair", "Poor"];
+
+    const counts = {};
+
+    statuses.forEach(status => { counts[status] = 0; });
+
+    reportRows.forEach(r => { counts[r.status] += 1; });
+
+    const t =
+        WEEKLY_THRESHOLDS;
+
+    byId("statusHint").textContent =
+        `Excellent ${t.excellent}%+ · Good ${t.good}%+ · Fair ${t.fair}%+ · Poor below ${t.fair}%`;
+
+    byId("statusBar").innerHTML =
+        statuses
+            .filter(status => counts[status] > 0)
+            .map(status => `<span class="${statusClass(status)}" style="flex:${counts[status]} 1 0" title="${status}: ${counts[status]}"></span>`)
+            .join("");
+
+    byId("statusBar").setAttribute(
+        "aria-label",
+        "Status breakdown: " + statuses.map(status => `${status} ${counts[status]}`).join(", ")
+    );
+
+    byId("statusLegend").innerHTML =
+        statuses.map(
+            status => `<span><i class="wr-dot ${statusClass(status)}"></i>${status} <b>${counts[status]}</b></span>`
+        ).join("");
+
+    byId("chipAll").textContent = total;
+    byId("chipExcellent").textContent = counts.Excellent;
+    byId("chipGood").textContent = counts.Good;
+    byId("chipFair").textContent = counts.Fair;
+    byId("chipPoor").textContent = counts.Poor;
+
+
+    // "school opened" not set → everyone would look absent; say so instead
+    const notice =
+        byId("openedNotice");
+
+    if (schoolOpened === 0 && total > 0) {
+
+        byId("openedNoticeText").textContent =
+            `Times school opened isn't set for Week ${currentWeek}, so attendance shows 0%.`;
+
+        notice.hidden =
+            false;
+
+    }
+    else {
+
+        notice.hidden =
+            true;
+
+    }
+
+
+    // students below the "Good" line
+    const below =
+        schoolOpened > 0 ?
+            reportRows.filter(r => r.percentage < t.good) :
+            [];
+
+    const strip =
+        byId("attentionStrip");
+
+    if (below.length > 0) {
+
+        const names =
+            below.slice(0, 3).map(r => r.name).join(", ");
+
+        const more =
+            below.length > 3 ? ` and ${below.length - 3} more` : "";
+
+        byId("attentionText").innerHTML =
+            `<b>${below.length} student${below.length === 1 ? " is" : "s are"} below ${t.good}%.</b> ${wrEscape(names)}${more}`;
+
+        strip.hidden =
+            false;
+
+    }
+    else {
+
+        strip.hidden =
+            true;
+
+    }
+
+
+    // list
+    byId("presentHead").textContent =
+        schoolOpened > 0 ? `Present of ${schoolOpened}` : "Present";
+
+    byId("reportList").innerHTML =
+        reportRows.map(
+            (row, index) => {
+
+                const initials =
+                    row.name.split(" ").filter(Boolean).slice(0, 2).map(w => w.charAt(0)).join("").toUpperCase() || "?";
+
+                const attention =
+                    schoolOpened > 0 && row.percentage < t.good;
+
+                return `
+                    <div class="wr-row${attention ? " is-attn" : ""}${attention && row.status === "Poor" ? " is-poor" : ""}" data-index="${index}">
+                        <span class="wr-num">${row.serial}</span>
+                        <div class="wr-who">
+                            <span class="wr-av wr-av-${wrHash(row.name) % 5}" aria-hidden="true">${wrEscape(initials)}</span>
+                            <span class="wr-nm">${wrEscape(row.name)}<span class="wr-meta">${row.present} present · ${row.absent} absent</span></span>
+                        </div>
+                        <div class="wr-prog">
+                            <span class="wr-bar"><i class="${statusClass(row.status)}" style="width:${Math.min(100, row.percentage)}%"></i></span>
+                            <span class="wr-frac">${row.present}/${schoolOpened}</span>
+                        </div>
+                        <span class="wr-abs">${row.absent}</span>
+                        <div class="wr-side">
+                            <b class="wr-pct">${fmtPct(row.percentage)}</b>
+                            <span class="wr-st ${statusClass(row.status)}">${row.status}</span>
+                        </div>
+                    </div>
+                `;
+
+            }
+        ).join("");
+
+    syncWeekUI();
+
+    applyReportFilter();
 
 }

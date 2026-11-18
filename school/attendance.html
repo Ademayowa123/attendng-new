@@ -105,6 +105,277 @@
                 animation: none;
             }
         }
+
+        /* Weekly settings controls: styled week dropdown + times-opened stepper.
+           The real <select id="attendanceWeek"> and <input id="schoolOpened"> stay in
+           the page and attendance.js keeps reading them exactly as before. */
+        .aw-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .aw-native {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .aw-dd {
+            position: relative;
+            min-width: 230px;
+        }
+
+        button.aw-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            width: 100%;
+            height: 42px;
+            padding: 0 12px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        button.aw-trigger:hover {
+            background: var(--surface-alt);
+            border-color: #cbd5e1;
+        }
+
+        button.aw-trigger[aria-expanded="true"],
+        button.aw-trigger:focus-visible {
+            outline: none;
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+        }
+
+        button.aw-trigger > i:first-child {
+            color: var(--text-muted);
+        }
+
+        .aw-value {
+            font-weight: 600;
+        }
+
+        .aw-range {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12.5px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .aw-chevron {
+            font-size: 11px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+
+        button.aw-trigger[aria-expanded="true"] .aw-chevron {
+            transform: rotate(180deg);
+        }
+
+        .aw-menu {
+            position: absolute;
+            z-index: 40;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            min-width: 290px;
+            max-height: 300px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 6px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .aw-menu[hidden] {
+            display: none;
+        }
+
+        button.aw-opt {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            width: 100%;
+            padding: 8px 10px;
+            background: transparent;
+            border: 0;
+            border-radius: 8px;
+            font: inherit;
+            font-size: 14px;
+            text-align: left;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        button.aw-opt:hover,
+        button.aw-opt:focus-visible {
+            outline: none;
+            background: var(--surface-alt);
+        }
+
+        button.aw-opt.is-selected {
+            background: rgba(15, 118, 110, 0.1);
+        }
+
+        .aw-opt b {
+            min-width: 58px;
+            font-weight: 600;
+        }
+
+        .aw-opt .aw-opt-range {
+            flex: 1;
+            white-space: nowrap;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+        }
+
+        .aw-now {
+            padding: 1px 8px;
+            border-radius: 9999px;
+            background: #dcfce7;
+            font-size: 11px;
+            font-weight: 600;
+            color: #166534;
+        }
+
+        .aw-opt .aw-check {
+            width: 14px;
+            color: var(--primary);
+            visibility: hidden;
+        }
+
+        button.aw-opt.is-selected .aw-check {
+            visibility: visible;
+        }
+
+        .aw-stepper {
+            display: inline-flex;
+            align-items: stretch;
+            height: 42px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .aw-stepper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+        }
+
+        button.aw-step {
+            width: 40px;
+            padding: 0;
+            background: var(--surface-alt);
+            border: 0;
+            border-radius: 0;
+            font: inherit;
+            font-size: 18px;
+            line-height: 1;
+            color: var(--primary-dark);
+            cursor: pointer;
+        }
+
+        button.aw-step:hover:not(:disabled) {
+            background: rgba(15, 118, 110, 0.12);
+        }
+
+        button.aw-step:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        button.aw-step:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: -2px;
+        }
+
+        .aw-stepper input[type="number"] {
+            width: 64px;
+            min-width: 0;
+            height: auto;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            background: transparent;
+            font: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-main);
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .aw-stepper input[type="number"]:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .aw-stepper input[type="number"]::-webkit-outer-spin-button,
+        .aw-stepper input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+
+            .weekly-controls {
+                width: 100%;
+            }
+
+            .weekly-controls .form-group {
+                flex: 1 1 100%;
+            }
+
+            .aw-dd {
+                min-width: 0;
+            }
+
+            .aw-stepper {
+                display: flex;
+                width: 100%;
+            }
+
+            .aw-stepper input[type="number"] {
+                flex: 1;
+            }
+
+            button.aw-step {
+                width: 52px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .aw-chevron {
+                transition: none;
+            }
+        }
     </style>
 
 </head>
@@ -152,8 +423,9 @@
                         <div class="weekly-controls">
 
                             <div class="form-group" style="margin-bottom:0;">
-                                <label for="attendanceWeek">Week</label>
-                                <select id="attendanceWeek">
+                                <span class="aw-label" id="weekLabel">Week</span>
+                                <div class="aw-dd" id="weekDd">
+                                <select id="attendanceWeek" class="aw-native" tabindex="-1" aria-hidden="true">
                                     <option value="1">Week 1</option>
                                     <option value="2">Week 2</option>
                                     <option value="3">Week 3</option>
@@ -170,11 +442,24 @@
                                     <option value="14">Week 14</option>
                                     <option value="15">Week 15</option>
                                 </select>
+
+                                    <button type="button" class="aw-trigger" id="weekBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="weekLabel weekValue">
+                                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                        <span class="aw-value" id="weekValue">Week 1</span>
+                                        <span class="aw-range" id="weekRange"></span>
+                                        <i class="fa-solid fa-chevron-down aw-chevron" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="aw-menu" id="weekMenu" role="listbox" aria-labelledby="weekLabel" hidden></div>
+                                </div>
                             </div>
 
                             <div class="form-group" style="margin-bottom:0;">
-                                <label for="schoolOpened">Times school opened</label>
-                                <input type="number" id="schoolOpened" min="0" max="10" value="10">
+                                <label for="schoolOpened" class="aw-label">Times school opened</label>
+                                <div class="aw-stepper">
+                                    <button type="button" class="aw-step" id="schoolOpenedDown" aria-label="One less time">&minus;</button>
+                                    <input type="number" id="schoolOpened" min="0" max="10" value="10" inputmode="numeric">
+                                    <button type="button" class="aw-step" id="schoolOpenedUp" aria-label="One more time">+</button>
+                                </div>
                             </div>
 
                         </div>

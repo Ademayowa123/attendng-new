@@ -8,7 +8,13 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 let sessionStartDate = null;
 let students = [];
 let selectedTerm = "";
-let charts = {}; // keyed by canvas id, so we can destroy before re-creating
+let analyticsData = null;       // everything the page draws, kept so it can be re-drawn on resize
+let followTab = "75";            // "75" | "50"
+let followExpanded = false;
+const FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+// Term attendance status thresholds (percent) — same as the term report.
+const ANALYTICS_THRESHOLDS = { excellent: 95, good: 80, fair: 60 };
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -43,6 +49,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("analyticsTerm").value =
         selectedTerm;
+
+    setAnalyticsHeader();
+
+    initAnalyticsUI();
 
     document.getElementById("analyticsTerm").addEventListener(
         "change",
@@ -271,22 +281,23 @@ async function generateAnalytics() {
 
     if (students.length > 0) {
 
-        const { data, error } =
-            await supabaseClient
-                .from("attendance")
-                .select("student_id, date, morning_present, afternoon_present")
-                .in("student_id", students.map(s => s.id))
-                .eq("term", selectedTerm);
-
-        if (error) {
-
-            console.error("Unable to load attendance:", error);
-
-        }
-        else {
+        try {
 
             attendanceRows =
-                data;
+                await fetchPaged(
+                    () => supabaseClient
+                        .from("attendance")
+                        .select("student_id, date, morning_present, afternoon_present")
+                        .in("student_id", students.map(s => s.id))
+                        .eq("term", selectedTerm)
+                        .order("student_id")
+                        .order("date")
+                );
+
+        }
+        catch (error) {
+
+            console.error("Unable to load attendance:", error);
 
         }
 
@@ -433,285 +444,323 @@ async function generateAnalytics() {
         );
 
 
-    renderSummaryCards(studentStats);
-    renderCharts(studentStats, weeklyBreakdown, dayStats);
-    renderRankings(studentStats);
-    renderWeeklyTable(weeklyBreakdown);
-    renderInsights(studentStats, weeklyBreakdown);
+    analyticsData = {
+        studentStats,
+        weeklyBreakdown,
+        dayStats,
+        totalSchoolOpened,
+        weekNumbers
+    };
+
+    followExpanded = false;
+
+    renderAnalytics();
 
 }
 
 
 /* ==========================================
-   SUMMARY CARDS
+   SMALL HELPERS
 ========================================== */
 
-function renderSummaryCards(studentStats) {
+function byId(id) {
 
-    const percentages =
-        studentStats.map(s => s.percentage);
-
-    const average =
-        percentages.length > 0 ? percentages.reduce((a, b) => a + b, 0) / percentages.length : 0;
-
-    const best =
-        percentages.length > 0 ? Math.max(...percentages) : 0;
-
-    const lowest =
-        percentages.length > 0 ? Math.min(...percentages) : 0;
-
-    const maleStats =
-        studentStats.filter(s => s.gender === "male");
-
-    const femaleStats =
-        studentStats.filter(s => s.gender === "female");
-
-    const maleAvg =
-        maleStats.length > 0 ? maleStats.reduce((a, b) => a + b.percentage, 0) / maleStats.length : 0;
-
-    const femaleAvg =
-        femaleStats.length > 0 ? femaleStats.reduce((a, b) => a + b.percentage, 0) / femaleStats.length : 0;
-
-
-    document.getElementById("cardTotalStudents").textContent = studentStats.length;
-    document.getElementById("cardAverage").textContent = average.toFixed(1) + "%";
-    document.getElementById("cardBest").textContent = best.toFixed(1) + "%";
-    document.getElementById("cardLowest").textContent = lowest.toFixed(1) + "%";
-    document.getElementById("cardMaleAvg").textContent = maleAvg.toFixed(1) + "%";
-    document.getElementById("cardFemaleAvg").textContent = femaleAvg.toFixed(1) + "%";
+    return document.getElementById(id);
 
 }
 
 
-/* ==========================================
-   CHARTS
-========================================== */
+function anEscape(value) {
 
-function renderCharts(studentStats, weeklyBreakdown, dayStats) {
+    const text =
+        (value === null || value === undefined) ? "" : String(value);
 
-    renderChart(
-        "weeklyTrendChart", "line",
-        {
-            labels: weeklyBreakdown.map(w => `Week ${w.week}`),
-            datasets: [{
-                label: "Attendance %",
-                data: weeklyBreakdown.map(w => w.percentage.toFixed(1)),
-                borderColor: "#0f766e",
-                backgroundColor: "rgba(15,118,110,0.1)",
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        { scales: { y: { min: 0, max: 100 } } }
-    );
-
-    const maleStats = studentStats.filter(s => s.gender === "male");
-    const femaleStats = studentStats.filter(s => s.gender === "female");
-    const maleAvg = maleStats.length > 0 ? maleStats.reduce((a, b) => a + b.percentage, 0) / maleStats.length : 0;
-    const femaleAvg = femaleStats.length > 0 ? femaleStats.reduce((a, b) => a + b.percentage, 0) / femaleStats.length : 0;
-
-    renderChart(
-        "genderChart", "bar",
-        {
-            labels: ["Male", "Female"],
-            datasets: [{
-                label: "Average Attendance %",
-                data: [maleAvg.toFixed(1), femaleAvg.toFixed(1)],
-                backgroundColor: ["#2563eb", "#db2777"]
-            }]
-        },
-        { scales: { y: { min: 0, max: 100 } } }
-    );
-
-
-    const buckets = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
-
-    studentStats.forEach(
-        s => { buckets[statusFor(s.percentage)] += 1; }
-    );
-
-    renderChart(
-        "distributionChart", "doughnut",
-        {
-            labels: Object.keys(buckets),
-            datasets: [{
-                data: Object.values(buckets),
-                backgroundColor: ["#16a34a", "#0f766e", "#eab308", "#dc2626"]
-            }]
-        },
-        {}
-    );
-
-
-    renderChart(
-        "dayOfWeekChart", "bar",
-        {
-            labels: DAY_LABELS,
-            datasets: [{
-                label: "Attendance %",
-                data: dayStats.map(d => d.toFixed(1)),
-                backgroundColor: "#0f766e"
-            }]
-        },
-        { scales: { y: { min: 0, max: 100 } } }
+    return text.replace(
+        /[&<>"']/g,
+        ch => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#39;"
+        }[ch])
     );
 
 }
 
 
-function renderChart(canvasId, type, data, extraOptions) {
+function anHash(text) {
 
-    if (charts[canvasId]) {
+    let sum = 0;
 
-        charts[canvasId].destroy();
+    String(text || "").split("").forEach(
+        ch => { sum += ch.charCodeAt(0); }
+    );
 
-    }
-
-    const ctx =
-        document.getElementById(canvasId).getContext("2d");
-
-    charts[canvasId] =
-        new Chart(ctx, {
-            type,
-            data,
-            options: {
-                responsive: true,
-                plugins: { legend: { display: type === "doughnut" } },
-                ...extraOptions
-            }
-        });
+    return sum;
 
 }
 
 
-/* ==========================================
-   STATUS / RANKINGS
-========================================== */
+function fmtPct(value) {
+
+    const rounded =
+        Math.round(value * 10) / 10;
+
+    return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + "%";
+
+}
+
+
+function plural(count, singular, pluralWord) {
+
+    return count === 1 ? singular : (pluralWord || singular + "s");
+
+}
+
 
 function statusFor(percentage) {
 
-    if (percentage >= 95) return "Excellent";
-    if (percentage >= 80) return "Good";
-    if (percentage >= 60) return "Fair";
+    if (percentage >= ANALYTICS_THRESHOLDS.excellent) return "Excellent";
+    if (percentage >= ANALYTICS_THRESHOLDS.good) return "Good";
+    if (percentage >= ANALYTICS_THRESHOLDS.fair) return "Fair";
     return "Poor";
 
 }
 
 
-function renderRankings(studentStats) {
+function statusClass(status) {
 
-    const sortedDesc =
-        [...studentStats].sort((a, b) => b.present - a.present);
-
-    const sortedAsc =
-        [...studentStats].sort((a, b) => a.present - b.present);
-
-    fillRankingTable("topRankingBody", sortedDesc.slice(0, 5));
-    fillRankingTable("lowestRankingBody", sortedAsc.slice(0, 5));
-
-    const below75 =
-        [...studentStats].filter(s => s.percentage < 75).sort((a, b) => a.percentage - b.percentage);
-
-    const below50 =
-        [...studentStats].filter(s => s.percentage < 50).sort((a, b) => a.percentage - b.percentage);
-
-    fillAlertTable("below75Body", below75);
-    fillAlertTable("below50Body", below50);
+    return status === "Excellent" ? "an-ex" :
+        status === "Good" ? "an-go" :
+        status === "Fair" ? "an-fa" :
+        "an-po";
 
 }
 
 
-function fillRankingTable(tbodyId, list) {
+/* ==========================================
+   HEADER + CONTROLS
+========================================== */
 
-    const tbody =
-        document.getElementById(tbodyId);
+function setAnalyticsHeader() {
 
-    tbody.innerHTML =
-        list.length === 0 ?
-            `<tr><td colspan="3" style="padding:8px 4px; color:var(--text-muted);">No data yet.</td></tr>` :
-            "";
+    const name =
+        AttendNGContext.className || "";
 
-    list.forEach(
-        (row, index) => {
+    const tones =
+        ["an-tone-teal", "an-tone-indigo", "an-tone-amber"];
 
-            const tr =
-                document.createElement("tr");
+    const digits =
+        name.match(/\d+/);
 
-            tr.style.borderBottom =
-                "1px solid var(--border)";
+    const tone =
+        digits ?
+            tones[(((parseInt(digits[0], 10) - 1) % 3) + 3) % 3] :
+            tones[anHash(name) % 3];
 
-            tr.innerHTML = `
-                <td style="padding:6px 4px;">${index + 1}</td>
-                <td style="padding:6px 4px;">${row.name}</td>
-                <td style="padding:6px 4px; text-align:right;">${row.present}</td>
-            `;
+    const tile =
+        byId("classTile");
 
-            tbody.appendChild(tr);
+    tile.textContent =
+        name;
+
+    tile.className =
+        "an-tile " + tone;
+
+    byId("className").textContent =
+        name;
+
+    byId("sessionName").textContent =
+        AttendNGContext.sessionName || "";
+
+    byId("termText").textContent =
+        selectedTerm;
+
+}
+
+
+function syncTermUI() {
+
+    const term =
+        byId("analyticsTerm").value;
+
+    document.querySelectorAll("#termSeg .an-tbtn").forEach(
+        button => {
+
+            const on =
+                button.dataset.value === term;
+
+            button.classList.toggle("is-on", on);
+
+            button.setAttribute("aria-pressed", String(on));
 
         }
     );
 
+    byId("termText").textContent =
+        term;
+
 }
 
 
-function fillAlertTable(tbodyId, list) {
+function initAnalyticsUI() {
 
-    const tbody =
-        document.getElementById(tbodyId);
+    const select =
+        byId("analyticsTerm");
 
-    tbody.innerHTML =
-        list.length === 0 ?
-            `<tr><td colspan="2" style="padding:8px 4px; color:var(--text-muted);">None — nice work.</td></tr>` :
-            "";
+    const current =
+        AttendNGContext.currentTerm || "";
 
-    list.forEach(
-        row => {
+    byId("termSeg").innerHTML =
+        Array.from(select.options).map(
+            option => `
+                <button type="button" class="an-tbtn" data-value="${anEscape(option.value)}" aria-pressed="false">
+                    ${anEscape(option.textContent)}${option.value === current ? `<span class="an-tdot" title="Current term"></span>` : ""}
+                </button>
+            `
+        ).join("");
 
-            const tr =
-                document.createElement("tr");
+    byId("termSeg").addEventListener(
+        "click",
+        (event) => {
 
-            tr.style.borderBottom =
-                "1px solid var(--border)";
+            const button =
+                event.target.closest(".an-tbtn");
 
-            tr.innerHTML = `
-                <td style="padding:6px 4px;">${row.name}</td>
-                <td style="padding:6px 4px; text-align:right;">${row.percentage.toFixed(1)}%</td>
-            `;
+            if (!button || select.value === button.dataset.value) {
 
-            tbody.appendChild(tr);
+                return;
+
+            }
+
+            select.value =
+                button.dataset.value;
+
+            syncTermUI();
+
+            // The existing handler on the select loads that term's numbers.
+            select.dispatchEvent(new Event("change", { bubbles: true }));
 
         }
     );
 
-}
+    syncTermUI();
 
 
-function renderWeeklyTable(weeklyBreakdown) {
+    // "Students to follow up": below 75% / below 50%
+    document.querySelector(".an-tabs").addEventListener(
+        "click",
+        (event) => {
 
-    const tbody =
-        document.getElementById("weeklyAnalysisBody");
+            const tab =
+                event.target.closest(".an-tab");
 
-    tbody.innerHTML =
-        weeklyBreakdown.length === 0 ?
-            `<tr><td colspan="3" style="padding:8px 4px; color:var(--text-muted);">No data yet.</td></tr>` :
-            "";
+            if (!tab) {
 
-    weeklyBreakdown.forEach(
-        w => {
+                return;
 
-            const tr =
-                document.createElement("tr");
+            }
 
-            tr.style.borderBottom =
-                "1px solid var(--border)";
+            followTab =
+                tab.dataset.tab;
 
-            tr.innerHTML = `
-                <td style="padding:6px 4px;">Week ${w.week}</td>
-                <td style="padding:6px 4px; text-align:center;">${w.totalAttendance}</td>
-                <td style="padding:6px 4px; text-align:center;">${w.percentage.toFixed(1)}%</td>
-            `;
+            followExpanded =
+                false;
 
-            tbody.appendChild(tr);
+            renderFollowUp();
+
+        }
+    );
+
+    byId("followMore").addEventListener(
+        "click",
+        () => {
+
+            followExpanded =
+                !followExpanded;
+
+            renderFollowUp();
+
+        }
+    );
+
+
+    // A week in the strip opens that week's report
+    byId("weekStrip").addEventListener(
+        "click",
+        (event) => {
+
+            const cell =
+                event.target.closest(".an-cell");
+
+            if (!cell) {
+
+                return;
+
+            }
+
+            sessionStorage.setItem(
+                "attendng_report_override",
+                JSON.stringify({
+                    classId: AttendNGContext.classId,
+                    className: AttendNGContext.className,
+                    sessionId: AttendNGContext.sessionId,
+                    sessionName: AttendNGContext.sessionName,
+                    currentTerm: selectedTerm,
+                    classIsFinalized: AttendNGContext.classIsFinalized,
+                    schoolName: AttendNGContext.schoolName
+                })
+            );
+
+            sessionStorage.setItem("attendng_report_week", cell.dataset.week);
+
+            window.location.href =
+                "/school/report-weekly.html";
+
+        }
+    );
+
+
+    // Save as PDF = the browser's print dialog, with a clean print layout
+    byId("pdfBtn").addEventListener(
+        "click",
+        () => {
+
+            const originalTitle =
+                document.title;
+
+            document.title =
+                "Powered by AttendNG";
+
+            window.addEventListener(
+                "afterprint",
+                () => {
+
+                    document.title =
+                        originalTitle;
+
+                },
+                { once: true }
+            );
+
+            window.print();
+
+        }
+    );
+
+
+    // Charts are drawn to fit their box, so redraw when it changes size.
+    let resizeTimer = null;
+
+    window.addEventListener(
+        "resize",
+        () => {
+
+            clearTimeout(resizeTimer);
+
+            resizeTimer =
+                setTimeout(renderTrend, 150);
 
         }
     );
@@ -720,155 +769,762 @@ function renderWeeklyTable(weeklyBreakdown) {
 
 
 /* ==========================================
-   AUTO-GENERATED INSIGHTS
+   RENDER EVERYTHING
 ========================================== */
 
-function renderInsights(studentStats, weeklyBreakdown) {
+function renderAnalytics() {
 
-    const insights =
-        [];
+    const d =
+        analyticsData;
 
-    if (studentStats.length === 0 || weeklyBreakdown.length === 0) {
+    syncTermUI();
 
-        insights.push("Not enough data yet to generate insights for this term.");
+    const weeks =
+        d.weekNumbers.length;
 
-        renderInsightsList(insights);
+    byId("weeksText").textContent =
+        weeks > 0 ?
+            ` · ${weeks} week${weeks === 1 ? "" : "s"} recorded · ${d.studentStats.length} student${d.studentStats.length === 1 ? "" : "s"}` :
+            "";
+
+
+    // print header (only visible when printing / saving as PDF)
+    byId("printTitle").textContent =
+        `${AttendNGContext.schoolName} — Term Attendance Analytics`;
+
+    byId("printMeta").textContent =
+        `${AttendNGContext.className} · ${AttendNGContext.sessionName} · ${selectedTerm}`;
+
+    const printHeaderEl =
+        byId("printHeader");
+
+    if (AttendNGContext.schoolLogoUrl) {
+
+        byId("printLogo").src =
+            AttendNGContext.schoolLogoUrl;
+
+        printHeaderEl.classList.add("has-logo");
+
+    }
+    else {
+
+        printHeaderEl.classList.remove("has-logo");
+
+    }
+
+
+    // nothing to analyse yet
+    const empty =
+        byId("anEmpty");
+
+    const content =
+        byId("anContent");
+
+    const notice =
+        byId("openedNotice");
+
+    notice.hidden =
+        true;
+
+    if (d.studentStats.length === 0 || weeks === 0) {
+
+        byId("anEmptyTitle").textContent =
+            d.studentStats.length === 0 ?
+                "No students in this class yet" :
+                `No attendance recorded for ${selectedTerm} yet`;
+
+        byId("anEmptyText").textContent =
+            d.studentStats.length === 0 ?
+                "Add students to the class, then record attendance." :
+                "Record attendance and the insights will appear here.";
+
+        byId("anEmptyLink").hidden =
+            d.studentStats.length === 0;
+
+        empty.hidden =
+            false;
+
+        content.hidden =
+            true;
 
         return;
 
     }
 
-    const average =
-        studentStats.reduce((a, b) => a + b.percentage, 0) / studentStats.length;
+    empty.hidden =
+        true;
 
-    insights.push(
-        `Class average attendance this term is ${average.toFixed(1)}%.`
-    );
+    content.hidden =
+        false;
 
+    if (d.totalSchoolOpened === 0) {
 
-    const below50Count =
-        studentStats.filter(s => s.percentage < 50).length;
+        byId("openedNoticeText").textContent =
+            `Times school opened isn't set for the weeks recorded in ${selectedTerm}, so attendance shows 0%.`;
 
-    if (below50Count > 0) {
-
-        insights.push(
-            `${below50Count} student${below50Count === 1 ? "" : "s"} ${below50Count === 1 ? "has" : "have"} critical attendance below 50% — worth a follow-up.`
-        );
+        notice.hidden =
+            false;
 
     }
 
-
-    const bestWeek =
-        [...weeklyBreakdown].sort((a, b) => b.percentage - a.percentage)[0];
-
-    const worstWeek =
-        [...weeklyBreakdown].sort((a, b) => a.percentage - b.percentage)[0];
-
-    if (bestWeek && worstWeek && bestWeek.week !== worstWeek.week) {
-
-        insights.push(
-            `Week ${bestWeek.week} had the best attendance (${bestWeek.percentage.toFixed(1)}%), while Week ${worstWeek.week} had the lowest (${worstWeek.percentage.toFixed(1)}%).`
-        );
-
-    }
-
-
-    if (weeklyBreakdown.length >= 4) {
-
-        const midpoint =
-            Math.floor(weeklyBreakdown.length / 2);
-
-        const firstHalf =
-            weeklyBreakdown.slice(0, midpoint);
-
-        const secondHalf =
-            weeklyBreakdown.slice(midpoint);
-
-        const firstAvg =
-            firstHalf.reduce((a, b) => a + b.percentage, 0) / firstHalf.length;
-
-        const secondAvg =
-            secondHalf.reduce((a, b) => a + b.percentage, 0) / secondHalf.length;
-
-        const diff =
-            secondAvg - firstAvg;
-
-        if (Math.abs(diff) >= 5) {
-
-            insights.push(
-                diff > 0 ?
-                    `Attendance has been trending upward — up ${diff.toFixed(1)} points across the term so far.` :
-                    `Attendance has been trending downward — down ${Math.abs(diff).toFixed(1)} points across the term so far.`
-            );
-
-        }
-        else {
-
-            insights.push("Attendance has stayed fairly steady across the term so far.");
-
-        }
-
-    }
-
-
-    const maleStats = studentStats.filter(s => s.gender === "male");
-    const femaleStats = studentStats.filter(s => s.gender === "female");
-
-    if (maleStats.length > 0 && femaleStats.length > 0) {
-
-        const maleAvg = maleStats.reduce((a, b) => a + b.percentage, 0) / maleStats.length;
-        const femaleAvg = femaleStats.reduce((a, b) => a + b.percentage, 0) / femaleStats.length;
-        const genderGap = Math.abs(maleAvg - femaleAvg);
-
-        if (genderGap >= 10) {
-
-            insights.push(
-                maleAvg > femaleAvg ?
-                    `Boys are attending noticeably more than girls this term (${genderGap.toFixed(1)} point gap).` :
-                    `Girls are attending noticeably more than boys this term (${genderGap.toFixed(1)} point gap).`
-            );
-
-        }
-
-    }
-
-
-    renderInsightsList(insights);
+    renderInsights();
+    renderKpis();
+    renderTrend();
+    renderDays();
+    renderStatus();
+    renderFollowUp();
+    renderTop();
+    renderStrip();
 
 }
 
 
-function renderInsightsList(insights) {
+/* ==========================================
+   INSIGHTS (what to look at first)
+========================================== */
 
-    const container =
-        document.getElementById("insightsList");
+function buildInsights(d) {
 
-    container.innerHTML =
-        "";
+    const stats =
+        d.studentStats;
 
-    insights.forEach(
-        text => {
+    const weekly =
+        d.weeklyBreakdown;
 
-            const item =
-                document.createElement("div");
+    const list =
+        [];
 
-            item.style.display =
-                "flex";
+    // students in real trouble
+    const below50 =
+        stats.filter(s => s.percentage < 50).length;
 
-            item.style.gap =
-                "8px";
+    if (below50 > 0 && d.totalSchoolOpened > 0) {
 
-            item.style.alignItems =
-                "flex-start";
+        list.push({
+            tone: "bad",
+            icon: "fa-user-clock",
+            title: `${below50} ${plural(below50, "student needs", "students need")} follow-up`,
+            text: `${below50} ${plural(below50, "is", "are")} below 50% for the term.`
+        });
 
-            item.innerHTML = `
-                <i class="fa-solid fa-circle-dot" style="color:var(--primary); font-size:6px; margin-top:6px;"></i>
-                <span>${text}</span>
-            `;
+    }
 
-            container.appendChild(item);
+    // best / worst week
+    const bestWeek =
+        [...weekly].sort((a, b) => b.percentage - a.percentage)[0];
+
+    const worstWeek =
+        [...weekly].sort((a, b) => a.percentage - b.percentage)[0];
+
+    if (bestWeek && worstWeek && bestWeek.week !== worstWeek.week) {
+
+        list.push({
+            tone: "warn",
+            icon: "fa-arrow-trend-down",
+            title: `Lowest week: Week ${worstWeek.week}`,
+            text: `Attendance fell to ${fmtPct(worstWeek.percentage)} (best was Week ${bestWeek.week} at ${fmtPct(bestWeek.percentage)}).`
+        });
+
+    }
+
+    // weakest day
+    const days =
+        d.dayStats
+            .map((value, index) => ({ index, value }))
+            .filter(x => x.value > 0);
+
+    if (days.length >= 2) {
+
+        const low =
+            days.reduce((a, b) => (b.value < a.value ? b : a));
+
+        const high =
+            days.reduce((a, b) => (b.value > a.value ? b : a));
+
+        if (high.value - low.value >= 5) {
+
+            list.push({
+                tone: "warn",
+                icon: "fa-calendar-day",
+                title: `${FULL_DAYS[low.index]}s are weakest`,
+                text: `${fmtPct(low.value)} on ${FULL_DAYS[low.index]}s, ${Math.round(high.value - low.value)} points below ${FULL_DAYS[high.index]}s.`
+            });
+
+        }
+
+    }
+
+    // direction across the term
+    if (weekly.length >= 4) {
+
+        const midpoint =
+            Math.floor(weekly.length / 2);
+
+        const first =
+            weekly.slice(0, midpoint);
+
+        const second =
+            weekly.slice(midpoint);
+
+        const diff =
+            second.reduce((a, b) => a + b.percentage, 0) / second.length -
+            first.reduce((a, b) => a + b.percentage, 0) / first.length;
+
+        if (diff >= 5) {
+
+            list.push({
+                tone: "good",
+                icon: "fa-arrow-trend-up",
+                title: "Trending up",
+                text: `Up ${diff.toFixed(1)} points across the term so far.`
+            });
+
+        }
+        else if (diff <= -5) {
+
+            list.push({
+                tone: "bad",
+                icon: "fa-arrow-trend-down",
+                title: "Trending down",
+                text: `Down ${Math.abs(diff).toFixed(1)} points across the term so far.`
+            });
+
+        }
+        else {
+
+            list.push({
+                tone: "info",
+                icon: "fa-minus",
+                title: "Steady attendance",
+                text: "Fairly steady across the term so far."
+            });
+
+        }
+
+    }
+
+    // gender gap
+    const male =
+        stats.filter(s => s.gender === "male");
+
+    const female =
+        stats.filter(s => s.gender === "female");
+
+    if (male.length > 0 && female.length > 0) {
+
+        const maleAvg =
+            male.reduce((a, b) => a + b.percentage, 0) / male.length;
+
+        const femaleAvg =
+            female.reduce((a, b) => a + b.percentage, 0) / female.length;
+
+        const gap =
+            Math.abs(maleAvg - femaleAvg);
+
+        if (gap >= 10) {
+
+            list.push({
+                tone: "info",
+                icon: "fa-venus-mars",
+                title: `${maleAvg > femaleAvg ? "Male" : "Female"} students attend more`,
+                text: `A ${gap.toFixed(1)} point gap between male and female students.`
+            });
+
+        }
+
+    }
+
+    if (list.length === 0) {
+
+        const average =
+            stats.reduce((a, b) => a + b.percentage, 0) / stats.length;
+
+        list.push({
+            tone: "good",
+            icon: "fa-circle-check",
+            title: "Nothing needs attention",
+            text: `Class average attendance is ${fmtPct(average)} this term.`
+        });
+
+    }
+
+    return list.slice(0, 4);
+
+}
+
+
+function renderInsights() {
+
+    byId("insightsList").innerHTML =
+        buildInsights(analyticsData).map(
+            item => `
+                <div class="an-ins">
+                    <span class="an-ico an-ico-${item.tone}"><i class="fa-solid ${item.icon}" aria-hidden="true"></i></span>
+                    <div><b>${anEscape(item.title)}</b><span>${anEscape(item.text)}</span></div>
+                </div>
+            `
+        ).join("");
+
+}
+
+
+/* ==========================================
+   KEY NUMBERS
+========================================== */
+
+function renderKpis() {
+
+    const d =
+        analyticsData;
+
+    const stats =
+        d.studentStats;
+
+    const percentages =
+        stats.map(s => s.percentage);
+
+    const average =
+        percentages.reduce((a, b) => a + b, 0) / percentages.length;
+
+    const best =
+        Math.max(...percentages);
+
+    const lowest =
+        Math.min(...percentages);
+
+    byId("kpiAvg").textContent =
+        fmtPct(average);
+
+
+    // change since the previous recorded week
+    const delta =
+        byId("kpiDelta");
+
+    const weekly =
+        d.weeklyBreakdown;
+
+    if (weekly.length >= 2 && d.totalSchoolOpened > 0) {
+
+        const change =
+            weekly[weekly.length - 1].percentage - weekly[weekly.length - 2].percentage;
+
+        const flat =
+            Math.abs(change) < 0.05;
+
+        delta.className =
+            "an-delta " + (flat ? "an-delta-flat" : change > 0 ? "an-delta-up" : "an-delta-down");
+
+        delta.innerHTML =
+            flat ?
+                "no change" :
+                `<i class="fa-solid ${change > 0 ? "fa-arrow-up" : "fa-arrow-down"}" aria-hidden="true"></i>${Math.abs(change).toFixed(1)}`;
+
+        delta.hidden =
+            false;
+
+        byId("kpiAvgNote").textContent =
+            `vs. previous week (Week ${weekly[weekly.length - 2].week})`;
+
+    }
+    else {
+
+        delta.hidden =
+            true;
+
+        byId("kpiAvgNote").textContent =
+            "across the term";
+
+    }
+
+    byId("kpiBest").textContent =
+        fmtPct(best);
+
+    const atBest =
+        stats.filter(s => s.percentage >= best - 0.05).length;
+
+    byId("kpiBestNote").textContent =
+        `${atBest} ${plural(atBest, "student")} at this level`;
+
+    byId("kpiLow").textContent =
+        fmtPct(lowest);
+
+    const atLowest =
+        stats.filter(s => s.percentage <= lowest + 0.05);
+
+    byId("kpiLowNote").textContent =
+        atLowest.length === 1 ?
+            atLowest[0].name :
+            `${atLowest[0].name} and ${atLowest.length - 1} ${plural(atLowest.length - 1, "other")}`;
+
+
+    [["male", "kpiMale", "maleBar"], ["female", "kpiFemale", "femaleBar"]].forEach(
+        ([gender, textId, barId]) => {
+
+            const group =
+                stats.filter(s => s.gender === gender);
+
+            const value =
+                group.length > 0 ?
+                    group.reduce((a, b) => a + b.percentage, 0) / group.length :
+                    null;
+
+            byId(textId).textContent =
+                value === null ? "–" : fmtPct(value);
+
+            byId(barId).style.width =
+                value === null ? "0%" : Math.min(100, value) + "%";
 
         }
     );
+
+}
+
+
+/* ==========================================
+   CHARTS (plain SVG / CSS — no chart library)
+========================================== */
+
+function renderTrend() {
+
+    const host =
+        byId("trendChart");
+
+    if (!analyticsData || !host || host.offsetParent === null) {
+
+        return;
+
+    }
+
+    const weekly =
+        analyticsData.weeklyBreakdown;
+
+    if (weekly.length === 0) {
+
+        host.innerHTML =
+            "";
+
+        return;
+
+    }
+
+    const width =
+        Math.max(240, Math.round(host.clientWidth));
+
+    const height =
+        width < 360 ? 150 : 190;
+
+    const pad =
+        width < 360 ? 18 : 24;
+
+    const values =
+        weekly.map(w => w.percentage);
+
+    const floor =
+        Math.max(0, Math.floor((Math.min(...values, 75) - 10) / 10) * 10);
+
+    const plotHeight =
+        height - pad - 22;
+
+    const xFor = (i) =>
+        weekly.length === 1 ?
+            width / 2 :
+            pad + i * ((width - pad * 2) / (weekly.length - 1));
+
+    const yFor = (v) =>
+        pad + plotHeight - ((Math.min(100, Math.max(floor, v)) - floor) / (100 - floor)) * plotHeight;
+
+    const points =
+        weekly.map((w, i) => [xFor(i), yFor(w.percentage)]);
+
+    const line =
+        points.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+
+    const baseline =
+        pad + plotHeight;
+
+    const area =
+        `${line} L${points[points.length - 1][0].toFixed(1)} ${baseline} L${points[0][0].toFixed(1)} ${baseline} Z`;
+
+    const targetY =
+        yFor(75);
+
+    const lowest =
+        Math.min(...values);
+
+    let svg =
+        `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Weekly attendance trend, lowest in week ${weekly[values.indexOf(lowest)].week} at ${Math.round(lowest)} percent">` +
+        `<line x1="${pad}" x2="${width - pad}" y1="${targetY.toFixed(1)}" y2="${targetY.toFixed(1)}" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="1"/>` +
+        (weekly.length > 1 ? `<path d="${area}" fill="rgba(15,118,110,0.12)"/>` : "") +
+        (weekly.length > 1 ? `<path d="${line}" fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : "");
+
+    points.forEach(
+        (p, i) => {
+
+            const isLow =
+                weekly.length > 1 && values[i] === lowest;
+
+            svg +=
+                `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${isLow ? 5 : 3.5}" fill="${isLow ? "#ef4444" : "#0f766e"}"/>`;
+
+            if (isLow || i === 0 || i === weekly.length - 1) {
+
+                svg +=
+                    `<text x="${p[0].toFixed(1)}" y="${(p[1] - 9).toFixed(1)}" font-size="11" text-anchor="middle" fill="${isLow ? "#ef4444" : "#64748b"}">${Math.round(values[i])}%</text>`;
+
+            }
+
+            svg +=
+                `<text x="${p[0].toFixed(1)}" y="${height - 4}" font-size="11" text-anchor="middle" fill="#64748b">W${weekly[i].week}</text>`;
+
+        }
+    );
+
+    host.innerHTML =
+        svg + "</svg>";
+
+}
+
+
+function renderDays() {
+
+    const values =
+        analyticsData.dayStats;
+
+    const withData =
+        values.filter(v => v > 0);
+
+    const min =
+        withData.length > 1 ? Math.min(...withData) : null;
+
+    const max =
+        withData.length > 1 ? Math.max(...withData) : null;
+
+    byId("dayHint").textContent =
+        min !== null && max !== min ? "lowest day in red" : "";
+
+    byId("dayBars").innerHTML =
+        DAY_LABELS.map(
+            (label, i) => {
+
+                const value =
+                    values[i];
+
+                const tone =
+                    value <= 0 ? "" :
+                    (min !== null && max !== min && value === min) ? "an-po" :
+                    (min !== null && max !== min && value === max) ? "an-ex" :
+                    "an-dim";
+
+                return `
+                    <div class="an-drow">
+                        <span>${label}</span>
+                        <span class="an-bar"><i class="${tone}" style="width:${value > 0 ? Math.min(100, value) : 0}%"></i></span>
+                        <b>${value > 0 ? fmtPct(value) : "–"}</b>
+                    </div>
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+function renderStatus() {
+
+    const statuses =
+        ["Excellent", "Good", "Fair", "Poor"];
+
+    const counts = {};
+
+    statuses.forEach(status => { counts[status] = 0; });
+
+    analyticsData.studentStats.forEach(s => { counts[statusFor(s.percentage)] += 1; });
+
+    const t =
+        ANALYTICS_THRESHOLDS;
+
+    byId("statusHint").textContent =
+        `Excellent ${t.excellent}%+ · Good ${t.good}%+ · Fair ${t.fair}%+ · Poor below ${t.fair}%`;
+
+    byId("statusBar").innerHTML =
+        statuses
+            .filter(status => counts[status] > 0)
+            .map(status => `<span class="${statusClass(status)}" style="flex:${counts[status]} 1 0" title="${status}: ${counts[status]}"></span>`)
+            .join("");
+
+    byId("statusBar").setAttribute(
+        "aria-label",
+        "Status breakdown: " + statuses.map(status => `${status} ${counts[status]}`).join(", ")
+    );
+
+    byId("statusLegend").innerHTML =
+        statuses.map(
+            status => `<span><i class="an-dot ${statusClass(status)}"></i>${status} <b>${counts[status]}</b></span>`
+        ).join("");
+
+}
+
+
+/* ==========================================
+   LISTS
+========================================== */
+
+function studentRowHtml(row, extra) {
+
+    const initials =
+        row.name.split(" ").filter(Boolean).slice(0, 2).map(w => w.charAt(0)).join("").toUpperCase() || "?";
+
+    return `
+        <div class="an-row"${extra && extra.hidden ? " hidden" : ""}>
+            ${extra && extra.rank ? `<span class="an-rank">${extra.rank}</span>` : `<span class="an-av an-av-${anHash(row.name) % 5}" aria-hidden="true">${anEscape(initials)}</span>`}
+            <span class="an-name">${anEscape(row.name)}</span>
+            ${extra && extra.bar ? `<span class="an-bar"><i class="${statusClass(statusFor(row.percentage))}" style="width:${Math.min(100, row.percentage)}%"></i></span>` : ""}
+            <b>${fmtPct(row.percentage)}</b>
+        </div>
+    `;
+
+}
+
+
+function renderFollowUp() {
+
+    const stats =
+        analyticsData.studentStats;
+
+    const enabled =
+        analyticsData.totalSchoolOpened > 0;
+
+    const below75 =
+        enabled ? stats.filter(s => s.percentage < 75).sort((a, b) => a.percentage - b.percentage) : [];
+
+    const below50 =
+        enabled ? stats.filter(s => s.percentage < 50).sort((a, b) => a.percentage - b.percentage) : [];
+
+    byId("tab75").textContent =
+        below75.length;
+
+    byId("tab50").textContent =
+        below50.length;
+
+    document.querySelectorAll(".an-tab").forEach(
+        tab => {
+
+            const on =
+                tab.dataset.tab === followTab;
+
+            tab.classList.toggle("is-on", on);
+
+            tab.setAttribute("aria-pressed", String(on));
+
+        }
+    );
+
+    const list =
+        followTab === "50" ? below50 : below75;
+
+    const LIMIT =
+        5;
+
+    byId("followList").innerHTML =
+        list.length === 0 ?
+            `<p class="an-none">None — nice work.</p>` :
+            list.map(
+                (row, index) => studentRowHtml(row, { bar: true, hidden: !followExpanded && index >= LIMIT })
+            ).join("");
+
+    const more =
+        byId("followMore");
+
+    if (list.length > LIMIT) {
+
+        more.textContent =
+            followExpanded ? "Show fewer" : `Show all ${list.length} ›`;
+
+        more.hidden =
+            false;
+
+    }
+    else {
+
+        more.hidden =
+            true;
+
+    }
+
+}
+
+
+function renderTop() {
+
+    const top =
+        [...analyticsData.studentStats]
+            .sort((a, b) => b.present - a.present)
+            .slice(0, 5);
+
+    byId("topList").innerHTML =
+        top.length === 0 ?
+            `<p class="an-none">No data yet.</p>` :
+            top.map((row, index) => studentRowHtml(row, { rank: index + 1 })).join("");
+
+}
+
+
+function renderStrip() {
+
+    byId("weekStrip").innerHTML =
+        analyticsData.weeklyBreakdown.map(
+            w => `
+                <button type="button" class="an-cell ${statusClass(statusFor(w.percentage))}" data-week="${w.week}" title="Open the Week ${w.week} report" aria-label="Week ${w.week}, ${fmtPct(w.percentage)}. Open the report.">
+                    W${w.week}<b>${fmtPct(w.percentage)}</b>
+                </button>
+            `
+        ).join("");
+
+}
+
+
+/* ==========================================
+   PAGED FETCH
+   The database returns at most 1000 rows per request, and a
+   whole term of attendance for a class is far more than that
+   (students × days). Without paging, the later rows were silently
+   dropped, so some students' attendance came out too low.
+   Same helper broadsheet.js / report-card.js / ratings.js use.
+========================================== */
+
+async function fetchPaged(makeQuery) {
+
+    const PAGE =
+        1000;
+
+    let all =
+        [];
+
+    let from =
+        0;
+
+    while (true) {
+
+        const { data, error } =
+            await makeQuery().range(from, from + PAGE - 1);
+
+        if (error) {
+
+            throw error;
+
+        }
+
+        all =
+            all.concat(data);
+
+        if (data.length < PAGE) {
+
+            return all;
+
+        }
+
+        from += PAGE;
+
+    }
 
 }

@@ -58,6 +58,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setupWeekSelectDefault();
 
+    initWeekDropdown();
+
+    initSchoolOpenedStepper();
+
     await loadStudents();
 
     bindUI();
@@ -466,6 +470,8 @@ async function loadWeeklySettings() {
 
     document.getElementById("schoolOpened").value =
         schoolOpened;
+
+    syncSchoolOpenedUI();
 
 }
 
@@ -1331,3 +1337,370 @@ document.addEventListener(
 
     }
 );
+
+
+/* ==========================================
+   STYLED WEEK DROPDOWN
+   The real <select id="attendanceWeek"> stays in the page (hidden) and
+   keeps being read and listened to exactly as before; this is its face.
+========================================== */
+
+function weekRangeText(weekNumber) {
+
+    const dates =
+        getWeekDates(weekNumber);
+
+    if (!dates || dates.length < 5) {
+
+        return "";
+
+    }
+
+    const months =
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const short = (date) =>
+        `${date.getDate()} ${months[date.getMonth()]}`;
+
+    return `${short(dates[0])} – ${short(dates[4])}`;
+
+}
+
+
+// Which week today falls in (0 if today is outside weeks 1–15).
+function thisWeekNumber() {
+
+    const start =
+        new Date(sessionStartDate + "T00:00:00");
+
+    const week =
+        Math.floor((new Date() - start) / (1000 * 60 * 60 * 24 * 7)) + 1;
+
+    return week >= 1 && week <= 15 ? week : 0;
+
+}
+
+
+function syncWeekUI() {
+
+    const select =
+        document.getElementById("attendanceWeek");
+
+    const value =
+        select.value;
+
+    document.getElementById("weekValue").textContent =
+        value ? `Week ${value}` : "Choose a week";
+
+    document.getElementById("weekRange").textContent =
+        value ? weekRangeText(Number(value)) : "";
+
+    document.querySelectorAll("#weekMenu .aw-opt").forEach(
+        option => {
+
+            const selected =
+                option.dataset.value === value;
+
+            option.classList.toggle("is-selected", selected);
+
+            option.setAttribute("aria-selected", String(selected));
+
+        }
+    );
+
+}
+
+
+function initWeekDropdown() {
+
+    const select =
+        document.getElementById("attendanceWeek");
+
+    const button =
+        document.getElementById("weekBtn");
+
+    const menu =
+        document.getElementById("weekMenu");
+
+    if (!select || !button || !menu) {
+
+        return;
+
+    }
+
+    const now =
+        thisWeekNumber();
+
+    menu.innerHTML =
+        Array.from(select.options).map(
+            option => `
+                <button type="button" class="aw-opt" role="option" data-value="${option.value}">
+                    <b>${option.textContent.trim()}</b>
+                    <span class="aw-opt-range">${weekRangeText(Number(option.value))}</span>
+                    ${Number(option.value) === now ? `<span class="aw-now">This week</span>` : ""}
+                    <i class="fa-solid fa-check aw-check" aria-hidden="true"></i>
+                </button>
+            `
+        ).join("");
+
+    const options =
+        Array.from(menu.querySelectorAll(".aw-opt"));
+
+
+    const close = (returnFocus) => {
+
+        menu.hidden =
+            true;
+
+        button.setAttribute("aria-expanded", "false");
+
+        if (returnFocus) {
+
+            button.focus();
+
+        }
+
+    };
+
+    const open = () => {
+
+        menu.hidden =
+            false;
+
+        button.setAttribute("aria-expanded", "true");
+
+        const selected =
+            options.find(o => o.classList.contains("is-selected")) || options[0];
+
+        menu.scrollTop =
+            Math.max(0, selected.offsetTop - menu.clientHeight / 2 + selected.offsetHeight / 2);
+
+        selected.focus({ preventScroll: true });
+
+    };
+
+
+    button.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            if (menu.hidden) {
+
+                open();
+
+            }
+            else {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    button.addEventListener(
+        "keydown",
+        (event) => {
+
+            if ((event.key === "ArrowDown" || event.key === "ArrowUp") && menu.hidden) {
+
+                event.preventDefault();
+
+                open();
+
+            }
+
+        }
+    );
+
+    options.forEach(
+        option => {
+
+            option.addEventListener(
+                "click",
+                (event) => {
+
+                    event.stopPropagation();
+
+                    const changed =
+                        select.value !== option.dataset.value;
+
+                    select.value =
+                        option.dataset.value;
+
+                    syncWeekUI();
+
+                    close(true);
+
+                    // The existing handler on the select loads that week.
+                    if (changed) {
+
+                        select.dispatchEvent(new Event("change", { bubbles: true }));
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+    menu.addEventListener(
+        "keydown",
+        (event) => {
+
+            const index =
+                options.indexOf(document.activeElement);
+
+            if (event.key === "ArrowDown") {
+
+                event.preventDefault();
+
+                options[Math.min(index + 1, options.length - 1)].focus();
+
+            }
+            else if (event.key === "ArrowUp") {
+
+                event.preventDefault();
+
+                options[Math.max(index - 1, 0)].focus();
+
+            }
+            else if (event.key === "Home") {
+
+                event.preventDefault();
+
+                options[0].focus();
+
+            }
+            else if (event.key === "End") {
+
+                event.preventDefault();
+
+                options[options.length - 1].focus();
+
+            }
+            else if (event.key === "Escape") {
+
+                event.preventDefault();
+
+                close(true);
+
+            }
+            else if (event.key === "Tab") {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        "click",
+        () => {
+
+            if (!menu.hidden) {
+
+                close(false);
+
+            }
+
+        }
+    );
+
+    syncWeekUI();
+
+}
+
+
+/* ==========================================
+   TIMES-SCHOOL-OPENED STEPPER  ( − 10 + )
+========================================== */
+
+function syncSchoolOpenedUI() {
+
+    const input =
+        document.getElementById("schoolOpened");
+
+    const down =
+        document.getElementById("schoolOpenedDown");
+
+    const up =
+        document.getElementById("schoolOpenedUp");
+
+    if (!input || !down || !up) {
+
+        return;
+
+    }
+
+    const value =
+        Number(input.value) || 0;
+
+    down.disabled =
+        value <= Number(input.min || 0);
+
+    up.disabled =
+        value >= Number(input.max || 10);
+
+}
+
+
+function initSchoolOpenedStepper() {
+
+    const input =
+        document.getElementById("schoolOpened");
+
+    const down =
+        document.getElementById("schoolOpenedDown");
+
+    const up =
+        document.getElementById("schoolOpenedUp");
+
+    if (!input || !down || !up) {
+
+        return;
+
+    }
+
+    const nudge = (delta) => {
+
+        const min =
+            Number(input.min || 0);
+
+        const max =
+            Number(input.max || 10);
+
+        const next =
+            Math.min(max, Math.max(min, (Number(input.value) || 0) + delta));
+
+        if (next === Number(input.value)) {
+
+            return;
+
+        }
+
+        input.value =
+            String(next);
+
+        syncSchoolOpenedUI();
+
+        // The existing handler saves the new number and refreshes the summary.
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+
+    };
+
+    down.addEventListener("click", () => nudge(-1));
+
+    up.addEventListener("click", () => nudge(1));
+
+    input.addEventListener("input", syncSchoolOpenedUI);
+
+    input.addEventListener("change", syncSchoolOpenedUI);
+
+    syncSchoolOpenedUI();
+
+}

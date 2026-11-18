@@ -11,17 +11,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
     <style>
-        /* Print-only layout: hide the on-screen summary cards and
-           top header, show the school header (with logo) instead —
-           `!important` here overrides both the inline display:none
-           on #printHeader and any rules from the shared stylesheet. */
+        /* Print-only layout: hide the whole on-screen report (header, week bar,
+           summary, filters and the student list) and show the school header
+           (with logo) plus the plain table instead — `!important` here overrides
+           both the inline display:none on #printHeader and any rules from the
+           shared stylesheet. */
 
         @media print {
 
             .sidebar,
             .top-header,
-            .summary-grid {
+            .summary-grid,
+            .wr-screen {
                 display: none !important;
+            }
+
+            .wr-print-only {
+                display: block !important;
             }
 
             #printHeader {
@@ -47,6 +53,278 @@
             }
 
         }
+
+        /* ---------- weekly report, on screen ---------- */
+
+        .wr-print-only { display: none; }
+
+        .wr-header { flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+        .wr-title { display: flex; align-items: center; gap: 14px; }
+        .wr-title h1 { margin-bottom: 4px; }
+        .wr-sub { margin: 0; font-size: 13px; color: var(--text-secondary); }
+
+        .wr-tile {
+            display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center;
+            box-sizing: border-box; min-width: 64px; max-width: 90px; height: 52px; padding: 0 8px;
+            border-radius: 14px; font-size: 15px; font-weight: 700; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .wr-tone-teal { background: #ccfbf1; color: #0f766e; }
+        .wr-tone-indigo { background: #e0e7ff; color: #4338ca; }
+        .wr-tone-amber { background: #fef3c7; color: #b45309; }
+
+        .wr-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+        .wr-seg {
+            display: inline-flex; gap: 2px; padding: 3px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 11px;
+        }
+        .wr-seg > span, .wr-seg > button {
+            padding: 6px 16px; background: transparent; border: 0; border-radius: 8px;
+            font: inherit; font-size: 13px; font-weight: 500; color: var(--text-secondary);
+        }
+        .wr-seg > button { cursor: pointer; }
+        .wr-seg > button:hover { background: var(--surface-alt); }
+        .wr-seg > span.is-on { background: var(--primary); color: #ffffff; }
+
+        button.wr-btn {
+            display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+            font-size: 13.5px; font-weight: 500; color: var(--text-main); cursor: pointer;
+        }
+        button.wr-btn:hover { background: var(--surface-alt); border-color: #cbd5e1; }
+        button.wr-btn-primary, button.wr-btn-primary:hover {
+            background: var(--primary); border-color: var(--primary); color: #ffffff;
+        }
+        button.wr-btn-primary:hover { background: var(--primary-dark); }
+
+        /* week bar */
+        .wr-weekbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .wr-week {
+            display: inline-flex; align-items: stretch; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 10px;
+        }
+        button.wr-nav {
+            width: 38px; padding: 0; background: transparent; border: 0; border-radius: 0;
+            font-size: 13px; color: var(--text-secondary); cursor: pointer;
+        }
+        button.wr-nav:first-child { border-radius: 9px 0 0 9px; }
+        button.wr-nav:last-child { border-radius: 0 9px 9px 0; }
+        button.wr-nav:hover:not(:disabled) { background: var(--surface-alt); color: var(--primary); }
+        button.wr-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .wr-dd { position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+        .wr-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        button.wr-trigger {
+            display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
+            background: transparent; border: 0; border-radius: 0; font: inherit; font-size: 14px;
+            color: var(--text-main); cursor: pointer;
+        }
+        button.wr-trigger:hover, button.wr-trigger[aria-expanded="true"] { background: var(--surface-alt); }
+        button.wr-trigger:focus-visible, button.wr-nav:focus-visible,
+        button.wr-chip:focus-visible, button.wr-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+        button.wr-trigger > i:first-child { color: var(--text-muted); }
+        .wr-value { font-weight: 600; }
+        .wr-range { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+        .wr-chev { font-size: 11px; color: var(--text-muted); transition: transform 0.2s ease; }
+        button.wr-trigger[aria-expanded="true"] .wr-chev { transform: rotate(180deg); }
+
+        .wr-menu {
+            position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; width: 300px; max-height: 300px;
+            overflow-y: auto; overscroll-behavior: contain; padding: 6px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-md);
+        }
+        .wr-menu[hidden] { display: none; }
+        button.wr-opt {
+            display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px;
+            background: transparent; border: 0; border-radius: 8px; font: inherit; font-size: 14px;
+            text-align: left; color: var(--text-main); cursor: pointer;
+        }
+        button.wr-opt:hover, button.wr-opt:focus-visible { outline: none; background: var(--surface-alt); }
+        button.wr-opt.is-selected { background: rgba(15, 118, 110, 0.1); }
+        .wr-opt b { min-width: 58px; font-weight: 600; }
+        .wr-opt-range { flex: 1; white-space: nowrap; font-size: 12.5px; color: var(--text-secondary); }
+        .wr-now {
+            padding: 2px 10px; border-radius: 9999px; background: #dcfce7; font-size: 12px;
+            font-weight: 600; color: #166534;
+        }
+        .wr-now[hidden] { display: none; }
+        .wr-opt .wr-now { padding: 1px 8px; font-size: 11px; }
+        .wr-check { width: 14px; color: var(--primary); visibility: hidden; }
+        button.wr-opt.is-selected .wr-check { visibility: visible; }
+
+        /* notice + summary */
+        .wr-notice {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 14px;
+            border-radius: 12px; background: #e0f2fe; font-size: 13px; color: #075985;
+        }
+        .wr-notice[hidden] { display: none; }
+        .wr-notice a { margin-left: auto; font-weight: 600; color: inherit; white-space: nowrap; }
+
+        .wr-card, .wr-hero {
+            margin-bottom: 12px; padding: 16px 18px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-sm);
+        }
+        .wr-hero { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: center; }
+
+        .wr-ring-wrap { position: relative; width: 132px; height: 132px; margin: 0 auto; }
+        .wr-ring { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .wr-ring circle { fill: none; stroke-width: 5; }
+        .wr-ring .track { stroke: #e2e8f0; }
+        .wr-ring .fill { stroke: var(--primary); stroke-linecap: round; transition: stroke-dasharray 0.4s ease; }
+        .wr-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .wr-ring-text b { font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .wr-ring-text span { font-size: 12px; color: var(--text-secondary); }
+
+        .wr-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .wr-stat { padding: 9px 12px; background: var(--surface-alt); border-radius: 12px; }
+        .wr-stat small { display: block; font-size: 12px; color: var(--text-secondary); }
+        .wr-stat b { font-size: 19px; font-weight: 700; color: var(--text-main); }
+        .wr-stat span { font-size: 12px; color: var(--text-secondary); }
+
+        .wr-gender h2 { margin: 0 0 12px; font-size: 13.5px; font-weight: 600; }
+        .wr-grow { display: grid; grid-template-columns: 54px 1fr 50px; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 13px; }
+        .wr-grow:last-child { margin-bottom: 0; }
+        .wr-grow > span:first-child { color: var(--text-secondary); }
+        .wr-grow b { text-align: right; font-weight: 600; }
+
+        .wr-bar { display: block; height: 8px; overflow: hidden; border-radius: 9999px; background: #e2e8f0; }
+        .wr-bar i { display: block; height: 100%; border-radius: 9999px; transition: width 0.3s ease; }
+        .wr-bar-lg { height: 10px; }
+        .wr-male { background: #378add; }
+        .wr-female { background: #d4537e; }
+        .wr-ex { background: #15803d; }
+        .wr-go { background: #22c55e; }
+        .wr-fa { background: #f59e0b; }
+        .wr-po { background: #ef4444; }
+
+        .wr-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; font-size: 13.5px; font-weight: 600; }
+        .wr-card-head span { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
+        .wr-split { display: flex; gap: 2px; height: 12px; overflow: hidden; border-radius: 9999px; background: #e2e8f0; }
+        .wr-split span { min-width: 4px; transition: flex-grow 0.3s ease; }
+        .wr-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 13px; color: var(--text-secondary); }
+        .wr-legend b { color: var(--text-main); font-weight: 700; }
+        .wr-dot { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; }
+
+        .wr-attn {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 14px;
+            border-radius: 12px; background: #fef3c7; font-size: 13px; color: #92400e;
+        }
+        .wr-attn[hidden] { display: none; }
+        .wr-attn span { flex: 1; }
+        button.wr-link {
+            padding: 0; background: none; border: 0; font: inherit; font-size: 13px; font-weight: 600;
+            text-decoration: underline; color: inherit; cursor: pointer; white-space: nowrap;
+        }
+        button.wr-link:hover { background: none; }
+
+        /* search + filters */
+        .wr-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .wr-search { position: relative; flex: 1 1 220px; max-width: 320px; }
+        .wr-search i { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); font-size: 13px; color: var(--text-muted); pointer-events: none; }
+        .wr-search input {
+            box-sizing: border-box; width: 100%; height: 40px; padding: 0 12px 0 36px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 10px; font: inherit; font-size: 14px; color: var(--text-main);
+        }
+        .wr-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14); }
+        .wr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        button.wr-chip {
+            display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 9999px; font-size: 13px; font-weight: 500;
+            color: var(--text-secondary); cursor: pointer;
+        }
+        button.wr-chip:hover { background: var(--surface-alt); }
+        button.wr-chip.is-on, button.wr-chip.is-on:hover { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+        button.wr-chip .wr-dot { margin-right: 0; }
+
+        /* student list */
+        .wr-list { overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-sm); }
+        .wr-row {
+            display: grid; grid-template-columns: 34px minmax(0, 1.3fr) minmax(0, 1.2fr) 64px 64px 96px;
+            grid-template-areas: "num who prog abs pct st"; column-gap: 12px; align-items: center;
+            padding: 10px 18px; border-top: 1px solid var(--border-light);
+        }
+        .wr-row[hidden] { display: none; }
+        .wr-head {
+            grid-template-areas: none; padding-top: 12px; padding-bottom: 12px; border-top: 0;
+            background: var(--surface-alt); font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--text-secondary);
+        }
+        .wr-row.is-attn { background: rgba(245, 158, 11, 0.07); }
+        .wr-row.is-attn.is-poor { background: rgba(239, 68, 68, 0.07); }
+        .wr-num { grid-area: num; font-size: 13px; color: var(--text-muted); }
+        .wr-who { grid-area: who; display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .wr-prog { grid-area: prog; display: flex; align-items: center; gap: 10px; }
+        .wr-prog .wr-bar { flex: 1; }
+        .wr-frac { width: 38px; font-size: 12.5px; color: var(--text-secondary); }
+        .wr-abs { grid-area: abs; font-size: 14px; }
+        .wr-side { display: contents; }
+        .wr-pct { grid-area: pct; font-size: 14px; font-weight: 700; }
+        .wr-st { grid-area: st; justify-self: start; padding: 2px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; color: #ffffff; }
+        .wr-av { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; font-size: 11.5px; font-weight: 700; }
+        .wr-av-0 { background: #dcfce7; color: #15803d; }
+        .wr-av-1 { background: #fef3c7; color: #b45309; }
+        .wr-av-2 { background: #ffe4e6; color: #be123c; }
+        .wr-av-3 { background: #e0e7ff; color: #4338ca; }
+        .wr-av-4 { background: #ccfbf1; color: #0f766e; }
+        .wr-nm { display: flex; flex-direction: column; min-width: 0; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+        .wr-meta { display: none; font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
+        .wr-note { margin: 0; padding: 28px 20px; text-align: center; font-size: 14px; color: var(--text-muted); }
+        .wr-note[hidden] { display: none; }
+        .wr-foot { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); }
+
+        /* term picker: three buttons with a dot on the current term */
+        .wr-tseg {
+            display: inline-flex; gap: 4px; padding: 4px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 12px;
+        }
+        button.wr-tbtn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px;
+            padding: 0 18px; background: transparent; border: 0; border-radius: 9px; font: inherit;
+            font-size: 13.5px; font-weight: 500; color: var(--text-secondary); cursor: pointer;
+        }
+        button.wr-tbtn:hover { background: var(--surface-alt); }
+        button.wr-tbtn.is-on, button.wr-tbtn.is-on:hover { background: var(--primary); color: #ffffff; }
+        button.wr-tbtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .wr-tbtn .wr-tdot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
+        button.wr-tbtn.is-on .wr-tdot { background: #bbf7d0; }
+        .wr-pill-muted {
+            padding: 2px 10px; border-radius: 9999px; background: var(--surface-alt);
+            border: 1px solid var(--border); font-size: 12px; font-weight: 500; color: var(--text-secondary);
+        }
+        .wr-pill-muted:empty { display: none; }
+
+        @media (max-width: 1000px) {
+            .wr-hero { grid-template-columns: 150px minmax(0, 1fr); }
+            .wr-gender { grid-column: 1 / -1; }
+            .wr-head { display: none; }
+            .wr-row {
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas: "who side" "prog prog";
+                row-gap: 10px; padding: 12px 14px;
+            }
+            .wr-num, .wr-abs { display: none; }
+            .wr-meta { display: block; }
+            .wr-side { grid-area: side; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+            .wr-frac { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .wr-title .wr-tile { min-width: 52px; height: 46px; font-size: 13px; }
+            .wr-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 14px; }
+            .wr-ring-wrap { width: 110px; height: 110px; }
+            .wr-tseg { width: 100%; }
+            button.wr-tbtn { flex: 1; padding: 0 6px; }
+            .wr-search { flex: 1 1 100%; max-width: none; }
+            .wr-chips { overflow-x: auto; flex-wrap: nowrap; width: 100%; padding-bottom: 4px; }
+            button.wr-chip { flex: 0 0 auto; }
+            .wr-btn-label { display: none; }
+            button.wr-btn { width: 38px; padding: 0; justify-content: center; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .wr-ring .fill, .wr-bar i, .wr-split span, .wr-chev { transition: none; }
+        }
     </style>
 
 </head>
@@ -58,25 +336,25 @@
 
         <main class="main-content">
 
-            <header class="top-header">
-                <div>
-                    <h1>Term Report</h1>
-                    <div class="dashboard-meta-pill" style="margin-top:4px;">
-                        <span id="className"></span>
+            <header class="top-header wr-header">
+
+                <div class="wr-title">
+                    <span class="wr-tile" id="classTile"></span>
+                    <div>
+                        <h1>Term Report</h1>
+                        <p class="wr-sub"><span id="className"></span> · <span id="termText"></span> · <span id="sessionText"></span></p>
                     </div>
                 </div>
-                <div class="report-controls">
-                    <select id="reportTerm" class="report-week-select">
-                        <option value="1st Term">1st Term</option>
-                        <option value="2nd Term">2nd Term</option>
-                        <option value="3rd Term">3rd Term</option>
-                    </select>
-                    <div class="report-actions">
-                        <button type="button" class="btn-info btn-sm" id="switchToWeeklyBtn"><i class="fa-solid fa-arrow-right-arrow-left"></i> Weekly Report</button>
-                        <button type="button" class="btn-info btn-sm" id="printBtn"><i class="fa-solid fa-print"></i> Print</button>
-                        <button type="button" class="btn-success btn-sm" id="exportBtn"><i class="fa-solid fa-file-excel"></i> Export</button>
+
+                <div class="wr-actions">
+                    <div class="wr-seg" role="group" aria-label="Report type">
+                        <button type="button" id="switchToWeeklyBtn">Weekly</button>
+                        <span class="is-on" aria-current="page">Term</span>
                     </div>
+                    <button type="button" class="wr-btn" id="printBtn"><i class="fa-solid fa-print" aria-hidden="true"></i> <span class="wr-btn-label">Print</span></button>
+                    <button type="button" class="wr-btn wr-btn-primary" id="exportBtn"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> <span class="wr-btn-label">Export</span></button>
                 </div>
+
             </header>
 
             <div id="noStartDateNotice" class="card" style="display:none;">
@@ -85,14 +363,100 @@
 
             <div id="reportWrapper" style="display:none;">
 
-                <div class="summary-grid">
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-user-check"></i></div><div><h3>Total Attendance</h3><p id="cardTotalPresent">0</p></div></div>
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-calendar-days"></i></div><div><h3>School Opened</h3><p id="cardSchoolOpened">0</p></div></div>
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-chart-column"></i></div><div><h3>Average Attendance</h3><p id="cardAverage">0%</p></div></div>
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-person"></i></div><div><h3>Male Attendance</h3><p id="cardMale">0%</p></div></div>
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-person-dress"></i></div><div><h3>Female Attendance</h3><p id="cardFemale">0%</p></div></div>
-                    <div class="summary-card"><div class="summary-card-icon"><i class="fa-solid fa-percent"></i></div><div><h3>Attendance %</h3><p id="cardOverall">0%</p></div></div>
+                <div class="wr-weekbar wr-screen">
+
+                    <select id="reportTerm" class="wr-native" tabindex="-1" aria-hidden="true">
+                        <option value="1st Term">1st Term</option>
+                        <option value="2nd Term">2nd Term</option>
+                        <option value="3rd Term">3rd Term</option>
+                    </select>
+
+                    <div class="wr-tseg" id="termSeg" role="group" aria-label="Term"></div>
+
+                    <span class="wr-now" id="termNowPill" hidden>Current term</span>
+
+                    <span class="wr-pill-muted" id="weeksPill"></span>
+
                 </div>
+
+                <div class="wr-notice wr-screen" id="openedNotice" hidden>
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <span id="openedNoticeText"></span>
+                    <a href="/school/attendance.html">Open Attendance</a>
+                </div>
+
+                <section class="wr-hero wr-screen">
+
+                    <div class="wr-ring-wrap">
+                        <svg class="wr-ring" viewBox="0 0 48 48" aria-hidden="true">
+                            <circle class="track" cx="24" cy="24" r="20"></circle>
+                            <circle class="fill" id="ringFill" cx="24" cy="24" r="20" pathLength="100" stroke-dasharray="0 100"></circle>
+                        </svg>
+                        <div class="wr-ring-text"><b id="cardOverall">0%</b><span>attendance</span></div>
+                    </div>
+
+                    <div class="wr-stats">
+                        <div class="wr-stat"><small>Total present</small><b id="cardTotalPresent">0</b> <span id="cardTotalOf"></span></div>
+                        <div class="wr-stat"><small>School opened</small><b id="cardSchoolOpened">0</b> <span>times</span></div>
+                        <div class="wr-stat"><small>Students</small><b id="cardStudents">0</b></div>
+                        <div class="wr-stat"><small>Average per student</small><b id="cardAverage">0%</b></div>
+                    </div>
+
+                    <div class="wr-gender">
+                        <h2>Male vs female attendance</h2>
+                        <div class="wr-grow"><span>Male</span><span class="wr-bar wr-bar-lg"><i class="wr-male" id="maleBar" style="width:0%"></i></span><b id="cardMale">–</b></div>
+                        <div class="wr-grow"><span>Female</span><span class="wr-bar wr-bar-lg"><i class="wr-female" id="femaleBar" style="width:0%"></i></span><b id="cardFemale">–</b></div>
+                    </div>
+
+                </section>
+
+                <section class="wr-card wr-screen">
+                    <div class="wr-card-head">How the class did <span id="statusHint"></span></div>
+                    <div class="wr-split" id="statusBar" role="img" aria-label="Status breakdown"></div>
+                    <div class="wr-legend" id="statusLegend"></div>
+                </section>
+
+                <div class="wr-attn wr-screen" id="attentionStrip" hidden>
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                    <span id="attentionText"></span>
+                    <button type="button" class="wr-link" id="attentionShow">Show them</button>
+                </div>
+
+                <div class="wr-toolbar wr-screen">
+
+                    <label class="wr-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" id="reportSearch" placeholder="Search students" autocomplete="off" aria-label="Search students">
+                    </label>
+
+                    <div class="wr-chips" id="statusChips" role="group" aria-label="Filter by status">
+                        <button type="button" class="wr-chip is-on" data-status="all" aria-pressed="true">All <span id="chipAll">0</span></button>
+                        <button type="button" class="wr-chip" data-status="Excellent" aria-pressed="false"><i class="wr-dot wr-ex"></i>Excellent <span id="chipExcellent">0</span></button>
+                        <button type="button" class="wr-chip" data-status="Good" aria-pressed="false"><i class="wr-dot wr-go"></i>Good <span id="chipGood">0</span></button>
+                        <button type="button" class="wr-chip" data-status="Fair" aria-pressed="false"><i class="wr-dot wr-fa"></i>Fair <span id="chipFair">0</span></button>
+                        <button type="button" class="wr-chip" data-status="Poor" aria-pressed="false"><i class="wr-dot wr-po"></i>Poor <span id="chipPoor">0</span></button>
+                    </div>
+
+                </div>
+
+                <section class="wr-list wr-screen">
+
+                    <div class="wr-row wr-head" aria-hidden="true">
+                        <span>#</span>
+                        <span>Student</span>
+                        <span id="presentHead">Present</span>
+                        <span>Absent</span>
+                        <span>%</span>
+                        <span>Status</span>
+                    </div>
+
+                    <div id="reportList"></div>
+
+                    <p class="wr-note" id="reportNote" hidden></p>
+
+                    <div class="wr-foot" id="reportFoot"></div>
+
+                </section>
 
                 <div id="printHeader" style="display:none; margin-bottom:1rem;">
                     <img id="printLogo" alt="School logo" style="display:none; height:56px; width:56px; object-fit:contain; flex-shrink:0;">
@@ -101,7 +465,7 @@
                         <p id="printMeta" style="margin:0; font-size:13px; color:var(--text-secondary);"></p>
                     </div>
                 </div>
-
+                <div class="wr-print-only">
                 <div class="card">
 
                     <div class="table-scroll">
@@ -119,6 +483,7 @@
                     </table>
                     </div>
 
+                </div>
                 </div>
 
             </div>

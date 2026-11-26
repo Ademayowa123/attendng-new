@@ -252,7 +252,9 @@
         }
         .wr-row.is-attn { background: rgba(245, 158, 11, 0.07); }
         .wr-row.is-attn.is-poor { background: rgba(239, 68, 68, 0.07); }
-        .wr-num { grid-area: num; font-size: 13px; color: var(--text-muted); }
+        .wr-num { grid-area: num; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        /* Serial number inside the student cell: only used where the columns collapse into cards. */
+        .wr-sn { display: none; flex: 0 0 auto; min-width: 22px; text-align: right; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
         .wr-who { grid-area: who; display: flex; align-items: center; gap: 12px; min-width: 0; }
         .wr-prog { grid-area: prog; display: flex; align-items: center; gap: 10px; }
         .wr-prog .wr-bar { flex: 1; }
@@ -304,6 +306,7 @@
                 row-gap: 10px; padding: 12px 14px;
             }
             .wr-num, .wr-abs { display: none; }
+            .wr-sn { display: inline-block; }
             .wr-meta { display: block; }
             .wr-side { grid-area: side; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
             .wr-frac { display: none; }
@@ -445,7 +448,7 @@
                 <section class="wr-list wr-screen">
 
                     <div class="wr-row wr-head" aria-hidden="true">
-                        <span>#</span>
+                        <span>S/N</span>
                         <span>Student</span>
                         <span id="presentHead">Present</span>
                         <span>Absent</span>

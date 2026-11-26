@@ -96,6 +96,16 @@
     }
 
 
+    // The Report Card page hides the class step for class teachers (they only
+    // ever have their own class). Then the class isn't mentioned anywhere in
+    // the panel — it stays on the Broadsheet page, which shows it.
+    function classStepHidden() {
+
+        return !isShown(byId("classField"));
+
+    }
+
+
     /* ---------- drawing ---------- */
 
     function buildClassCards() {
@@ -184,6 +194,9 @@
             }
         );
 
+        const hideClass =
+            classStepHidden();
+
         const className =
             selectedText(classSelect);
 
@@ -197,7 +210,25 @@
             session ? `${term}, ${session}` : term;
 
         byId("spSummary").textContent =
-            className ? `${className} · ${when}` : when;
+            className && !hideClass ? `${className} · ${when}` : when;
+
+        // No class step → no "1 / 2" numbering and no class tile in the folded line
+        document.querySelectorAll("#setupPanel .sp-num").forEach(
+            badge => { badge.style.display = hideClass ? "none" : ""; }
+        );
+
+        byId("spTile").style.display =
+            hideClass ? "none" : "";
+
+        const hint =
+            document.querySelector("#spPlaceholder > span");
+
+        if (hint) {
+
+            hint.textContent =
+                hideClass ? "Pick a term, then generate." : "Pick a class and term, then generate.";
+
+        }
 
         byId("spTile").textContent =
             className;

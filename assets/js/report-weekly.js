@@ -1715,6 +1715,7 @@ function renderScreenReport() {
                     <div class="wr-row${attention ? " is-attn" : ""}${attention && row.status === "Poor" ? " is-poor" : ""}" data-index="${index}">
                         <span class="wr-num">${row.serial}</span>
                         <div class="wr-who">
+                            <span class="wr-sn" title="Serial number">${row.serial}</span>
                             <span class="wr-av wr-av-${wrHash(row.name) % 5}" aria-hidden="true">${wrEscape(initials)}</span>
                             <span class="wr-nm">${wrEscape(row.name)}<span class="wr-meta">${row.present} present · ${row.absent} absent</span></span>
                         </div>

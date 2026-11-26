@@ -63,6 +63,33 @@
         }
     </style>
 
+    <style>
+        /* Setup panel fixes.
+           1) The panel's behind-the-scenes selects must stay hidden whatever their state: the
+              site-wide `select:disabled { opacity: .6 }` rule used to win over .se-native when
+              the Broadsheet disabled the class select (single-class teachers), which showed up
+              as a small stray dropdown under the term buttons.
+           2) On phones the summary line sat in a column flex box with `flex: 1 1 200px`, which
+              turned its 200px basis into 200px of empty height above the Generate button. */
+        select.se-native,
+        select.se-native:disabled {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        @media (max-width: 768px) {
+
+            .sp-summary {
+                flex: 0 0 auto;
+            }
+        }
+    </style>
+
 </head>
 <body>
 
